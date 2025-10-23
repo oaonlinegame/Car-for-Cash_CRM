@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>คู่มือ Vue 3 + Vuetify (CDN) ฉบับคนขี้ลืม</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css" rel="stylesheet" />
+    <!-- Vuetify (CSS) for live demo in page bottom -->
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.6.10/dist/vuetify.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #0f172a;
+            /* slate-900 */
+            --card: #111827;
+            /* gray-900 */
+            --ink: #e5e7eb;
+            /* gray-200 */
+            --muted: #94a3b8;
+            /* slate-400 */
+            --accent: #22d3ee;
+            /* cyan-400 */
+            --accent-2: #60a5fa;
+            /* blue-400 */
+            --good: #34d399;
+            /* emerald-400 */
+            --bad: #fb7185;
+            /* rose-400 */
+            --warn: #fbbf24;
+            /* amber-400 */
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(180deg, #0b1227, #0f172a 40%, #0b1227);
+            color: var(--ink);
+            font-family: "Noto Sans Thai", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 20px 120px
+        }
+
+        header.hero {
+            display: grid;
+            gap: 16px;
+            padding: 28px;
+            background: radial-gradient(1200px 400px at 20% -20%, rgba(34, 211, 238, .2), transparent), radial-gradient(900px 360px at 120% -30%, rgba(96, 165, 250, .2), transparent);
+            border-bottom: 1px solid #1f2937
+        }
+
+        .title {
+            font-size: clamp(28px, 6vw, 40px);
+            font-weight: 700;
+            letter-spacing: .2px
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: clamp(14px, 2.4vw, 18px)
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(34, 211, 238, .12);
+            color: #a5f3fc;
+            border: 1px solid rgba(34, 211, 238, .35);
+            font-weight: 600
+        }
+
+        .grid {
+            display: grid;
+            gap: 16px
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(255, 255, 255, .01));
+            border: 1px solid rgba(148, 163, 184, .18);
+            border-radius: 18px;
+            padding: 18px 18px 16px
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 20px
+        }
+
+        .muted {
+            color: var(--muted)
+        }
+
+        .kbd {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(148, 163, 184, .35);
+            background: rgba(148, 163, 184, .08);
+            font-size: 12px
+        }
+
+        .code {
+            position: relative;
+            background: #0b1022;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 14px;
+            overflow: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            color: #e5e7eb;
+            font-size: 13px
+        }
+
+        .badge {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, .35);
+            color: var(--muted)
+        }
+
+        .list {
+            margin: 8px 0 0 16px
+        }
+
+        .callout {
+            border-left: 3px solid var(--accent);
+            padding: 10px 14px;
+            background: rgba(34, 211, 238, .06);
+            border-radius: 10px
+        }
+
+        .callout.warn {
+            border-color: var(--warn);
+            background: rgba(251, 191, 36, .07)
+        }
+
+        .callout.good {
+            border-color: var(--good);
+            background: rgba(52, 211, 153, .07)
+        }
+
+        details.summary {
+            background: rgba(255, 255, 255, .02);
+            border: 1px solid rgba(148, 163, 184, .18);
+            border-radius: 12px;
+            padding: 10px 14px
+        }
+
+        details summary {
+            cursor: pointer;
+            font-weight: 600
+        }
+
+        a,
+        a:visited {
+            color: #7dd3fc
+        }
+
+        hr.sep {
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(148, 163, 184, .35), transparent);
+            margin: 28px 0
+        }
+
+        .toc a {
+            text-decoration: none
+        }
+
+        .num {
+            color: #93c5fd;
+            font-weight: 700
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(125, 211, 252, .12);
+            border: 1px solid rgba(125, 211, 252, .4);
+            color: #bae6fd;
+            font-size: 12px;
+            margin-right: 6px
+        }
+
+        footer {
+            color: var(--muted);
+            text-align: center;
+            margin-top: 36px
+        }
+    </style>
+</head>
+
+<body>
+    <header class="hero">
+        <div class="container">
+            <span class="chip"><i class="mdi mdi-leaf"></i> Vue 3 + Vuetify (CDN)</span>
+            <div class="title">คู่มือฉบับ <span style="color:#a5f3fc">คนขี้ลืม</span> – ใช้จริงในโปรเจกต์</div>
+            <div class="subtitle">สรุปทุกอย่างที่ต้องรู้: โครงสร้างไฟล์, ref vs reactive, การแชร์ตัวแปรข้ามไฟล์,
+                การผูกกับ Template, และตัวอย่างทำงานได้จริง</div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- TOC -->
+        <div class="card">
+            <h3>สารบัญ</h3>
+            <div class="grid grid-2 toc">
+                <div>
+                    <div><span class="num">1.</span> <a href="#structure">โครงสร้างโปรเจกต์แบบง่าย</a></div>
+                    <div><span class="num">2.</span> <a href="#concepts">แนวคิดสำคัญ (จำง่าย)</a></div>
+                    <div><span class="num">3.</span> <a href="#ref-reactive">ref vs reactive ใช้ตอนไหน</a></div>
+                </div>
+                <div>
+                    <div><span class="num">4.</span> <a href="#cross">แชร์ค่าข้ามไฟล์ยังไง (ไม่ต้อง import)</a></div>
+                    <div><span class="num">5.</span> <a href="#examples">ตัวอย่างโค้ดพร้อมใช้</a></div>
+                    <div><span class="num">6.</span> <a href="#live">สาธิตสด (live demo)</a></div>
+                </div>
+            </div>
+        </div>
+
+        <section id="structure" class="card">
+            <h3>1) โครงสร้างโปรเจกต์แบบง่าย</h3>
+            <pre class="code"><code>index.html
+js/
+├─ state.js     ← เก็บสถานะกลาง (เช่น ผู้ใช้, ธีม, ตั้งค่า)
+├─ finance.js   ← ฟังก์ชัน/ตัวแปรเกี่ยวกับสินเชื่อ
+├─ lead.js      ← ฟังก์ชัน/ตัวแปรเกี่ยวกับลูกค้า
+└─ app.js       ← รวมทุกอย่างเข้า Vue (createApp + setup)</code></pre>
+            <div class="callout">
+                โหลดสคริปต์ตามลำดับนี้ใน <b>index.html</b> เพื่อหลีกเลี่ยงการเรียกใช้ก่อนประกาศ:
+                <pre class="code"><code>&lt;script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/vuetify@3.6.10/dist/vuetify.min.js"&gt;&lt;/script&gt;
+&lt;script src="./js/state.js"&gt;&lt;/script&gt;
+&lt;script src="./js/finance.js"&gt;&lt;/script&gt;
+&lt;script src="./js/lead.js"&gt;&lt;/script&gt;
+&lt;script src="./js/app.js"&gt;&lt;/script&gt;</code></pre>
+            </div>
+        </section>
+
+        <section id="concepts" class="card">
+            <h3>2) แนวคิดสำคัญ (จำง่าย)</h3>
+            <ul class="list">
+                <li><b>สร้าง Vue App แค่ครั้งเดียว</b> ใน <span class="kbd">app.js</span> ด้วย <span
+                        class="kbd">Vue.createApp</span>.</li>
+                <li><b>ทุกไฟล์ JS ใช้ Vue API ได้</b> (เพราะโหลดผ่าน CDN) เช่น <span class="kbd">Vue.ref()</span>, <span
+                        class="kbd">Vue.reactive()</span>.</li>
+                <li><b>สิ่งที่ Template ต้องใช้</b> ให้ <b>return</b> ออกมาจาก <span class="kbd">setup()</span>.</li>
+                <li><b>ห่อของเป็นกล่อง (namespace)</b> เช่น <span class="kbd">const Finance = { ... }</span>
+                    กันชื่อชนและเรียกข้ามไฟล์ง่าย.</li>
+            </ul>
+            <div class="callout good"><b>จำสั้น ๆ:</b> <span class="kbd">ref = .value</span> ใน JS, <span
+                    class="kbd">reactive = ไม่ต้อง .value</span>. ใน Template เขียนชื่อได้ตรง ๆ.</div>
+        </section>
+
+        <section id="ref-reactive" class="card">
+            <h3>3) ref vs reactive ใช้ตอนไหน?</h3>
+            <div class="grid grid-2">
+                <div>
+                    <div class="pill"><i class="mdi mdi-alpha-r-box-outline"></i> ref</div>
+                    <div class="muted">ใช้กับค่าเดี่ยว ๆ: ตัวเลข, ข้อความ, true/false หรืออยากควบคุมการแทนที่ทั้งก้อน
+                    </div>
+                    <pre class="code"><code>const count = Vue.ref(0)
+count.value++          // ใน JS ต้อง .value
+// Template: {{ count }} (ไม่ต้อง .value)</code></pre>
+                    <div class="muted">Array แบบ ref:</div>
+                    <pre class="code"><code>const list = Vue.ref([])
+list.value.push('A')
+list.value = []        // แทนที่ทั้งก้อน</code></pre>
+                </div>
+                <div>
+                    <div class="pill"><i class="mdi mdi-alpha-r-circle-outline"></i> reactive</div>
+                    <div class="muted">ใช้กับ Object/Array หลายค่า (Form, Config, Data row)</div>
+                    <pre class="code"><code>const user = Vue.reactive({ name:'มาลี', age:30 })
+user.age++             // ไม่ต้อง .value
+
+const rows = Vue.reactive([])
+rows.push({ id:1, name:'A' })</code></pre>
+                    <div class="callout warn"><b>ข้อควรระวัง:</b> อย่าห่อซ้อน <span
+                            class="kbd">reactive(ref(...))</span> จะงงง่าย เลือกแบบใดแบบหนึ่งพอ</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cross" class="card">
+            <h3>4) แชร์ค่าข้ามไฟล์ยังไง (ไม่ต้อง import)</h3>
+            <p class="muted">ทุกไฟล์ที่โหลดผ่าน &lt;script&gt; อยู่ global scope เหมือนกัน (หลังจากโหลด Vue แล้ว)
+                จึงเรียกข้ามกันได้ด้วยการห่อไว้ในอ็อบเจ็กต์ชื่อไฟล์</p>
+            <pre class="code"><code>// state.js
+const Store = Vue.reactive({ user:{ name:'OAZAA', balance:100000 } })
+
+// finance.js
+const Finance = {
+  loan: Vue.ref(0),
+  calculate(balance){ this.loan.value = balance * 0.7 },
+}
+
+// lead.js
+const Lead = {
+  score(){ return Finance.loan.value &gt; 50000 ? 'A' : 'B' },
+}
+
+// app.js
+createApp({
+  setup(){
+    const balance = Vue.ref(0)
+    return { Store, Finance, Lead, balance }
+  }
+}).use(createVuetify()).mount('#app')</code></pre>
+            <div class="callout">สรุป: เรียงลำดับโหลดไฟล์ให้ถูก + ห่อเป็นอ็อบเจ็กต์ &rarr; เรียกข้ามไฟล์ได้ทันที เช่น
+                <span class="kbd">Lead.score()</span>, <span class="kbd">Finance.calculate(…)</span></div>
+        </section>
+
+        <section id="examples" class="card">
+            <h3>5) ตัวอย่างโค้ดพร้อมใช้ (คัดลอกได้)</h3>
+            <details class="summary">
+                <summary>📄 finance.js</summary>
+                <pre class="code"><code>// finance.js
+const Finance = {
+  loan: Vue.ref(0),
+  calculate(balance){ this.loan.value = balance * 0.7 },
+  getInstallment(months){
+    const rate = 0.03
+    const total = this.loan.value * (1 + rate)
+    return (total / months).toFixed(2)
+  }
+}</code></pre>
+            </details>
+            <details class="summary">
+                <summary>📄 state.js</summary>
+                <pre class="code"><code>// state.js
+const Store = Vue.reactive({
+  theme:'dark',
+  user:{ name:'Guest', balance:100000 }
+})</code></pre>
+            </details>
+            <details class="summary">
+                <summary>📄 app.js</summary>
+                <pre class="code"><code>// app.js
+const { createApp } = Vue
+const { createVuetify } = Vuetify
+
+createApp({
+  setup(){
+    const balance = Vue.ref(0)
+    const compute = () => Finance.calculate(balance.value)
+    return { Store, Finance, balance, compute }
+  }
+}).use(createVuetify()).mount('#demo')</code></pre>
+            </details>
+            <details class="summary">
+                <summary>📄 index.html (โครง)</summary>
+                <pre class="code"><code>&lt;!-- Vue & Vuetify --&gt;
+&lt;script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"&gt;&lt;/script&gt;
+&lt;link href="https://cdn.jsdelivr.net/npm/vuetify@3.6.10/dist/vuetify.min.css" rel="stylesheet" /&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/vuetify@3.6.10/dist/vuetify.min.js"&gt;&lt;/script&gt;
+
+&lt;div id="demo"&gt;...&lt;/div&gt;
+
+&lt;script src="./js/state.js"&gt;&lt;/script&gt;
+&lt;script src="./js/finance.js"&gt;&lt;/script&gt;
+&lt;script src="./js/app.js"&gt;&lt;/script&gt;</code></pre>
+            </details>
+        </section>
+
+        <section id="live" class="card">
+            <h3>6) สาธิตสด (Live Demo)</h3>
+            <p class="muted">ตัวอย่างเล็ก ๆ ใช้ได้จริงด้านล่างนี้ (รันในหน้านี้เลย) — ปรับยอดประเมิน &gt; คำนวณยอดกู้
+                &gt; ดูค่างวด</p>
+            <!-- LIVE MOUNT POINT -->
+            <div id="demo">
+                <v-app>
+                    <v-container>
+                        <div class="grid grid-2">
+                            <div class="card">
+                                <div class="muted">ยอดประเมิน (บาท)</div>
+                                <v-text-field density="compact" type="number" v-model.number="balance"
+                                    prepend-inner-icon="mdi-cash"></v-text-field>
+                                <v-btn color="primary" @click="compute"><i
+                                        class="mdi mdi-calculator-variant"></i>&nbsp;คำนวณยอดกู้</v-btn>
+                            </div>
+                            <div class="card">
+                                <div class="muted">ผลลัพธ์</div>
+                                <p>วงเงินกู้: <b>{{ Finance.loan }}</b> บาท</p>
+                                <p>ค่างวด 12 เดือน: <b>{{ Finance.getInstallment(12) }}</b> บาท/เดือน</p>
+                            </div>
+                        </div>
+                    </v-container>
+                </v-app>
+            </div>
+        </section>
+
+        <hr class="sep" />
+        <div class="callout">
+            <b>สูตรจำคนขี้ลืม:</b> "สิ่งที่ต้องแสดงบนจอ &rarr; return จาก <span class="kbd">setup()</span>,\n ค่าเดี่ยว
+            &rarr; <span class="kbd">ref</span> (ใช้ .value ใน JS),\n กลุ่มข้อมูล &rarr; <span
+                class="kbd">reactive</span> (ไม่ต้อง .value)"
+        </div>
+
+        <footer>
+            ทำด้วย ❤️ เพื่อให้เขียน Vue ได้แบบไม่งงอีกต่อไป – ปรับใช้กับโปรเจกต์ Lead Manager ได้ทันที
+        </footer>
+    </main>
+
+    <!-- Vue & Vuetify (JS) for demo only) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.6.10/dist/vuetify.min.js"></script>
+    <script>
+        // Live demo script (แยกจากตัวอย่างในเอกสาร เพื่อให้รันบนหน้านี้ได้ทันที)
+        const Finance = {
+            loan: Vue.ref(0),
+            calculate(balance) { this.loan.value = balance * 0.7 },
+            getInstallment(m) { const rate = 0.03; const total = this.loan.value * (1 + rate); return (total / m).toFixed(2) }
+        }
+
+        const { createApp } = Vue
+        const { createVuetify } = Vuetify
+
+        createApp({
+            setup() {
+                const balance = Vue.ref(0)
+                const compute = () => Finance.calculate(balance.value)
+                return { Finance, balance, compute }
+            }
+        }).use(createVuetify()).mount('#demo')
+    </script>
+</body>
+
+</html>

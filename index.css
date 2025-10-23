@@ -1,0 +1,39 @@
+        body {
+            font-family: system-ui, sans-serif;
+            margin: 0;
+            background: #f6f7fb
+        }
+
+        .headline {
+            font-weight: 600;
+            color: #1565c0
+        }
+
+        .rounded {
+            border-radius: 16px
+        }
+                /*
+สไตล์เสริมเล็กน้อยเพื่อจัดช่องค้นหาให้กินความกว้างเต็มคอลัมน์กลาง
+- .search-container: ทำให้พื้นที่คอลัมน์กลางกว้าง 100%
+- .search-field: ทำให้ตัว v-text-field ขยายเต็มความกว้าง
+- .v-toolbar-title: ลด padding ซ้าย/ขวาไม่ให้ชิดจนเกินไป
+*/
+        .search-container {
+            width: 100%;
+        }
+
+        .search-field {
+            width: 100%;
+        }
+
+        .v-toolbar-title {
+            padding-inline-start: 0 !important;
+            padding-inline-end: 0 !important;
+        }
+
+
+        /* ปรับความสูงของเมนูการค้นหาให้ดูเบลอพื้นหลังเล็กน้อย (Glassmorphism อ่อน ๆ) */
+        .search-menu-card {
+            background-color: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+        }

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Lead Manager By OAZAA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Vue 3 & Vuetify -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.6.10/dist/vuetify.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.6.10/dist/vuetify.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css" rel="stylesheet" />
+    <!-- (แนะนำ) ฟอนต์ Roboto ของ Vuetify -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet" />
+    <style>
+
+
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <v-app>
+            <!-- ✅ App Bar -->
+            <v-app-bar color="primary" dark>
+                <v-container fluid class="pa-0 fill-height">
+                    <v-row class="fill-height align-center ma-0 pa-0">
+
+                        <!-- ซ้าย -->
+                        <v-col cols="4" class="d-flex align-center">
+                            <v-toolbar-title>
+                                <v-icon class="mr-2">mdi-account-group</v-icon>
+                                Lead Manager
+                            </v-toolbar-title>
+                        </v-col>
+
+                        <!-- กลาง: ค้นหา + ปุ่มตัวกรอง -->
+                        <v-col cols="4" class="d-flex align-center justify-center">
+                            <v-text-field ref="searchRef" variant="solo" flat hide-details density="compact"
+                                prepend-inner-icon="mdi-magnify" placeholder="ค้นหา..."
+                                style="max-width:600px; cursor:pointer;" @focus.stop="">
+                                <template #append-inner>
+                                    <v-btn variant="text" :ripple="false" class="pa-0" style="min-width:30px;"
+                                        @click.stop="toggleMenu('isMenuOpenFiltesterSearch')">
+                                        <v-icon>mdi-tune</v-icon>
+                                    </v-btn>
+                                </template>
+                            </v-text-field>
+                        </v-col>
+
+                        <!-- ขวา: ปุ่มต่าง ๆ -->
+                        <v-col cols="4" class="d-flex align-center justify-end">
+                            <v-tooltip text="Tooltip" location="bottom">
+                                <template #activator="{ props }">
+                                    <v-btn icon variant="text" v-bind="props" @click="">
+                                        <v-icon>mdi-robot-angry</v-icon>
+                                    </v-btn>
+                                </template>
+                            </v-tooltip>
+                            <v-tooltip text="Tooltip" location="bottom">
+                                <template #activator="{ props }">
+                                    <v-btn icon variant="text" v-bind="props" @click="">
+                                        <v-icon>mdi-download</v-icon>
+                                    </v-btn>
+                                </template>
+                            </v-tooltip>
+                            <v-tooltip text="Tooltip" location="bottom">
+                                <template #activator="{ props }">
+                                    <v-btn icon variant="text" v-bind="props" @click="">
+                                        <v-icon>mdi-upload</v-icon>
+                                    </v-btn>
+                                </template>
+                            </v-tooltip>
+                            <v-tooltip text="Tooltip" location="bottom">
+                                <template #activator="{ props }">
+                                    <v-btn icon variant="text" v-bind="props" @click="">
+                                        <v-icon>mdi-bell</v-icon>
+                                    </v-btn>
+                                </template>
+                            </v-tooltip>
+
+                            <v-menu location="bottom end" transition="fade-transition">
+                                <template #activator="{ props }">
+                                    <v-btn icon variant="text" v-bind="props">
+                                        <v-icon>mdi-cog</v-icon>
+                                    </v-btn>
+                                </template>
+                                <v-list density="compact">
+                                    <v-list-item prepend-icon="mdi-car" @click="">
+                                        <v-list-item-title>การตั้งค่าเกี่ยวกับรถยนต์</v-list-item-title>
+                                    </v-list-item>
+                                    <v-list-item prepend-icon="mdi-finance" @click="">
+                                        <v-list-item-title>การตั้งค่าเกี่ยวกับสินเชื่อ</v-list-item-title>
+                                    </v-list-item>
+                                    <v-list-item prepend-icon="mdi-keyboard-outline" @click="">
+                                        <v-list-item-title>การตั้งค่าคีย์ลัด</v-list-item-title>
+                                    </v-list-item>
+                                    <v-list-item prepend-icon="mdi-information-outline" @click="">
+                                        <v-list-item-title>การตั้งค่าเกี่ยวกับโปรแกรม</v-list-item-title>
+                                    </v-list-item>
+                                </v-list>
+                            </v-menu>
+                        </v-col>
+                    </v-row>
+                </v-container>
+
+                <!-- 🔽 เมนู dropdown ของช่อง search (ผูก state + activator) -->
+                <v-menu v-model="isMenuOpenFiltesterSearch" :activator="searchRef" :close-on-content-click="false"
+                    :open-on-click="false" location="bottom center" :offset="[20, 5]" min-width="900">
+                    <v-card style="backdrop-filter: blur(8px); background-color: rgba(255,255,255,0.95);">
+                        <v-card-title>ตัวกรองการค้นหา</v-card-title>
+                        <v-card-text>
+                            <v-switch label="แสดงสินค้าลดราคา" hide-details></v-switch>
+                            <v-select :items="['ราคาต่ำสุด', 'ราคาสูงสุด', 'ยอดนิยม']" label="จัดเรียงตาม"
+                                density="compact" />
+                            <v-range-slider label="ช่วงราคา" :min="0" :max="1000" thumb-label />
+                        </v-card-text>
+                        <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn variant="text">ล้าง</v-btn>
+                            <v-btn color="primary" variant="flat">ค้นหา</v-btn>
+                        </v-card-actions>
+                    </v-card>
+                </v-menu>
+            </v-app-bar>
+
+            <!-- ✅ ใช้ v-main เพื่อไม่ให้ App Bar บังเนื้อหา -->
+            <v-main>
+                <v-container class="d-flex justify-center align-center" fluid style="height: 90vh;">
+                    <v-card class="elevation-10 d-flex flex-column"
+                        style="width: 1500px; max-width: 100%; height: 85vh;">
+
+                        <v-card-title class="d-flex flex-shrink-0">
+                            <span class="headline">Lead Manager</span>
+                            <v-spacer></v-spacer>
+                            <v-btn color="success" @click="toggleMenu('isOpenModalLead')">
+                                <v-icon>mdi-plus</v-icon>
+                                เพิ่ม Lead
+                            </v-btn>
+                        </v-card-title>
+
+                        <v-card-text class="pa-4 flex-grow-1 overflow-y-auto">
+                            <v-row class="ma-0 pa-0" no-gutters>
+                                <!-- ✅ เปลี่ยนจาก leadItems → pagedLeads -->
+                                <v-col cols="12" sm="12" lg="6" v-for="lead in pagedLeads" :key="lead.id" class="pa-2">
+                                    <v-card class="elevation-4" width="100%" max-width="100%" height="200px">
+                                        <v-card-title>{{ lead.customerName }}</v-card-title>
+                                        <v-card-text>
+                                            สถานะ: {{ lead.status }}
+                                        </v-card-text>
+                                    </v-card>
+                                </v-col>
+                            </v-row>
+                        </v-card-text>
+
+                        <v-card-actions class="flex-shrink-0 border-t">
+                            <div class="d-flex align-center ga-2">
+                                <span>ต่อหน้า:</span>
+                                <v-select :items="[5, 10, 15, 20 , All]" v-model="itemsPerPage" density="comfortable"
+                                    style="max-width:100px" hide-details />
+                            </div>
+                            <v-spacer></v-spacer>
+                            <v-pagination v-model="page" :length="totalPages" density="comfortable" />
+                        </v-card-actions>
+
+                    </v-card>
+                </v-container>
+            </v-main>
+
+            <!-- ✅ modal lead (ผูก v-model กับ state) -->
+            <v-dialog v-model=" isOpenModalLead" max-width="1500">
+                <v-card class="lead-dialog-card">
+                    <!-- Header ตรึงบน -->
+                    <div class="lead-dialog-header">
+                        <v-card-title class="py-3">
+                            <div class="d-flex align-center w-100">
+                                <span class="text-h6">สร้าง Lead ใหม่</span>
+                                <v-spacer></v-spacer>
+                                <v-btn icon variant="text" @click="toggleMenu('isOpenModalLead')">
+                                    <v-icon>mdi-close</v-icon>
+                                </v-btn>
+                            </div>
+                        </v-card-title>
+
+                        <!-- Tabs -->
+                        <v-tabs v-model="leadTab" density="comfortable" grow>
+                            <v-tab value="all">ข้อมูลรวม</v-tab>
+                            <v-tab value="basic">ข้อมูลลูกค้า</v-tab>
+                            <v-tab value="vehicle">ข้อมูลรถ</v-tab>
+                            <v-tab value="loan">สินเชื่อ/เอกสาร</v-tab>
+                        </v-tabs>
+                        <v-divider></v-divider>
+                    </div>
+
+                    <!-- เนื้อหา (เป็นส่วนที่สกอลล์ได้) -->
+                    <v-card-text class="lead-dialog-body">
+                        <v-window v-model="leadTab">
+                            <v-window-item value="all">
+                                <v-form>
+                                    <v-row dense>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field label="ชื่อลูกค้า" placeholder="เช่น สมชาย ใจดี"
+                                                hide-details></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field label="เบอร์ติดต่อ" placeholder="เช่น 08x-xxx-xxxx"
+                                                hide-details></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-select :items="['ใหม่', 'ติดตาม', 'ปิดการขาย']" label="สถานะ Lead"
+                                                hide-details></v-select>
+                                        </v-col>
+                                        <v-col cols="12">
+                                            <v-textarea label="หมายเหตุ" rows="3" auto-grow hide-details></v-textarea>
+                                        </v-col>
+                                    </v-row>
+                                </v-form>
+                            </v-window-item>
+                            <!-- TAB 1: ข้อมูลลูกค้า -->
+                            <v-window-item value="basic">
+                                <v-form>
+                                    <v-row dense>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field label="ชื่อลูกค้า" placeholder="เช่น สมชาย ใจดี"
+                                                hide-details></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field label="เบอร์ติดต่อ" placeholder="เช่น 08x-xxx-xxxx"
+                                                hide-details></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-select :items="['ใหม่', 'ติดตาม', 'ปิดการขาย']" label="สถานะ Lead"
+                                                hide-details></v-select>
+                                        </v-col>
+                                        <v-col cols="12">
+                                            <v-textarea label="หมายเหตุ" rows="3" auto-grow hide-details></v-textarea>
+                                        </v-col>
+                                    </v-row>
+                                </v-form>
+                            </v-window-item>
+
+                            <!-- TAB 2: ข้อมูลรถ -->
+                            <v-window-item value="vehicle">
+                                <v-form>
+                                    <v-row dense>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field label="ยี่ห้อ" placeholder="เช่น Toyota"
+                                                hide-details></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field label="รุ่น" placeholder="เช่น Vios"
+                                                hide-details></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field label="ปี" placeholder="เช่น 2018"
+                                                hide-details></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field label="ทะเบียน" placeholder="เช่น 1กก-1234"
+                                                hide-details></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12">
+                                            <v-textarea label="รายละเอียดรถเพิ่มเติม" rows="3" auto-grow
+                                                hide-details></v-textarea>
+                                        </v-col>
+                                    </v-row>
+                                </v-form>
+                            </v-window-item>
+
+                            <!-- TAB 3: สินเชื่อ/เอกสาร -->
+                            <v-window-item value="loan">
+                                <v-form>
+                                    <v-row dense>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field label="วงเงินที่ต้องการ (บาท)" type="number"
+                                                hide-details></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-select :items="['Top-Up', 'รีไฟแนนซ์', 'ใหม่']" label="ประเภทคำขอ"
+                                                hide-details></v-select>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-select :items="['บัตรประชาชน', 'เล่มทะเบียนรถ', 'สลิปเงินเดือน']"
+                                                label="เอกสารที่มี" multiple hide-details></v-select>
+                                        </v-col>
+                                        <v-col cols="12">
+                                            <v-textarea label="หมายเหตุ/เงื่อนไขสินเชื่อ" rows="3" auto-grow
+                                                hide-details></v-textarea>
+                                        </v-col>
+                                    </v-row>
+                                </v-form>
+                            </v-window-item>
+                        </v-window>
+                    </v-card-text>
+
+                    <v-divider></v-divider>
+                    <!-- ปุ่มล่าง ตรึงท้าย -->
+                    <v-card-actions class="lead-dialog-actions pa-4">
+                        <v-spacer></v-spacer>
+                        <v-btn variant="text" @click="toggleMenu('isOpenModalLead')">ยกเลิก</v-btn>
+                        <v-btn color="primary" variant="flat">บันทึก</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+
+
+        </v-app>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./js/state.js"></script>
+    <script src="./js/store.js"></script>
+    <script src="./js/gui.js"></script>
+    <script src="./js/shortcutKey.js"></script>
+    <script src="./js/app.js"></script>
+</body>
+
+</html>
