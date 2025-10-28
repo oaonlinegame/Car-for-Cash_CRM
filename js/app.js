@@ -2,41 +2,60 @@
 const app = window.Vue.createApp({
   setup() {
     const { onMounted, onUnmounted } = window.Vue;
-    // ลบ 'computed' ออกจาก Destructuring เนื่องจากย้ายไป gui.js แล้ว
-    // เรียกใช้ AppGui.setupComputed() เพื่อกำหนด computed properties ใน AppState
-    AppGui.setupComputed();
+
+    // เรียกใช้ AppGui.PagesComputed() เพื่อกำหนด computed properties ใน AppState
+    AppGui.PagesComputed();
+
+    // เรียกใช้ AppGui.setupWatchers() เพื่อตั้งค่าตัวติดตามการเปลี่ยนแปลง (Watcher)
+    // สำหรับการรีเซ็ตหน้าเมื่อมีการค้นหาหรือเปลี่ยนจำนวนรายการต่อหน้า
+    AppGui.setupWatchers();
 
     onMounted(() => {
-      window.addEventListener("keydown", Hotkey.handleKeyDown, true); // เรียกใช้ฟังค์ัชั่นเพื่อรอกดคีย์ลัด
+      // ตั้งค่า Event Listener สำหรับปุ่มลัด (Hotkeys)
+      window.addEventListener("keydown", Hotkey.handleKeyDown, true);
     });
 
     onUnmounted(() => {
+      // ล้าง Event Listener เมื่อ Component ถูกทำลาย
       window.removeEventListener("keydown", Hotkey.handleKeyDown, true);
     });
 
+    //-----------------------------------------------------------------------------------------
+
+    //-----------------------------------------------------------------------------------------
+
     return {
-      // state
-      isMenuOpenFiltesterSearch: AppState.isMenuOpenFiltesterSearch, // เกี่ยวกับการ xxx
-      isOpenModalLead: AppState.isOpenModalLead, // เกี่ยวกับการเปิดปิด modal
-      searchRef: AppState.searchRef, // ตัวแปรจัดการเกี่ยวกับ search
-      leadTab: AppState.leadTab, // xxx
-      page: AppState.page,
-      itemsPerPage: AppState.itemsPerPage,
+      // state (ตัวแปรสถานะที่ใช้ใน Template)
+      isMenuOpenFiltesterSearch: AppState.isMenuOpenFiltesterSearch, // สถานะเปิด/ปิดเมนูค้นหาและตัวกรอง
+      isOpenModalLead: AppState.isOpenModalLead, // สถานะเปิด/ปิด Modal จัดการ Lead
+      searchRef: AppState.searchRef, // ตัวแปร Ref สำหรับอ้างอิง Element ค้นหา
+      leadTab: AppState.leadTab, // Tab ที่กำลังถูกเลือก
+      page: AppState.page, // หน้าปัจจุบัน
+      itemsPerPage: AppState.itemsPerPage, // จำนวนรายการต่อหน้า
+      searchInput: AppState.searchQuery, // คำค้นหาปัจจุบัน
 
-      // ใช้ computed properties ที่ถูกกำหนดไว้ใน AppState (จาก AppGui.setupComputed)
-      pagedLeads: AppState.pagedLeads,
-      totalPages: AppState.totalPages,
+      // Computed properties (ค่าที่คำนวณอัตโนมัติ)
+      pagedLeads: AppState.pagedLeads, // รายการ Lead สำหรับหน้าที่กำลังแสดง (ถูกกรองและแบ่งหน้าแล้ว)
+      totalPages: AppState.totalPages, // จำนวนหน้าทั้งหมด
 
-      // actions
+      // actions (ฟังก์ชันสำหรับควบคุม UI)
       toggleMenu: AppGui.toggleMenu,
+      getRatingFromEvent: window.AppGui.getRatingFromEvent, // 🎯 แก้ไข: ดึงจาก gui.js
 
-      // store
+      // store (ข้อมูลหลัก)
       leadHeaders: Store.leadHeaders, // หัวตารางหน้าแรก
       leadItems: Store.leadItems, // ข้อมูลในส่วนของ lead
+
+      // business logic
+      // Expose ฟังก์ชัน Generic ใหม่
+      getGenericStarColor: window.LeadLogic.getGenericStarColor,
+      setGenericRating: window.LeadLogic.setGenericRating,
 
       // optional: เผย helper ให้หน้า Settings เรียกใช้
       setHotkey: Hotkey.setHotkey,
       removeHotkey: Hotkey.removeHotkey,
+
+      //-------------------------------------------------------------------------------
     };
   },
 });
@@ -44,5 +63,8 @@ const app = window.Vue.createApp({
 // สร้าง vuetify instance จาก global
 const vuetify = window.Vuetify.createVuetify();
 
-// ผูก Vuetify แล้วค่อย mount
-app.use(vuetify).mount("#app");
+// ผูก Vuetify กับ app
+app.use(vuetify);
+
+// Mount app เข้ากับ #app
+app.mount("#app");

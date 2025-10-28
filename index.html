@@ -9,13 +9,12 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/vuetify@3.6.10/dist/vuetify.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/vuetify@3.6.10/dist/vuetify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css" rel="stylesheet" />
     <!-- (แนะนำ) ฟอนต์ Roboto ของ Vuetify -->
     <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet" />
-    <style>
+    <link href="./index.css" rel="stylesheet" />
 
-
-    </style>
 </head>
 
 <body>
@@ -38,7 +37,7 @@
                         <v-col cols="4" class="d-flex align-center justify-center">
                             <v-text-field ref="searchRef" variant="solo" flat hide-details density="compact"
                                 prepend-inner-icon="mdi-magnify" placeholder="ค้นหา..."
-                                style="max-width:600px; cursor:pointer;" @focus.stop="">
+                                style="max-width:600px; cursor:pointer;" @focus.stop="" v-model="searchInput">
                                 <template #append-inner>
                                     <v-btn variant="text" :ripple="false" class="pa-0" style="min-width:30px;"
                                         @click.stop="toggleMenu('isMenuOpenFiltesterSearch')">
@@ -126,46 +125,150 @@
 
             <!-- ✅ ใช้ v-main เพื่อไม่ให้ App Bar บังเนื้อหา -->
             <v-main>
-                <v-container class="d-flex justify-center align-center" fluid style="height: 90vh;">
-                    <v-card class="elevation-10 d-flex flex-column"
-                        style="width: 1500px; max-width: 100%; height: 85vh;">
-
-                        <v-card-title class="d-flex flex-shrink-0">
-                            <span class="headline">Lead Manager</span>
+                <v-container class="d-flex justify-center align-center lead-manager-container" fluid>
+                    <v-card class="elevation-10 d-flex flex-column lead-manager-card">
+                        <v-card-title class="d-flex flex-shrink-0 align-center">
+                            <div class="text-h6 font-weight-bold">
+                                Lead Manager
+                            </div>
                             <v-spacer></v-spacer>
-                            <v-btn color="success" @click="toggleMenu('isOpenModalLead')">
-                                <v-icon>mdi-plus</v-icon>
-                                เพิ่ม Lead
+                            <v-btn color="success" @click="toggleMenu('isOpenModalLead')" prepend-icon="mdi-plus">
+                                เพิ่มลูกค้า
                             </v-btn>
                         </v-card-title>
 
                         <v-card-text class="pa-4 flex-grow-1 overflow-y-auto">
-                            <v-row class="ma-0 pa-0" no-gutters>
-                                <!-- ✅ เปลี่ยนจาก leadItems → pagedLeads -->
-                                <v-col cols="12" sm="12" lg="6" v-for="lead in pagedLeads" :key="lead.id" class="pa-2">
-                                    <v-card class="elevation-4" width="100%" max-width="100%" height="200px">
-                                        <v-card-title>{{ lead.customerName }}</v-card-title>
-                                        <v-card-text>
-                                            สถานะ: {{ lead.status }}
-                                        </v-card-text>
+                            <v-row>
+                                <v-col cols="12" md="12" lg="12" xl="12" sm="12" class="pa-2">
+                                    <v-card class="d-flex flex-column h-30 ma-5 border-black pa-4 customer-detail-card"
+                                        elevation="10" rounded="xl" v-for="lead in leadItems" :key="lead.id">
+                                        <v-sheet class=" d-flex align-center px-4 py-3 border border-black pa-4">
+
+
+                                            <div class=" flex-grow-1">
+                                                <div class="d-flex align-center cursor-pointer" @click="">
+                                                    <v-icon size="20" class="mr-2">mdi-account-circle</v-icon>
+                                                    <div class="d-flex flex-column">
+                                                        {{ lead.name }}
+                                                    </div>
+
+
+                                                    <v-rating :length="5" :size="22" :model-value="lead.rating"
+                                                        :active-color="getGenericStarColor(lead, 'isBlacklisted')"
+                                                        @click.left="setGenericRating(lead, lead.rating, false, 'rating', 'isBlacklisted')"
+                                                        @update:model-value="val => setGenericRating(lead, val, false, 'rating', 'isBlacklisted')"
+                                                        @contextmenu.prevent="setGenericRating(lead, getRatingFromEvent($event), true, 'rating', 'isBlacklisted')">
+                                                    </v-rating>
+
+
+                                                </div>
+                                            </div>
+
+                                            <action-menu edit-label="แก้ไขลูกค้า" delete-label="ลบลูกค้า"
+                                                button-size="small" @edit="editLead('CUST-001')"
+                                                @delete="deleteLead('CUST-001')" />
+                                        </v-sheet>
+                                        <div class="pa-3 overflow-y-auto flex-grow">
+                                            <div class="d-flex justify-end mb-0">
+                                                <v-btn size="small" color="primary" variant="tonal"
+                                                    prepend-icon="mdi-file-sign" @click="addMainContract('CUST-001')"
+                                                    class="add-contract-btn">
+                                                    เพิ่มสัญญาหลัก
+                                                </v-btn>
+                                            </div>
+                                            <v-expansion-panels multiple>
+                                                <v-expansion-panel>
+                                                    <v-expansion-panel-title class="py-2 main-contract-title">
+                                                        <div class="d-flex w-100 align-start">
+                                                            <div class="mr-3 contract-avatar">
+                                                                <v-avatar size="32" color="blue-grey-lighten-4">
+                                                                    <v-icon size="20"
+                                                                        color="blue-grey-darken-2">mdi-file-document</v-icon>
+                                                                </v-avatar>
+                                                            </div>
+                                                            <div class="flex-grow-1 main-contract-content-container">
+                                                            </div>
+                                                        </div>
+                                                    </v-expansion-panel-title>
+                                                    <v-expansion-panel-text class="pt-2 pb-4">
+                                                        <div class="d-flex justify-end mb-1">
+                                                            <v-btn size="x-small" color="secondary" variant="tonal"
+                                                                prepend-icon="mdi-plus-circle"
+                                                                @click="addSubContract('CUST-001','MAIN-001')"
+                                                                class="add-sub-contract-btn">
+                                                                เพิ่มสัญญาย่อย
+                                                            </v-btn>
+                                                        </div>
+                                                        <div class="d-flex">
+                                                            <div class="sub-contract-line-container mr-3">
+                                                                <div class="sub-contract-vertical-line"></div>
+                                                            </div>
+                                                            <div class="flex-grow-1 main-contract-content-container">
+                                                                <div class="sub-contract-box">
+                                                                </div>
+                                                                <div class="sub-contract-box">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </v-expansion-panel-text>
+                                                </v-expansion-panel>
+                                                <v-expansion-panel>
+                                                    <v-expansion-panel-title class="py-2 inactive-contract-title">
+                                                        <div class="d-flex w-100 align-start">
+                                                            <div class="mr-3 contract-avatar">
+                                                                <v-avatar size="32" color="blue-grey-lighten-4">
+                                                                    <v-icon size="20"
+                                                                        color="blue-grey-darken-2">mdi-file-document</v-icon>
+                                                                </v-avatar>
+                                                            </div>
+                                                            <div class="flex-grow-1 main-contract-content-container">
+                                                            </div>
+                                                        </div>
+                                                    </v-expansion-panel-title>
+                                                    <v-expansion-panel-text class="pt-2 pb-4">
+                                                        <div class="d-flex justify-end mb-1">
+                                                            <v-btn size="x-small" color="secondary" variant="tonal"
+                                                                prepend-icon="mdi-plus-circle"
+                                                                @click="addSubContract('CUST-001','MAIN-002')"
+                                                                class="add-sub-contract-btn">
+                                                                เพิ่มสัญญาย่อย
+                                                            </v-btn>
+                                                        </div>
+                                                        <div class="d-flex">
+                                                            <div class="sub-contract-line-container mr-3">
+                                                                <div class="sub-contract-vertical-line"></div>
+                                                            </div>
+                                                            <div
+                                                                class="flex-grow-1 text-caption text-medium-emphasis no-sub-contract-box">
+                                                                ยังไม่มีสัญญาย่อย
+                                                            </div>
+                                                        </div>
+                                                    </v-expansion-panel-text>
+                                                </v-expansion-panel>
+                                            </v-expansion-panels>
+                                        </div>
                                     </v-card>
                                 </v-col>
                             </v-row>
                         </v-card-text>
 
                         <v-card-actions class="flex-shrink-0 border-t">
-                            <div class="d-flex align-center ga-2">
-                                <span>ต่อหน้า:</span>
-                                <v-select :items="[5, 10, 15, 20 , All]" v-model="itemsPerPage" density="comfortable"
-                                    style="max-width:100px" hide-details />
+                            <div class="w-100 d-flex align-center justify-space-between pa-2">
+                                <div class="text-caption">
+                                    หน้า {{ page }} / {{ totalPages }}
+                                </div>
+                                <v-pagination v-model="page" :length="totalPages" :total-visible="7" size="small" />
                             </div>
-                            <v-spacer></v-spacer>
-                            <v-pagination v-model="page" :length="totalPages" density="comfortable" />
                         </v-card-actions>
 
                     </v-card>
                 </v-container>
             </v-main>
+
+
+
+
+
 
             <!-- ✅ modal lead (ผูก v-model กับ state) -->
             <v-dialog v-model=" isOpenModalLead" max-width="1500">
@@ -293,7 +396,6 @@
                         </v-window>
                     </v-card-text>
 
-                    <v-divider></v-divider>
                     <!-- ปุ่มล่าง ตรึงท้าย -->
                     <v-card-actions class="lead-dialog-actions pa-4">
                         <v-spacer></v-spacer>
@@ -310,7 +412,9 @@
     <!-- Scripts -->
     <script src="./js/state.js"></script>
     <script src="./js/store.js"></script>
+    <script src="./js/utils.js"></script>
     <script src="./js/gui.js"></script>
+    <script src="js/lead.js"></script>
     <script src="./js/shortcutKey.js"></script>
     <script src="./js/app.js"></script>
 </body>

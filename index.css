@@ -1,39 +1,136 @@
-        body {
-            font-family: system-ui, sans-serif;
-            margin: 0;
-            background: #f6f7fb
-        }
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #f6f7fb;
+}
 
-        .headline {
-            font-weight: 600;
-            color: #1565c0
-        }
+.headline {
+  font-weight: 600;
+  color: #1565c0;
+}
 
-        .rounded {
-            border-radius: 16px
-        }
-                /*
+.rounded {
+  border-radius: 16px;
+}
+/*
 สไตล์เสริมเล็กน้อยเพื่อจัดช่องค้นหาให้กินความกว้างเต็มคอลัมน์กลาง
 - .search-container: ทำให้พื้นที่คอลัมน์กลางกว้าง 100%
 - .search-field: ทำให้ตัว v-text-field ขยายเต็มความกว้าง
 - .v-toolbar-title: ลด padding ซ้าย/ขวาไม่ให้ชิดจนเกินไป
 */
-        .search-container {
-            width: 100%;
-        }
+.search-container {
+  width: 100%;
+}
 
-        .search-field {
-            width: 100%;
-        }
+.search-field {
+  width: 100%;
+}
 
-        .v-toolbar-title {
-            padding-inline-start: 0 !important;
-            padding-inline-end: 0 !important;
-        }
+.v-toolbar-title {
+  padding-inline-start: 0 !important;
+  padding-inline-end: 0 !important;
+}
 
+/* ปรับความสูงของเมนูการค้นหาให้ดูเบลอพื้นหลังเล็กน้อย (Glassmorphism อ่อน ๆ) */
+.search-menu-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+}
 
-        /* ปรับความสูงของเมนูการค้นหาให้ดูเบลอพื้นหลังเล็กน้อย (Glassmorphism อ่อน ๆ) */
-        .search-menu-card {
-            background-color: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(8px);
-        }
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.lead-card:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px);
+  transition: all 0.2s ease-in-out;
+}
+/* สำหรับ v-container ที่กำหนดความสูง */
+.lead-manager-container {
+  height: 90vh; /* ความสูงของพื้นที่แสดงผล */
+}
+
+/* สำหรับ v-card หลักที่ครอบเนื้อหาทั้งหมด */
+.lead-manager-card {
+  width: 1500px;
+  max-width: 100%;
+  height: 85vh; /* ความสูงของ card */
+}
+
+/* สำหรับ v-card ภายในที่แสดงรายละเอียดลูกค้า */
+.customer-detail-card {
+  /* ใช้ h-75 ของ Vuetify ที่มีอยู่แล้ว (อาจไม่จำเป็นต้องกำหนด height ซ้ำ) */
+  border: 2px solid rgb(190, 189, 189); /* เส้นขอบ */
+}
+
+/* สำหรับปุ่ม "เพิ่มสัญญาหลัก" */
+.add-contract-btn {
+  min-height: 28px; /* ความสูงขั้นต่ำของปุ่ม */
+}
+
+/* สำหรับส่วนหัวของ v-expansion-panel (สัญญาหลัก) */
+.main-contract-title {
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+  padding: 10px 14px;
+}
+
+/* สำหรับ v-avatar ภายใน expansion-panel */
+.contract-avatar {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  flex-shrink: 0; /* ป้องกันไม่ให้โดนย่อ */
+}
+
+/* สำหรับ container ที่ครอบเนื้อหาสัญญาหลัก */
+.main-contract-content-container {
+  min-width: 0; /* เพื่อให้เนื้อหาภายในสามารถจัดการ overflow ได้ดีขึ้น */
+}
+
+/* สำหรับปุ่ม "เพิ่มสัญญาย่อย" */
+.add-sub-contract-btn {
+  min-height: 24px; /* ความสูงขั้นต่ำของปุ่ม */
+}
+
+/* สำหรับเส้นแนวตั้งที่เชื่อมสัญญาย่อย */
+.sub-contract-line-container {
+  width: 32px;
+  display: flex;
+  justify-content: center;
+  margin-right: 1rem; /* ใช้ mr-3 ของ Vuetify แทนได้ */
+}
+
+.sub-contract-vertical-line {
+  width: 2px;
+  background-color: rgba(0, 0, 0, 0.2);
+  flex-grow: 1;
+  border-radius: 1px;
+}
+
+/* สำหรับกล่องข้อมูลสัญญาย่อย */
+.sub-contract-box {
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  border: 1.5px solid rgba(0, 0, 0, 0.18);
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* สำหรับ v-expansion-panel-title ของสัญญาหลัก (Inactive/ไม่ใช้งาน) */
+.inactive-contract-title {
+  background-color: #fafafa;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+  padding: 10px 14px;
+}
+
+/* สำหรับกล่อง "ยังไม่มีสัญญาย่อย" */
+.no-sub-contract-box {
+  background-color: #fdfdfd;
+  border-radius: 8px;
+  border: 2px dashed rgba(0, 0, 0, 0.35);
+  padding: 10px 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
