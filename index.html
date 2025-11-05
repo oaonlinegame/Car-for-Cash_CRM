@@ -36,9 +36,9 @@
 
                         <!-- กลาง: ค้นหา + ปุ่มตัวกรอง -->
                         <v-col cols="4" class="d-flex align-center justify-center">
-                            <v-text-field ref="searchRef" variant="solo" flat hide-details density="compact"
-                                prepend-inner-icon="mdi-magnify" placeholder="ค้นหา..."
-                                style="max-width:600px; cursor:pointer;" @focus.stop="">
+                            <v-text-field ref="searchRef" v-model="searchQuery" variant="solo" v-model="searchQuery"
+                                flat hide-details density="compact" prepend-inner-icon="mdi-magnify"
+                                placeholder="ค้นหา..." style="max-width:600px; cursor:pointer;" @focus.stop="">
                                 <template #append-inner>
                                     <v-btn variant="text" :ripple="false" class="pa-0" style="min-width:30px;"
                                         @click.stop="toggleMenu('isMenuOpenFiltesterSearch')">
@@ -156,7 +156,7 @@
                         <v-card-actions class="flex-shrink-0 border-t">
                             <div class="d-flex align-center ga-2">
                                 <span>ต่อหน้า:</span>
-                                <v-select :items="[5, 10, 15, 20 , All]" v-model="itemsPerPage" density="comfortable"
+                                <v-select :items="[5, 10, 15, 20 , 'All']" v-model="itemsPerPage" density="comfortable"
                                     style="max-width:100px" hide-details />
                             </div>
                             <v-spacer></v-spacer>
@@ -310,6 +310,7 @@
     <!-- Scripts -->
     <script src="./js/state.js"></script>
     <script src="./js/store.js"></script>
+    <script src="./js/utils.js"></script>
     <script src="./js/gui.js"></script>
     <script src="./js/shortcutKey.js"></script>
     <script src="./js/app.js"></script>
