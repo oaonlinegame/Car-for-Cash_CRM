@@ -60,8 +60,8 @@ const app = window.Vue.createApp({
       // ------------------------------------------------
       // 💾 Store (ข้อมูลจำลอง / master data)
       // ------------------------------------------------
-      leadHeaders: Store.leadHeaders, // หัวตารางของข้อมูล lead
-      leadItems: Store.leadItems, // รายการ lead ทั้งหมดจาก store
+      leadHeaders: Store.data.leadHeaders, // หัวตารางของข้อมูล lead
+      leadItems: Store.data.leadItems, // รายการ lead ทั้งหมดจาก store
 
       // ------------------------------------------------
       // 🎹 Hotkey (ระบบคีย์ลัด)

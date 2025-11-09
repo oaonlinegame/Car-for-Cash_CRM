@@ -1,97 +1,99 @@
 // store.js
 // --------------------------------------------------------
-// 📘 ไฟล์นี้ใช้เก็บข้อมูลหลักของระบบ (Store)
-// เช่น รายการลีด, หัวตาราง, และค่าตั้งต้นต่าง ๆ
+// 📘 โครงสร้างใหม่แบบรวมทุกฟังก์ชันอยู่ในอ็อบเจกต์ Store เดียว
 // --------------------------------------------------------
 
-const Store = Vue.reactive({
+const Store = {
   // ----------------------------------------------------
-  // 🧾 กำหนดหัวตารางข้อมูลของ Lead
+  // 🗂️ ข้อมูลหลักของระบบ (Reactive)
   // ----------------------------------------------------
-  leadHeaders: [
-    { title: "ID", align: "start", key: "id" },
-    { title: "ชื่อลูกค้า", align: "start", key: "customerName" },
-    { title: "สถานะ", align: "start", key: "status" },
-    { title: "เบอร์ติดต่อ", align: "start", key: "contactNo" },
-    { title: "รถยนต์", align: "start", key: "vehicle" },
-    { title: "วันที่สร้าง", align: "start", key: "dateCreated" },
-    { title: "จัดการ", align: "center", key: "actions", sortable: false },
-  ],
+  data: Vue.reactive({
+    leadHeaders: [
+      { title: "ID", align: "start", key: "id" },
+      { title: "ชื่อลูกค้า", align: "start", key: "customerName" },
+      { title: "สถานะ", align: "start", key: "status" },
+      { title: "เบอร์ติดต่อ", align: "start", key: "contactNo" },
+      { title: "รถยนต์", align: "start", key: "vehicle" },
+      { title: "วันที่สร้าง", align: "start", key: "dateCreated" },
+      { title: "จัดการ", align: "center", key: "actions", sortable: false },
+    ],
+    leadItems: [], // รายการ lead ทั้งหมด
+  }),
 
   // ----------------------------------------------------
-  // 📋 รายการ Lead ทั้งหมด
+  // 💾 โหลดข้อมูลจาก Local Storage
   // ----------------------------------------------------
-  leadItems: [], // เริ่มต้นเป็นค่าว่าง (จะโหลดจาก Local Storage)
-});
-
-// --------------------------------------------------------
-// 🧠 ฟังก์ชันช่วย: โหลดข้อมูลจาก Local Storage
-// --------------------------------------------------------
-function loadLeadsFromStorage() {
-  try {
-    // ดึงข้อมูลจาก localStorage ตาม key ที่กำหนด
-    const saved = localStorage.getItem("leadItems");
-    if (saved) {
-      // ถ้ามีข้อมูล → แปลงกลับเป็น object แล้วใส่ลงใน Store
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        Store.leadItems.splice(0, Store.leadItems.length, ...parsed); // อัปเดตค่าทั้งหมดใน reactive array
-      }
-    } else {
-      // ถ้าไม่มีข้อมูล → สร้างข้อมูลตัวอย่างเริ่มต้น
-      Store.leadItems.push(
-        {
-          id: 1,
-          customerName: "John Doe",
-          status: "Active",
-          contactNo: "123-456-7890",
-          vehicle: "Toyota Camry",
-          dateCreated: "2025-11-01",
-        },
-        {
-          id: 2,
-          customerName: "Jane Smith",
-          status: "Inactive",
-          contactNo: "987-654-3210",
-          vehicle: "Honda Civic",
-          dateCreated: "2025-11-02",
+  loadLeadsFromStorage() {
+    try {
+      const saved = localStorage.getItem("leadItems");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          this.data.leadItems.splice(0, this.data.leadItems.length, ...parsed);
         }
-      );
+      } else {
+        // ถ้าไม่มีข้อมูล → สร้างข้อมูลตัวอย่าง
+        this.data.leadItems.push(
+          {
+            id: 1,
+            customerName: "John Doe",
+            status: "Active",
+            contactNo: "123-456-7890",
+            vehicle: "Toyota Camry",
+            dateCreated: "2025-11-01",
+          },
+          {
+            id: 2,
+            customerName: "Jane Smith",
+            status: "Inactive",
+            contactNo: "987-654-3210",
+            vehicle: "Honda Civic",
+            dateCreated: "2025-11-02",
+          }
+        );
+      }
+    } catch (err) {
+      console.error("❌ โหลดข้อมูลจาก Local Storage ไม่สำเร็จ:", err);
     }
-  } catch (err) {
-    console.error("โหลดข้อมูลจาก Local Storage ไม่สำเร็จ:", err);
-  }
-}
+  },
+
+  // ----------------------------------------------------
+  // 💾 บันทึกข้อมูลลง Local Storage
+  // ----------------------------------------------------
+  saveLeadsToStorage() {
+    try {
+      localStorage.setItem("leadItems", JSON.stringify(this.data.leadItems));
+    } catch (err) {
+      console.error("❌ บันทึกข้อมูลลง Local Storage ไม่สำเร็จ:", err);
+    }
+  },
+
+  // ----------------------------------------------------
+  // 🧹 เคลียร์ข้อมูล Local Storage และรีโหลดใหม่
+  // ----------------------------------------------------
+  clearLeadStorage() {
+    localStorage.removeItem("leadItems");
+    console.log("🧹 ล้างข้อมูล leadItems แล้ว!");
+    this.data.leadItems.splice(0); // ล้างข้อมูลปัจจุบัน
+    this.loadLeadsFromStorage(); // โหลดตัวอย่างใหม่
+  },
+};
 
 // --------------------------------------------------------
-// 💾 ฟังก์ชันช่วย: บันทึกข้อมูลลง Local Storage
-// --------------------------------------------------------
-function saveLeadsToStorage() {
-  try {
-    // แปลง array เป็น string แล้วบันทึกลง localStorage
-    localStorage.setItem("leadItems", JSON.stringify(Store.leadItems));
-  } catch (err) {
-    console.error("บันทึกข้อมูลลง Local Storage ไม่สำเร็จ:", err);
-  }
-}
-
-// --------------------------------------------------------
-// 👀 Watcher: เมื่อ leadItems มีการเปลี่ยนแปลง → บันทึกอัตโนมัติ
+// 👀 Watcher: ถ้ามีการเปลี่ยนแปลงใน leadItems → บันทึกอัตโนมัติ
 // --------------------------------------------------------
 Vue.watch(
-  () => Store.leadItems, // ตัวที่เฝ้าดู (reactive)
-  () => {
-    saveLeadsToStorage(); // เมื่อเปลี่ยน → เรียกฟังก์ชันบันทึก
-  },
-  { deep: true } // ต้องใช้ deep เพราะ leadItems เป็น array ของ object
+  () => Store.data.leadItems,
+  () => Store.saveLeadsToStorage(),
+  { deep: true }
 );
 
 // --------------------------------------------------------
-// 🚀 เรียกโหลดข้อมูลจาก Local Storage ทันทีเมื่อเริ่มต้นระบบ
+// 🚀 โหลดข้อมูลทันทีตอนเริ่มต้นระบบ
 // --------------------------------------------------------
-loadLeadsFromStorage();
+Store.loadLeadsFromStorage();
 
 // --------------------------------------------------------
-// ✅ เผย Store ออกสู่ Global เพื่อให้ไฟล์อื่นเรียกใช้ได้
+// ✅ เปิดใช้งานได้จากทุกไฟล์
 // --------------------------------------------------------
 window.Store = Store;
