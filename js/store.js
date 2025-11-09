@@ -8,31 +8,27 @@ const Store = {
   // 🗂️ ข้อมูลหลักของระบบ (Reactive)
   // ----------------------------------------------------
   data: Vue.reactive({
-    leadHeaders: [
-      { title: "ID", align: "start", key: "id" },
-      { title: "ชื่อลูกค้า", align: "start", key: "customerName" },
-      { title: "สถานะ", align: "start", key: "status" },
-      { title: "เบอร์ติดต่อ", align: "start", key: "contactNo" },
-      { title: "รถยนต์", align: "start", key: "vehicle" },
-      { title: "วันที่สร้าง", align: "start", key: "dateCreated" },
-      { title: "จัดการ", align: "center", key: "actions", sortable: false },
-    ],
+    leadHeaders: [], // หัวตารางของข้อมูล lead ที่เก็บเป็น array เก็บลง csv ไฟล์ใช้ตอน import/export
     leadItems: [], // รายการ lead ทั้งหมด
   }),
 
-  // ----------------------------------------------------
+  // --------------------------------------------------------
   // 💾 โหลดข้อมูลจาก Local Storage
-  // ----------------------------------------------------
+  // --------------------------------------------------------
   loadLeadsFromStorage() {
     try {
-      const saved = localStorage.getItem("leadItems");
+      const saved = localStorage.getItem("leadItems"); // 🔹 ดึงข้อมูลจาก storage
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(saved); // 🔹 แปลง string → object
         if (Array.isArray(parsed)) {
+          // 🔹 ล้างของเก่าแล้วใส่ข้อมูลใหม่
           this.data.leadItems.splice(0, this.data.leadItems.length, ...parsed);
+          console.log("🔄 โหลดข้อมูล lead จาก Local Storage เรียบร้อยแล้ว");
         }
       } else {
-        // ถ้าไม่มีข้อมูล → สร้างข้อมูลตัวอย่าง
+        // 🔹 ถ้ายังไม่มีข้อมูล → สร้างข้อมูลตัวอย่างใหม่
+        this.data.leadItems.splice(0); // ล้างของเก่า
+        // เพิ่มข้อมูลตัวอย่าง
         this.data.leadItems.push(
           {
             id: 1,
@@ -51,31 +47,69 @@ const Store = {
             dateCreated: "2025-11-02",
           }
         );
+        console.log(
+          "📦 ไม่มีข้อมูลใน Local Storage — สร้างข้อมูลตัวอย่างใหม่แล้ว"
+        );
       }
     } catch (err) {
       console.error("❌ โหลดข้อมูลจาก Local Storage ไม่สำเร็จ:", err);
     }
   },
 
-  // ----------------------------------------------------
+  // --------------------------------------------------------
+  // 🧹 เคลียร์ข้อมูลใน Local Storage และรีโหลดใหม่
+  // --------------------------------------------------------
+  clearLeadStorage() {
+    try {
+      // 🔹 ลบข้อมูลใน localStorage ออกทั้งหมด
+      localStorage.removeItem("leadItems");
+      console.log("🧹 เคลียร์ข้อมูล leadItems ใน Local Storage เรียบร้อยแล้ว!");
+
+      // 🔹 ล้างข้อมูลใน Store ปัจจุบัน
+      this.data.leadItems.splice(0);
+
+      // 🔹 โหลดข้อมูลตัวอย่างใหม่เข้าระบบ
+      this.loadLeadsFromStorage();
+
+      // 🔹 รีเฟรชหน้าเว็บเพื่อให้ Vue อัปเดต UI
+      location.reload();
+    } catch (err) {
+      console.error("❌ ไม่สามารถเคลียร์ Local Storage ได้:", err);
+    }
+  },
+
+  // --------------------------------------------------------
   // 💾 บันทึกข้อมูลลง Local Storage
-  // ----------------------------------------------------
+  // --------------------------------------------------------
   saveLeadsToStorage() {
     try {
-      localStorage.setItem("leadItems", JSON.stringify(this.data.leadItems));
+      localStorage.setItem("leadItems", JSON.stringify(this.data.leadItems)); // 🔹 แปลงและบันทึกข้อมูล
+      console.log("💾 บันทึกข้อมูล leadItems ลง Local Storage แล้ว");
     } catch (err) {
       console.error("❌ บันทึกข้อมูลลง Local Storage ไม่สำเร็จ:", err);
     }
   },
 
-  // ----------------------------------------------------
-  // 🧹 เคลียร์ข้อมูล Local Storage และรีโหลดใหม่
-  // ----------------------------------------------------
+  // --------------------------------------------------------
+  // 🧹 เคลียร์ข้อมูลใน Local Storage และรีโหลดใหม่
+  // --------------------------------------------------------
   clearLeadStorage() {
-    localStorage.removeItem("leadItems");
-    console.log("🧹 ล้างข้อมูล leadItems แล้ว!");
-    this.data.leadItems.splice(0); // ล้างข้อมูลปัจจุบัน
-    this.loadLeadsFromStorage(); // โหลดตัวอย่างใหม่
+    try {
+      // 🔹 ลบข้อมูลใน localStorage ออกทั้งหมด
+      localStorage.removeItem("leadItems");
+      console.log("🧹 เคลียร์ข้อมูล leadItems ใน Local Storage เรียบร้อยแล้ว!");
+
+      // 🔹 ล้างข้อมูลใน Store ปัจจุบัน
+      this.data.leadItems.splice(0);
+
+      // 🔹 โหลดข้อมูลตัวอย่างใหม่เข้าระบบ
+      this.loadLeadsFromStorage();
+
+      // 🔹 รีเฟรชหน้าเว็บเพื่อให้ Vue อัปเดต UI
+      location.reload();
+    } catch (err) {
+      console.error("❌ ไม่สามารถเคลียร์ Local Storage ได้:", err);
+    }
   },
 };
 

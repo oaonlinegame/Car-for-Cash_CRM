@@ -64,6 +64,12 @@ const app = window.Vue.createApp({
       leadItems: Store.data.leadItems, // รายการ lead ทั้งหมดจาก store
 
       // ------------------------------------------------
+      // 🧩 เพิ่มเมธอดของ Store ให้ Template เรียกได้ตรง ๆ
+      // ------------------------------------------------
+      loadLeadsFromStorage: Store.loadLeadsFromStorage, // โหลดข้อมูลจาก Local Storage
+      clearLeadStorage: Store.clearLeadStorage, // ล้างข้อมูล Local Storage
+
+      // ------------------------------------------------
       // 🎹 Hotkey (ระบบคีย์ลัด)
       // ------------------------------------------------
       setHotkey: Hotkey.setHotkey, // ฟังก์ชันเพิ่ม/แก้คีย์ลัด
