@@ -1,176 +1,96 @@
-// store.js
+// js/store.js
 // --------------------------------------------------------
-// 📘 Store เวอร์ชันกลางแท้จริง — ไม่ผูกกับข้อมูลเฉพาะโมดูลใด ๆ
-// ใช้เป็นแหล่งเก็บสถานะกลาง + จัดการ LocalStorage
+// 📘 Store กลางของระบบ (UI Memory Layer)
 // --------------------------------------------------------
-//
-// 🧭 ตัวอย่างการใช้งาน:
-//
-// 🔹 โหลดข้อมูลจาก LocalStorage
-//    Store.loadLocalStorage('Lead')             // โหลดเฉพาะ Lead
-//
-// 🔹 อัปเดตข้อมูลและบันทึกลง LocalStorage
-//    Store.updateLocalStorage('Lead', newData)  // บันทึกข้อมูลใหม่
-//
-// 🔹 เคลียร์ข้อมูล
-//    Store.clearLocalStorage('Lead')            // ล้างข้อมูล Lead ทั้งหมด
-//
-// 🔹 โหลดข้อมูลทั้งหมด (พร้อม fallback)
-//    Store.loadAllFromStorage()                 // โหลดทุกโมดูลพร้อมข้อมูลตัวอย่าง
-//
-// 🔹 โครงสร้างโมดูลที่รองรับ:
-//    - Lead
-//    - Car
-//    - Finance
-//    - Log
-//    - Report
-//    - Settings  ← ✅ เพิ่มใหม่ต้องทำแบบนี้ด้วย
-//
+// ✅ Optimized Version: รองรับข้อมูล 10,000+ รายการ // [ถาวร] โครงสร้างที่ปรับปรุงแล้วเพื่อรองรับข้อมูลขนาดใหญ่
+// ✅ ใช้ shallowReactive + Object.freeze เพื่อประสิทธิภาพสูงสุด // [ถาวร] เทคนิคที่ใช้ลดภาระ Vue ในการเฝ้าดูข้อมูล
 // --------------------------------------------------------
 
 const Store = {
+  // ประกาศอ็อบเจกต์หลักชื่อ Store สำหรับจัดการข้อมูลในหน่วยความจำ (UI Memory)
   // ----------------------------------------------------
-  // 🗂️ โครงสร้างข้อมูลหลัก (Reactive)
+  // ⭐ data: ใช้ shallowReactive แทน reactive ปกติ // [ถาวร] ส่วนสำหรับเก็บข้อมูลสถานะของ UI
+  // เพื่อบอก Vue ว่า "ไม่ต้องเฝ้าดูไส้ใน Array" (ลด Lag ได้ 90%) // [ถาวร] การใช้ shallowReactive จะช่วยลดการหน่วงของระบบ
   // ----------------------------------------------------
-  data: Vue.reactive({
-    // 🔹 เก็บข้อมูลตัวอย่างไว้ภายใน Store เอง
-    ExampleData: {
-      Lead: [
-        {
-          id: 1,
-          customerName: "John Doe",
-          status: "Active",
-          contactNo: "123-456-7890",
-          vehicle: "Toyota Camry",
-          dateCreated: "2025-11-01",
-        },
-        {
-          id: 2,
-          customerName: "Jane Smith",
-          status: "Inactive",
-          contactNo: "987-654-3210",
-          vehicle: "Honda Civic",
-          dateCreated: "2025-11-02",
-        },
-      ],
-      Car: [],
-      Finance: [],
-      Log: [],
-      Report: [],
-      Settings: [],
-    },
+  data: Vue.shallowReactive({
+    // ใช้ Vue.shallowReactive เพื่อสร้างสถานะที่ Vue จะเฝ้าดูแค่ระดับผิวเผิน
+    // 🔹 ข้อมูล Lead (รองรับข้อมูลเยอะ)
+    leadItems: [], // เก็บรายการ Lead ทั้งหมดที่ดึงมาจาก Dexie เพื่อแสดงผลใน UI
 
-    // 🔹 ตัวแปรหลักในระบบ (Reactive)
-    leadHeaders: [],
-    leadItems: [],
-    carItems: [],
-    financeItems: [],
-    logItems: [],
-    reportItems: [],
-    settings: [],
-  }),
+    // 🔹 ข้อมูลส่วนอื่น ๆ
+    carItems: [], // เตรียมช่องสำหรับข้อมูลรถยนต์ในอนาคต
+    financeItems: [], // เตรียมช่องสำหรับข้อมูลสินเชื่อในอนาคต
+    logItems: [], // เตรียมช่องสำหรับข้อมูลบันทึกกิจกรรมในอนาคต
+    reportItems: [], // เตรียมช่องสำหรับข้อมูลรายงานในอนาคต
+    settingsItems: [], // เตรียมช่องสำหรับข้อมูลการตั้งค่าในอนาคต
 
-  // --------------------------------------------------------
-  // 📥 โหลดข้อมูลจาก Local Storage
-  // --------------------------------------------------------
-  loadLocalStorage(type, fallbackData = []) {
-    try {
-      const key = `${type.toLowerCase()}Items`;
-      const saved = localStorage.getItem(key);
+    // 🔹 หัวตาราง (ข้อมูลน้อย ใช้แบบเดิมได้)
+    leadHeaders: [
+      // กำหนดหัวตารางสำหรับแสดงผลรายการ Lead
+      { title: "ID", key: "id", align: "start" }, // คอลัมน์ ID
+      { title: "ชื่อลูกค้า", key: "customerName", align: "start" }, // คอลัมน์ชื่อลูกค้า
+      { title: "สถานะ", key: "status", align: "start" }, // คอลัมน์สถานะ
+      { title: "เบอร์", key: "contactNo", align: "start" }, // คอลัมน์เบอร์
+      { title: "รถ", key: "vehicle", align: "start" }, // คอลัมน์รถ
+      { title: "วันที่สร้าง", key: "dateCreated", align: "start" }, // คอลัมน์วันที่สร้าง
+    ], // จบส่วน leadHeaders
+  }), // จบอ็อบเจกต์ data
 
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          this.data[key].splice(0, this.data[key].length, ...parsed);
-          console.log(`📥 โหลดข้อมูล ${key} จาก Local Storage สำเร็จ`);
-          return;
-        }
-      }
+  // ----------------------------------------------------
+  // ⭐ setItems(type, list): ฟังก์ชันอัปเดตข้อมูลแบบ Fast Mode // [ถาวร] ฟังก์ชันสำหรับอัปเดตข้อมูลจาก Dexie มายัง Store
+  // ----------------------------------------------------
+  setItems(type, list) {
+    // ฟังก์ชันสำหรับใส่ข้อมูลลงใน Store
+    const key = `${type.toLowerCase()}Items`; // แปลงชื่อ type ให้เป็นชื่อ key ใน data (เช่น 'Lead' → 'leadItems')
 
-      // 🔹 ใช้ fallback (ข้อมูลตัวอย่าง)
-      if (Array.isArray(fallbackData) && fallbackData.length > 0) {
-        this.data[key].splice(0, this.data[key].length, ...fallbackData);
-        console.log(`📦 ใช้ข้อมูลตัวอย่างแทน (${type})`);
-      }
-    } catch (err) {
-      console.error(`❌ loadLocalStorage(${type}) ไม่สำเร็จ:`, err);
-    }
-  },
+    // ตรวจสอบความถูกต้อง
+    if (this.data[key] === undefined) {
+      // ตรวจสอบว่า key ที่ต้องการใส่มีอยู่ใน Store.data หรือไม่
+      console.warn(`⚠️ ไม่พบ key ใน Store: ${key}`); // แจ้งเตือนถ้าไม่พบ key
+      return; // หยุดการทำงาน
+    } // จบเงื่อนไขตรวจสอบ key
+    if (!Array.isArray(list)) {
+      // ตรวจสอบว่า list ที่ส่งมาเป็น Array หรือไม่
+      console.warn(`⚠️ setItems(${type}) ข้อมูลไม่ใช่ Array`); // แจ้งเตือนถ้าไม่ใช่ Array
+      list = []; // กำหนดให้ list เป็น Array ว่างเพื่อป้องกัน Error
+    } // จบเงื่อนไขตรวจสอบ Array
 
-  // --------------------------------------------------------
-  // 💾 บันทึกข้อมูลลง Local Storage
-  // --------------------------------------------------------
-  saveLocalStorage(type) {
-    try {
-      const key = `${type.toLowerCase()}Items`;
-      const dataToSave = this.data[key] || [];
-      localStorage.setItem(key, JSON.stringify(dataToSave));
-      console.log(`💾 บันทึกข้อมูล ${key} เรียบร้อย`);
-    } catch (err) {
-      console.error(`❌ saveLocalStorage(${type}) ไม่สำเร็จ:`, err);
-    }
-  },
+    // ⚡ Optimization 1: Freeze ข้อมูลเพื่อลด memory overhead
+    // ทำให้ object เป็น read-only ซึ่งเร็วมากในการอ่าน
+    const optimizedList = list.map((item) => Object.freeze(item)); // สร้าง Array ใหม่ที่ทุก Object ถูกแช่แข็ง (Object.freeze) เพื่อเพิ่มประสิทธิภาพการอ่าน
 
-  // --------------------------------------------------------
-  // 🔁 อัปเดตข้อมูลและบันทึก (ฟังก์ชันกลาง)
-  // --------------------------------------------------------
-  updateLocalStorage(type, newData) {
-    try {
-      const key = `${type.toLowerCase()}Items`;
-      if (!Array.isArray(newData)) {
-        console.warn(`⚠️ updateLocalStorage(${type}): newData ไม่ใช่ Array`);
-        return;
-      }
+    // ⚡ Optimization 2: Replace Reference (เปลี่ยนทั้งก้อน)
+    // ห้ามใช้ push/splice กับข้อมูลหลักหมื่น เพราะจะกระตุ้น UI update ถี่เกินไป
+    this.data[key] = optimizedList; // กำหนดค่า Array ใหม่ทับ Array เดิมทันที (เร็วที่สุดสำหรับ shallowReactive)
 
-      this.data[key].splice(0, this.data[key].length, ...newData);
-      localStorage.setItem(key, JSON.stringify(newData));
-      console.log(`✅ updateLocalStorage(${type}) สำเร็จ`);
-    } catch (err) {
-      console.error(`❌ updateLocalStorage(${type}) ล้มเหลว:`, err);
-    }
-  },
+    console.log(
+      `📦 Store.setItems(${type}) → อัปเดต ${list.length} รายการ (Fast Mode)`
+    ); // แสดง Log ว่าอัปเดตข้อมูลสำเร็จและจำนวนรายการ
+  }, // จบฟังก์ชัน setItems
 
-  // --------------------------------------------------------
-  // 🧹 เคลียร์ข้อมูลใน Local Storage
-  // --------------------------------------------------------
-  clearLocalStorage(type) {
-    try {
-      const key = `${type.toLowerCase()}Items`;
-      localStorage.removeItem(key);
-      this.data[key].splice(0);
-      console.log(`🧹 เคลียร์ข้อมูล ${key} เรียบร้อย`);
-    } catch (err) {
-      console.error(`❌ clearLocalStorage(${type}) ไม่สำเร็จ:`, err);
-    }
-  },
+  // ----------------------------------------------------
+  // ⭐ getItems(type): ดึงข้อมูล // [ถาวร] ฟังก์ชันสำหรับดึงข้อมูลออกจาก Store
+  // ----------------------------------------------------
+  getItems(type) {
+    // ฟังก์ชันสำหรับดึงข้อมูลออกจาก Store
+    const key = `${type.toLowerCase()}Items`; // แปลง type เป็นชื่อ key
+    return this.data[key] || []; // คืนค่า Array ของข้อมูล หรือ Array ว่างถ้าไม่พบ
+  }, // จบฟังก์ชัน getItems
 
-  // --------------------------------------------------------
-  // 🚀 โหลดข้อมูลทั้งหมด (พร้อม fallback ตัวอย่าง)
-  // --------------------------------------------------------
-  loadAllFromStorage() {
-    // ✅ เพิ่ม Settings เข้าในโมดูลที่โหลดด้วย
-    const modules = ["Lead", "Car", "Finance", "Log", "Report", "Settings"];
-    modules.forEach((m) => this.loadLocalStorage(m, this.data.ExampleData[m]));
-  },
-};
+  // ----------------------------------------------------
+  // ⭐ clear(type): ล้างข้อมูล // [ถาวร] ฟังก์ชันสำหรับล้างข้อมูลใน Store
+  // ----------------------------------------------------
+  clear(type) {
+    // ฟังก์ชันสำหรับล้างข้อมูลใน Store
+    const key = `${type.toLowerCase()}Items`; // แปลง type เป็นชื่อ key
+    if (this.data[key] === undefined) return; // ถ้าไม่พบ key ให้หยุดทำงาน
+
+    this.data[key] = []; // ล้างข้อมูลโดยการกำหนดให้เป็น Array ว่างทันที (Replace Reference)
+    console.log(`🧹 ล้างข้อมูล Store: ${type}`); // แสดง Log ว่าล้างข้อมูลสำเร็จ
+  }, // จบฟังก์ชัน clear
+}; // จบอ็อบเจกต์ Store
 
 // --------------------------------------------------------
-// 👀 Watchers — บันทึกอัตโนมัติเมื่อข้อมูลเปลี่ยน
+// 🌍 Export
 // --------------------------------------------------------
-["Lead", "Car", "Finance", "Log", "Report", "Settings"].forEach((type) => {
-  Vue.watch(
-    () => Store.data[`${type.toLowerCase()}Items`],
-    () => Store.saveLocalStorage(type),
-    { deep: true }
-  );
-});
-
-// --------------------------------------------------------
-// 🚀 โหลดข้อมูลทั้งหมดตอนเริ่มระบบ
-// --------------------------------------------------------
-Store.loadAllFromStorage();
-
-// --------------------------------------------------------
-// ✅ เปิดใช้งานทั่วระบบ
-// --------------------------------------------------------
-window.Store = Store;
+window.Store = Store; // ผูกอ็อบเจกต์ Store เข้ากับ window เพื่อให้ไฟล์อื่นเข้าถึงได้

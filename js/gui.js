@@ -1,93 +1,160 @@
 // gui.js
 // --------------------------------------------------------
-// 📘 ฟังก์ชันที่เกี่ยวกับการจัดการ UI (User Interface)
-// เช่น เปิด/ปิดเมนู, เปลี่ยนหน้า, และคำนวณค่าต่าง ๆ ของหน้า
+// 📘 โมดูลจัดการ UI (User Interface Logic)
+// --------------------------------------------------------
+// ทำหน้าที่ควบคุม:
+// - toggleMenu (เปิด/ปิดเมนูหรือ modal)
+// - closeAllMenus (ปิดเมนูทั้งหมด)
+// - pagination / chunking (แบ่งหน้า / จัดกลุ่มข้อมูล)
+// - filteredLeads / pagedLeads (ข้อมูลหลังกรอง + เฉพาะหน้า)
 // --------------------------------------------------------
 
-const { ref, reactive, watch, computed } = window.Vue; // ดึงเครื่องมือจาก Vue มาใช้
+// ดึง Composition API จาก Vue
+const { ref, reactive, watch, computed } = Vue; // ดึงเครื่องมือจาก Vue
 
 // --------------------------------------------------------
-// 🧩 อ็อบเจ็กต์หลัก AppGui รวมฟังก์ชัน UI ทั้งหมด
+// ⭐ อ็อบเจกต์ AppGui รวมฟังก์ชัน UI ทั้งหมด
 // --------------------------------------------------------
 const AppGui = {
   // ----------------------------------------------------
-  // 🟢 toggleMenu: เปิด/ปิดเมนูหรือ modal ตามชื่อ key
+  // 🧠 ตัวแปรภายในของ AppGui สำหรับ debounce การค้นหา
+  // ----------------------------------------------------
+  searchDebounceTimer: null, // ใช้เก็บ timer ของ setTimeout สำหรับดีเลย์การค้นหา
+
+  // ----------------------------------------------------
+  // 🟢 toggleMenu(key, force)
+  // ฟังก์ชันเปิด/ปิด modal หรือเมนูโดยใช้ชื่อใน AppState
   // ----------------------------------------------------
   toggleMenu(key, force) {
-    if (!AppState[key]) return; // ถ้าไม่มี key นั้นใน AppState → ออก
+    if (!AppState[key]) return; // ถ้าไม่พบ key ใน state ให้หยุดทำงานทันที
     AppState[key].value =
-      typeof force === "boolean" ? force : !AppState[key].value; // สลับสถานะหรือกำหนดตาม force
+      typeof force === "boolean"
+        ? force // ถ้า force เป็น boolean → ใช้ค่าที่ส่งมา
+        : !AppState[key].value; // ถ้าไม่ใช่ → สลับค่า (เปิดเป็นปิด / ปิดเป็นเปิด)
   },
 
   // ----------------------------------------------------
-  // 🔴 closeAllMenus: ปิดทุกเมนูและ modal ที่เปิดอยู่
+  // 🔴 closeAllMenus()
+  // ปิดทุกเมนูและทุก modal ที่เปิดอยู่
   // ----------------------------------------------------
-  closeAllMenus: () => {
+  closeAllMenus() {
     Object.keys(AppState).forEach((key) => {
-      // วนทุก key ใน AppState
-      if (
-        (key.startsWith("isMenuOpen") || key.startsWith("isOpenModal")) &&
-        AppState[key]?.value === true // ถ้าเมนู/โมดัลนั้นเปิดอยู่
-      ) {
-        AppState[key].value = false; // ปิดเมนู/โมดัลนั้น
+      const val = AppState[key]; // ดึงค่า state ของ key นั้น
+      if (key.startsWith("is") && val?.value === true) {
+        // ถ้า key ขึ้นต้นด้วย is และค่าเป็น true แสดงว่าเปิดอยู่
+        val.value = false; // ให้ปิดเมนูหรือ modal นั้น
       }
     });
   },
 
   // ----------------------------------------------------
-  // 📄 PagesComputed: ฟังก์ชันคำนวณข้อมูลการแบ่งหน้าและการกรอง
+  // ⭐ setupUIMainComputed()
+  // ฟังก์ชันตั้งค่า Computed หลักทั้งหมดของ UI (Filter, Page, Chunking)
   // ----------------------------------------------------
-  PagesComputed: () => {
-    // ✅ 1. รายการที่ผ่านการกรอง
+  setupUIMainComputed() {
+    // <--- เปลี่ยนชื่อจาก PagesComputed()
+    // --------------------------------------------------
+    // 🔍 1) filteredLeads → ใช้ Utils.filterLeads กรองข้อมูล (เฝ้าดู Store.data.leadItems)
+    // --------------------------------------------------
     AppState.filteredLeads = computed(() => {
-      // รายการลีดที่กรองแล้ว
-      const query = AppState.searchQuery?.value || ""; // ดึงคำค้นจาก state
-      return Utils.filterLeads(Store.data.leadItems, query); // ใช้ฟังก์ชันกรองภายใน
+      const query =
+        AppState.searchQueryDebounced &&
+        AppState.searchQueryDebounced.value !== undefined
+          ? AppState.searchQueryDebounced.value // ถ้ามีค่าค้นหาที่ผ่าน debounce แล้ว → ใช้ตัวนี้
+          : AppState.searchQuery.value; // ถ้าไม่มี (กรณีสำรอง) → ใช้คำค้นหาปกติ
+      const list = Store.data.leadItems; // ดึงรายการ lead ทั้งหมดจาก Store (จุดเฝ้าดูหลัก)
+      return Utils.filterLeads(list, query); // คืนรายการที่ผ่านการกรองตามคำค้นหา
     });
 
-    // ✅ 2. คำนวณจำนวนหน้าทั้งหมด
+    // --------------------------------------------------
+    // 📄 2) totalPages → จำนวนหน้าทั้งหมด
+    // --------------------------------------------------
     AppState.totalPages = computed(() => {
-      // จำนวนหน้าทั้งหมด
-      const total = AppState.filteredLeads.value.length; // จำนวนรายการที่กรองแล้ว
-      const perPage = AppState.itemsPerPage.value; // จำนวนต่อหน้า
-      if (perPage === "All") return 1; // แสดงทั้งหมดถ้าเลือก All
-      const num = Number(perPage); // แปลงเป็นตัวเลข
-      return Math.max(Math.ceil(total / num), 1); // คำนวณจำนวนหน้า
+      const perPage = AppState.itemsPerPage.value; // จำนวนต่อหน้าที่ผู้ใช้เลือก
+      const total = AppState.filteredLeads.value.length; // จำนวนรายการที่ผ่านการกรองทั้งหมด
+
+      if (perPage === "All") return 1; // ถ้าเลือก All → ให้มีหน้าเดียวเสมอ
+
+      const num = Number(perPage); // แปลงค่าจำนวนต่อหน้าเป็นตัวเลข
+      // ถ้าหน้าปัจจุบันเกินจำนวนหน้าทั้งหมด → ให้กลับไปหน้า 1
+      if (AppState.page.value > Math.max(1, Math.ceil(total / num))) {
+        AppState.page.value = 1;
+      }
+
+      return Math.max(1, Math.ceil(total / num)); // คืนค่าจำนวนหน้าขั้นต่ำ 1 หน้าเสมอ
     });
 
-    // ✅ 3. ดึงรายการเฉพาะหน้าปัจจุบัน
+    // --------------------------------------------------
+    // 📃 3) pagedLeads → ตัดข้อมูลเฉพาะหน้าปัจจุบัน / จัดกลุ่ม 2 คอลัมน์
+    // --------------------------------------------------
     AppState.pagedLeads = computed(() => {
-      // รายการลีดในหน้าปัจจุบัน
       const page = AppState.page.value; // หน้าปัจจุบัน
-      const perPage = AppState.itemsPerPage.value; // จำนวนต่อหน้า
-      const all = AppState.filteredLeads.value; // รายการที่กรองแล้วทั้งหมด
-      if (perPage === "All") return all; // แสดงทั้งหมดถ้าเลือก All
-      const num = Number(perPage); // แปลงเป็นตัวเลข
-      const start = (page - 1) * num; // ตำแหน่งเริ่มต้น
-      const end = start + num; // ตำแหน่งสิ้นสุด
-      return all.slice(start, end); // ตัดเอาเฉพาะหน้าปัจจุบัน
+      const perPage = AppState.itemsPerPage.value; // จำนวนต่อหน้า (5,10,20 หรือ All)
+      const all = AppState.filteredLeads.value; // รายการหลังกรองทั้งหมด
+
+      // ✅ กรณีเลือก All → จัดกลุ่มข้อมูลเป็นคู่ (Row ละ 2 items) เพื่อรองรับ 2 คอลัมน์ Grid Virtual Scroll
+      if (perPage === "All") {
+        if (typeof Utils.chunkArray === "function") {
+          return Utils.chunkArray(all, 2); // แบ่งข้อมูลเป็นคู่ (Row ละ 2 items)
+        }
+        return all; // กรณีสำรอง: ถ้าฟังก์ชัน chunkArray ยังไม่โหลด
+      }
+
+      const num = Number(perPage); // จำนวนรายการต่อหน้าในรูปตัวเลข
+      const start = (page - 1) * num; // index เริ่มต้นของหน้าปัจจุบัน
+      const end = start + num; // index สุดท้าย (ไม่รวม) ของหน้าปัจจุบัน
+
+      return all.slice(start, end); // คืนเฉพาะรายการที่อยู่ในช่วงของหน้านั้นเท่านั้น
     });
   },
 
   // ----------------------------------------------------
-  // 👀 setupWatchers: เฝ้าดูค่าที่เปลี่ยนแปลงอัตโนมัติ
+  // ⭐ setupWatchers()
+  // ฟังก์ชันเฝ้าดูค่าที่สำคัญ และจัดการรีเซ็ตหน้า / debounce
   // ----------------------------------------------------
-  setupWatchers: () => {
-    watch(AppState.itemsPerPage, () => (AppState.page.value = 1)); // เปลี่ยนจำนวนต่อหน้า → กลับหน้าแรก
-    watch(AppState.searchQuery, () => (AppState.page.value = 1)); // ค้นหาใหม่ → กลับหน้าแรก
-    watch(AppState.page, (n) => console.log("เปลี่ยนหน้าเป็น:", n)); // debug log
+  setupWatchers() {
+    // 🔁 เมื่อผู้ใช้เปลี่ยนจำนวนรายการต่อหน้า → กลับไปหน้าแรก
+    watch(AppState.itemsPerPage, () => {
+      AppState.page.value = 1; // รีเซ็ตหน้ากลับไป 1 ทุกครั้งที่เปลี่ยน per page
+    });
+
+    // 🔍 เมื่อผู้ใช้พิมพ์ในช่องค้นหา → debounce ก่อนเซ็ตจริง
+    watch(
+      AppState.searchQuery, // เฝ้าดูค่าค้นหาหลักที่ช่อง Search
+      (newVal) => {
+        AppState.page.value = 1; // ทุกครั้งที่ค้นหาใหม่ ให้กลับไปหน้าแรกเสมอ
+
+        // ถ้ามี timer debounce ตัวเก่าอยู่ → เคลียร์ก่อนเพื่อไม่ให้ยิงซ้อน
+        if (this.searchDebounceTimer) {
+          clearTimeout(this.searchDebounceTimer); // ล้าง timer เดิมออก
+        }
+
+        // ตั้ง timer ใหม่เพื่อหน่วงการอัปเดต searchQueryDebounced
+        this.searchDebounceTimer = setTimeout(() => {
+          if (AppState.searchQueryDebounced) {
+            AppState.searchQueryDebounced.value = newVal; // เซ็ตค่าค้นหาที่ผ่าน debounce แล้ว
+          }
+        }, 250); // ดีเลย์ 250ms เพื่อลดการกรองบ่อยเกินไป (ทุก key ที่พิมพ์)
+      }
+    );
+
+    // 🧪 debug → แสดงใน console เมื่อมีการเปลี่ยนหน้า
+    watch(AppState.page, (p) => {
+      console.log("📄 เปลี่ยนหน้าเป็น:", p); // แสดงหน้าปัจจุบันใน console
+    });
   },
 
   // ----------------------------------------------------
-  // 🧩 setupComputed: รวม computed และ watchers ให้ app.js เรียกง่าย
+  // ⭐ setupComputed()
+  // ฟังก์ชันรวมการตั้งค่า computed & watcher ไว้เรียกจาก app.js
   // ----------------------------------------------------
-  setupComputed: () => {
-    AppGui.PagesComputed(); // ตั้ง computed
-    AppGui.setupWatchers(); // ตั้ง watchers
+  setupComputed() {
+    this.setupUIMainComputed(); // <--- เปลี่ยนการเรียก PagesComputed() เป็น setupUIMainComputed()
+    this.setupWatchers(); // ตั้ง watcher ให้ทำงานต่อเนื่องเวลาผู้ใช้เปลี่ยนค่า
   },
 };
 
 // --------------------------------------------------------
-// ✅ export ออกไปให้ไฟล์อื่นเรียกใช้ได้
+// 🌍 export AppGui ไปที่ window ให้ไฟล์อื่นใช้งานได้
 // --------------------------------------------------------
-window.AppGui = AppGui;
+window.AppGui = AppGui; // ผูก AppGui กับ window เพื่อให้ไฟล์อื่นและ template เรียกใช้ได้

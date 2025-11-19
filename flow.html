@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คู่มือฉบับสมบูรณ์: Flowchart และ Reactive Trigger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        h2 {
+            color: #dc3545;
+            /* สีแดงเน้นย้ำความสำคัญ */
+            margin-top: 30px;
+            font-weight: 600;
+        }
+
+        h3 {
+            color: #6c757d;
+            margin-top: 20px;
+            font-weight: 600;
+            border-bottom: 1px dashed #dee2e6;
+            padding-bottom: 5px;
+        }
+
+        .step-box {
+            border: 2px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            background-color: #e9ecef;
+        }
+
+        .step-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .non-reactive {
+            border-color: #007bff;
+            background-color: #e6f0ff;
+        }
+
+        .reactive {
+            border-color: #28a745;
+            background-color: #ebf7ec;
+        }
+
+        .trigger {
+            border-color: #dc3545;
+            background-color: #fde8e8;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from {
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+            }
+
+            to {
+                box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+            }
+        }
+
+        .arrow-line {
+            text-align: center;
+            font-size: 1.5em;
+            color: #6c757d;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .file-name {
+            font-family: 'Consolas', monospace;
+            color: #0056b3;
+            background-color: #f0f8ff;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>📘 คู่มือการทำงานฉบับละเอียด (Flowchart)</h1>
+        <p>การแยกขั้นตอน Non-Reactive (การดึงข้อมูล) และ Reactive (การประมวลผล UI)
+            เป็นกุญแจสำคัญในการทำความเข้าใจการทำงานของระบบนี้ครับ</p>
+
+        <h2>✅ ตัวกระตุ้น (The True Trigger)</h2>
+        <p>ตัวกระตุ้นหลักที่ทำให้ **`gui.js`** ทำงานคือ **การเปลี่ยนแปลงค่าในตัวแปร Reactive**</p>
+        <p><strong>สรุป:</strong> `gui.js` ไม่ได้เฝ้าดู IndexedDB แต่เฝ้าดู **`Store.data.leadItems`**
+            ดังนั้นการกระทำที่ทำให้ `Store.data.leadItems` เปลี่ยนไป คือ **ตัวกระตุ้น** ที่แท้จริง</p>
+
+        ---
+
+        <h2>1. 🟢 Flowchart: ลำดับการทำงานตั้งแต่เริ่มต้น</h2>
+        <p>เราจะแบ่งกระบวนการเป็น 3 เฟส: Fetch, Update, และ React</p>
+
+        <h3>เฟส 1: การดึงข้อมูล (Non-Reactive Fetch)</h3>
+        <div class="step-box non-reactive">
+            <div class="step-title">1. เริ่มต้นและสั่งโหลด</div>
+            <p><span class="file-name">app.js</span> เรียก <code>LeadApp.loadAll()</code></p>
+        </div>
+        <div class="arrow-line">↓ (สั่งการ)</div>
+        <div class="step-box non-reactive">
+            <div class="step-title">2. ติดต่อฐานข้อมูล</div>
+            <p><span class="file-name">lead.js</span> สั่ง <code>AppDexie.lead.getAll()</code></p>
+        </div>
+        <div class="arrow-line">↓ (ส่งข้อมูลดิบ)</div>
+        <div class="step-box non-reactive">
+            <div class="step-title">3. IndexedDB ดึงข้อมูล</div>
+            <p><strong>IndexedDB</strong> ดึงข้อมูล Lead ทั้งหมด (เช่น 10,000 รายการ) ออกมา</p>
+        </div>
+
+        <h3>เฟส 2: การอัปเดตหน่วยความจำ (The Trigger Point)</h3>
+        <div class="arrow-line">↓ (ส่งข้อมูลดิบ 10,000 รายการกลับมา)</div>
+        <div class="step-box trigger">
+            <div class="step-title">4. **จุดกระตุ้น (THE TRIGGER)**</div>
+            <p><span class="file-name">lead.js</span> ส่งข้อมูล 10,000 รายการไปที่
+                <code>Store.setItems('Lead', items)</code></p>
+            <p>ภายใน <span class="file-name">store.js</span>: ข้อมูลใหม่ถูกกำหนดค่าทับตัวแปร **`Store.data.leadItems`**
+            </p>
+        </div>
+
+        <h3>เฟส 3: การประมวลผล UI (Reactive Processing)</h3>
+        <div class="arrow-line">↓ (Vue Reactivity System ทำงาน)</div>
+        <div class="step-box reactive">
+            <div class="step-title">5. คำนวณการกรอง (Computed Property 1)</div>
+            <p>เนื่องจาก `Store.data.leadItems` เปลี่ยนไป → <strong>`AppState.filteredLeads`</strong> ใน <span
+                    class="file-name">gui.js</span> ทำงานใหม่ทันที</p>
+            <p>มันจะดึงข้อมูล 10,000 รายการใหม่มา **กรอง** ตามค่าค้นหา <code>AppState.searchQueryDebounced</code></p>
+        </div>
+        <div class="arrow-line">↓ (ผลลัพธ์การกรองเปลี่ยน)</div>
+        <div class="step-box reactive">
+            <div class="step-title">6. คำนวณการแสดงหน้า (Computed Property 2)</div>
+            <p><strong>`AppState.pagedLeads`</strong> ใน <span class="file-name">gui.js</span> ทำงานใหม่ทันที
+                (เพราะเฝ้าดู `filteredLeads`)</p>
+            <p>มันจะ **แบ่งหน้า** (Pagination) หรือ **จัดกลุ่ม** (Chunking) เป็น 2 คอลัมน์สำหรับ Virtual Scroll</p>
+        </div>
+        <div class="arrow-line">↓ (ค่าที่พร้อมแสดงผลเปลี่ยน)</div>
+        <div class="step-box start-end">
+            <div class="step-title">7. แสดงผล UI (Render)</div>
+            <p>Template ใน <span class="file-name">index.html</span> อัปเดตการแสดงผล (Card List) ทันทีตามค่าใหม่ของ
+                <code>pagedLeads</code></p>
+        </div>
+
+        ---
+
+        <h2>2. 🗺️ การทำงานแบบคร่าว (Vue Reactivity Flow)</h2>
+        <p>นี่คือผังงานแบบย่อเพื่อแสดงความสัมพันธ์ระหว่างโมดูล Reactive</p>
+
+        <div class="flow-diagram">
+            <strong>ข้อมูลจาก Store (Reactive)</strong>
+            <div class="flow-item data" style="min-width: 250px;">Store.data.leadItems (ถูกเปลี่ยนใน store.js)</div>
+            <span class="arrow" style="color:#dc3545;">(WATCHED)</span>
+
+            <strong>Computed Property 1 (gui.js)</strong>
+            <div class="flow-item process" style="min-width: 250px;">AppState.filteredLeads (กรอง)</div>
+            <span class="arrow" style="color:#28a745;">(USED)</span>
+
+            <strong>Computed Property 2 (gui.js)</strong>
+            <div class="flow-item process" style="min-width: 250px;">AppState.pagedLeads (แบ่งหน้า/จัดกลุ่ม)</div>
+            <span class="arrow" style="color:#007bff;">(RENDERED)</span>
+
+            <strong>View</strong>
+            <div class="flow-item start-end" style="min-width: 250px;">index.html Template (แสดง Card)</div>
+        </div>
+
+        <p>หวังว่า Flowchart ที่แบ่งเป็นขั้นตอนการดึง (Non-Reactive) และการประมวลผล (Reactive)
+            จะช่วยให้คุณเห็นภาพชัดเจนขึ้นนะครับ</p>
+
+    </div>
+
+</body>
+
+</html>

@@ -13,6 +13,8 @@
     <!-- (แนะนำ) ฟอนต์ Roboto ของ Vuetify -->
     <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.min.js"></script>
+
     <style>
 
 
@@ -49,37 +51,65 @@
                             </v-text-field>
                         </v-col>
 
+
                         <!-- ขวา: ปุ่มต่าง ๆ -->
                         <v-col cols="4" class="d-flex align-center justify-end">
-                            <v-tooltip text="Tooltip" location="bottom">
+                            <!-- 🤖 บอท -->
+                            <v-tooltip text="เปิดระบบบอทอัตโนมัติ" location="bottom">
                                 <template #activator="{ props }">
-                                    <v-btn icon variant="text" v-bind="props" @click="">
+                                    <v-btn icon variant="text" v-bind="props" @click="AppBot.autoFill()">
                                         <v-icon>mdi-robot-angry</v-icon>
                                     </v-btn>
                                 </template>
                             </v-tooltip>
-                            <v-tooltip text="Tooltip" location="bottom">
+
+                            <!-- 💾 Export CSV -->
+                            <v-tooltip text="ส่งออกข้อมูลทั้งหมดเป็นไฟล์ CSV" location="bottom">
                                 <template #activator="{ props }">
-                                    <v-btn icon variant="text" v-bind="props" @click="">
+                                    <v-btn icon variant="text" v-bind="props" @click="AppApi.handleExport('All')">
                                         <v-icon>mdi-download</v-icon>
                                     </v-btn>
                                 </template>
                             </v-tooltip>
-                            <v-tooltip text="Tooltip" location="bottom">
+
+                            <!-- 📇 Export VCF -->
+                            <v-tooltip text="ส่งออกรายชื่อเป็นไฟล์ VCF (ใช้ในมือถือ)" location="bottom">
                                 <template #activator="{ props }">
-                                    <v-btn icon variant="text" v-bind="props" @click="">
+                                    <v-btn icon variant="text" v-bind="props" @click="AppApi.exportVcfFrom('Lead')">
+                                        <v-icon>mdi-card-account-phone-outline</v-icon>
+                                    </v-btn>
+                                </template>
+                            </v-tooltip>
+
+                            <!-- 📤 Import ZIP -->
+                            <v-tooltip text="นำเข้าข้อมูลทั้งหมดจาก ZIP" location="bottom">
+                                <template #activator="{ props }">
+                                    <v-btn icon variant="text" v-bind="props" @click="AppApi.importZipAll()">
                                         <v-icon>mdi-upload</v-icon>
                                     </v-btn>
                                 </template>
                             </v-tooltip>
-                            <v-tooltip text="Tooltip" location="bottom">
+
+                            <!-- 🔔 การแจ้งเตือน -->
+                            <v-tooltip text="ดูการแจ้งเตือนล่าสุด" location="bottom">
                                 <template #activator="{ props }">
-                                    <v-btn icon variant="text" v-bind="props" @click="">
+                                    <v-btn icon variant="text" v-bind="props"
+                                        @click="AppNotifications.show('ไม่มีการแจ้งเตือนใหม่')">
                                         <v-icon>mdi-bell</v-icon>
                                     </v-btn>
                                 </template>
                             </v-tooltip>
 
+                            <!-- 🧪 สร้างข้อมูลทดสอบ -->
+                            <v-tooltip text="สร้างข้อมูลทดสอบ 1000 รายการ" location="bottom">
+                                <template #activator="{ props }">
+                                    <v-btn icon variant="text" v-bind="props" @click="TestData.generate1000()">
+                                        <v-icon>mdi-database-plus</v-icon>
+                                    </v-btn>
+                                </template>
+                            </v-tooltip>
+
+                            <!-- ⚙️ เมนูตั้งค่า -->
                             <v-menu location="bottom end" transition="fade-transition">
                                 <template #activator="{ props }">
                                     <v-btn icon variant="text" v-bind="props">
@@ -100,19 +130,19 @@
                                         <v-list-item-title>การตั้งค่าเกี่ยวกับโปรแกรม</v-list-item-title>
                                     </v-list-item>
 
-                                    <!-- 🔄 ปุ่ม Refresh ข้อมูล -->
-                                    <v-list-item prepend-icon="mdi-refresh" @click="loadLeadsFromStorage()">
-                                        <v-list-item-title>รีเฟรชข้อมูลจาก Local Storage</v-list-item-title>
-                                    </v-list-item>
 
-                                    <!-- 🧹 ปุ่ม Clear Local Storage -->
-                                    <v-list-item prepend-icon="mdi-delete-sweep" @click="clearLeadStorage()">
-                                        <v-list-item-title>ล้างข้อมูลใน Local Storage</v-list-item-title>
-                                    </v-list-item>>
+
+
+                                    <!-- [ชั่วคราว] ปุ่มนำเข้าข้อมูลเก่า (OldImport) -->
+                                    <v-list-item prepend-icon="mdi-database-import-outline"
+                                        @click="importOldDataDialog()">
+                                        <v-list-item-title>นำเข้าข้อมูลเก่า (CSV)</v-list-item-title>
+                                    </v-list-item>
 
                                 </v-list>
                             </v-menu>
                         </v-col>
+
                     </v-row>
                 </v-container>
 
@@ -140,7 +170,7 @@
             <v-main>
                 <v-container class="d-flex justify-center align-center" fluid style="height: 90vh;">
                     <v-card class="elevation-10 d-flex flex-column"
-                        style="width: 1500px; max-width: 100%; height: 85vh;">
+                        style="width: 1500px; max-width: 100%; height: 85vh; max-height: 85vh;">
 
                         <v-card-title class="d-flex flex-shrink-0">
                             <span class="headline">Lead Manager</span>
@@ -151,18 +181,90 @@
                             </v-btn>
                         </v-card-title>
 
-                        <v-card-text class="pa-4 flex-grow-1 overflow-y-auto">
-                            <v-row class="ma-0 pa-0" no-gutters>
-                                <!-- ✅ เปลี่ยนจาก leadItems → pagedLeads -->
+                        <v-card-text class="pa-4 flex-grow-1"
+                            style="overflow: hidden; display: flex; flex-direction: column;">
+
+                            <v-row v-if="itemsPerPage !== 'All'" class="ma-0 pa-0" no-gutters style="overflow-y: auto;">
                                 <v-col cols="12" sm="12" lg="6" v-for="lead in pagedLeads" :key="lead.id" class="pa-2">
-                                    <v-card class="elevation-4" width="100%" max-width="100%" height="200px">
-                                        <v-card-title>{{ lead.customerName }}</v-card-title>
+                                    <v-card class="elevation-4" width="100%">
+                                        <v-card-title class="text-h6">
+                                            <v-icon color="primary" class="mr-2">mdi-account</v-icon>
+                                            {{ lead.firstName }}
+                                            <span v-if="lead.nickName" class="text-caption text-grey-darken-1 ml-2">({{
+                                                lead.nickName }})</span>
+                                        </v-card-title>
+                                        <v-divider></v-divider>
                                         <v-card-text>
-                                            สถานะ: {{ lead.status }}
+                                            <div class="d-flex justify-space-between mb-2">
+                                                <div><v-icon size="18" class="mr-1">mdi-phone</v-icon>{{ lead.phones }}
+                                                </div>
+                                                <div><v-chip size="small" color="primary" class="text-white"
+                                                        variant="flat">{{ lead.status }}</v-chip></div>
+                                            </div>
+                                            <div class="d-flex justify-space-between mb-2">
+                                                <div><v-icon size="18" class="mr-1">mdi-map-marker</v-icon>{{
+                                                    lead.province }}</div>
+                                                <div><v-icon size="18" class="mr-1">mdi-calendar</v-icon>{{
+                                                    lead.createDate }}</div>
+                                            </div>
+                                            <div class="d-flex justify-space-between">
+                                                <div><v-icon size="18" class="mr-1">mdi-chart-bar</v-icon>คะแนน: {{
+                                                    lead.rating }}</div>
+                                                <div><v-icon size="18" class="mr-1">mdi-progress-clock</v-icon>ขั้นตอน:
+                                                    {{ lead.prospectStage }}</div>
+                                            </div>
                                         </v-card-text>
                                     </v-card>
                                 </v-col>
                             </v-row>
+
+                            <v-virtual-scroll v-else :items="pagedLeads" height="100%" item-height="400">
+                                <template v-slot:default="{ item: leadRow }">
+                                    <v-row no-gutters class="w-100 pa-0 ma-0">
+
+                                        <v-col cols="12" sm="12" lg="6" v-for="lead in leadRow" :key="lead.id"
+                                            class="pa-2">
+
+                                            <v-card class="elevation-4" width="100%">
+                                                <v-card-title class="text-h6">
+                                                    <v-icon color="primary" class="mr-2">mdi-account</v-icon>
+                                                    {{ lead.firstName }}
+                                                    <span v-if="lead.nickName"
+                                                        class="text-caption text-grey-darken-1 ml-2">({{ lead.nickName
+                                                        }})</span>
+                                                </v-card-title>
+                                                <v-divider></v-divider>
+                                                <v-card-text>
+                                                    <div class="d-flex justify-space-between mb-2">
+                                                        <div><v-icon size="18" class="mr-1">mdi-phone</v-icon>{{
+                                                            lead.phones }}</div>
+                                                        <div><v-chip size="small" color="primary" class="text-white"
+                                                                variant="flat">{{ lead.status }}</v-chip></div>
+                                                    </div>
+                                                    <div class="d-flex justify-space-between mb-2">
+                                                        <div><v-icon size="18" class="mr-1">mdi-map-marker</v-icon>{{
+                                                            lead.province }}</div>
+                                                        <div><v-icon size="18" class="mr-1">mdi-calendar</v-icon>{{
+                                                            lead.createDate }}</div>
+                                                    </div>
+                                                    <div class="d-flex justify-space-between">
+                                                        <div><v-icon size="18" class="mr-1">mdi-chart-bar</v-icon>คะแนน:
+                                                            {{ lead.rating }}</div>
+                                                        <div><v-icon size="18"
+                                                                class="mr-1">mdi-progress-clock</v-icon>ขั้นตอน: {{
+                                                            lead.prospectStage }}</div>
+                                                    </div>
+                                                </v-card-text>
+                                            </v-card>
+                                        </v-col>
+                                        <v-col cols="12" sm="12" lg="6" v-if="leadRow.length < 2 && leadRow.length > 0"
+                                            class="pa-2">
+                                            <div style="visibility: hidden;">Placeholder</div>
+                                        </v-col>
+                                    </v-row>
+                                </template>
+                            </v-virtual-scroll>
+
                         </v-card-text>
 
                         <v-card-actions class="flex-shrink-0 border-t">
@@ -172,182 +274,208 @@
                                     style="max-width:100px" hide-details />
                             </div>
                             <v-spacer></v-spacer>
-                            <v-pagination v-model="page" :length="totalPages" density="comfortable" />
+                            <v-pagination v-if="totalPages > 1" style="min-width: 320px;" v-model="page"
+                                :length="totalPages" density="comfortable" />
                         </v-card-actions>
-
                     </v-card>
                 </v-container>
             </v-main>
 
             <!-- ✅ modal lead (ผูก v-model กับ state) -->
-            <v-dialog v-model=" isOpenModalLead" max-width="1500">
-                <v-card class="lead-dialog-card">
-                    <!-- Header ตรึงบน -->
-                    <div class="lead-dialog-header">
-                        <v-card-title class="py-3">
-                            <div class="d-flex align-center w-100">
-                                <span class="text-h6">สร้าง Lead ใหม่</span>
-                                <v-spacer></v-spacer>
-                                <v-btn icon variant="text" @click="toggleMenu('isOpenModalLead')">
-                                    <v-icon>mdi-close</v-icon>
-                                </v-btn>
+            <v-dialog v-model="isOpenModalLead" max-width="1200">
+                <!-- กล่องหลักของ Dialog -->
+                <v-card class="rounded-lg elevation-6" style="max-height: 90vh; display: flex; flex-direction: column;">
+
+                    <!-- 🟦 ส่วนหัว Dialog (ล็อกบนสุด) -->
+                    <v-card-title class="pa-4 bg-primary text-white d-flex align-center justify-space-between"
+                        style="position: sticky; top: 0; z-index: 30;">
+                        <div class="d-flex align-center">
+                            <v-icon class="mr-2">mdi-account-plus</v-icon>
+                            <span class="text-h6">เพิ่มข้อมูลลูกค้า (Lead)</span>
+                        </div>
+                        <v-btn icon variant="text" color="white" @click="toggleMenu('isOpenModalLead')">
+                            <v-icon>mdi-close</v-icon>
+                        </v-btn>
+                    </v-card-title>
+
+                    <!-- 🧾 เนื้อหา (ส่วนกลาง scroll ได้) -->
+                    <v-card-text class="flex-grow-1 overflow-y-auto pa-0" style="max-height: calc(90vh - 150px);">
+                        <v-sheet elevation="2" class="rounded-0">
+
+                            <!-- 🔹 Tabs (ชิดซ้ายและล็อกไว้ใต้ Header) -->
+                            <div style="position: sticky;top: 0;z-index: 20;background-color: #ffffff;box-shadow: 0 2px 6px rgba(0,0,0,0.08);backdrop-filter: blur(6px);"
+                                class="border-b">
+                                <!-- 🟦 ใช้ flex จัด layout ให้แท็บและปุ่มอยู่แนวเดียวกัน -->
+                                <div class="d-flex align-center justify-space-between">
+                                    <!-- 🔸 ส่วนแท็บ -->
+                                    <v-tabs v-model="leadTab" color="primary" align-tabs="start" density="comfortable"
+                                        class="flex-grow-1" style="min-height: 48px;">
+
+                                        <v-tab value="leadInfo">
+                                            <v-icon start small>mdi-account-card-details</v-icon>
+                                            ข้อมูลลูกค้า
+                                        </v-tab>
+
+                                        <v-tab value="contracts">
+                                            <v-icon start small>mdi-file-document-plus</v-icon>
+                                            สัญญา
+                                        </v-tab>
+
+                                    </v-tabs>
+
+                                </div>
+
+                                <v-divider></v-divider>
                             </div>
-                        </v-card-title>
 
-                        <!-- Tabs -->
-                        <v-tabs v-model="leadTab" density="comfortable" grow>
-                            <v-tab value="all">ข้อมูลรวม</v-tab>
-                            <v-tab value="basic">ข้อมูลลูกค้า</v-tab>
-                            <v-tab value="vehicle">ข้อมูลรถ</v-tab>
-                            <v-tab value="loan">สินเชื่อ/เอกสาร</v-tab>
-                        </v-tabs>
+                            <v-divider></v-divider>
+
+                            <!-- ✅ เนื้อหาแต่ละ Tab -->
+                            <v-tabs-window v-model="leadTab">
+                                <v-tabs-window-item value="leadAll" lass="overflow-y-auto"
+                                    style="height: 600px; display: flex; flex-direction: column;"></v-tabs-window-item>
+
+                                <!-- 🟢 TAB 2: ข้อมูลลูกค้า -->
+                                <v-tabs-window-item value="leadInfo" class="overflow-y-auto"
+                                    style="height: 600px;   display: flex; flex-direction: column;">
+                                    <v-sheet class="pa-4" color="grey-lighten-5">
+                                        <v-form>
+                                            <v-row dense>
+                                                <v-col cols="12" md="6">
+                                                    <v-text-field label="ชื่อ นามสกุล หรือ บริษัท"
+                                                        prepend-icon="mdi-account" variant="outlined" color="primary"
+                                                        required></v-text-field>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <v-text-field label="บุคคลที่ติดต่อ หรือให้ติดต่อกลับ"
+                                                        aria-pressed="mdi-account-check" color="primary"
+                                                        variant="outlined"></v-text-field>
+                                                </v-col>
+
+                                                <v-col cols="12" md="12">
+                                                    <v-switch color="primary" label="ลูกค้าใหม่"></v-switch>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <v-text-field label="เบอร์โทรศัพท์" prepend-icon="mdi-phone"
+                                                        color="primary" variant="outlined" required></v-text-field>
+                                                </v-col>
+                                                <v-col cols="12" md="12">
+                                                    <v-textarea clearable label="ทีอยู่" prepend-icon="mdi-home"
+                                                        color="primary" variant="outlined"></v-textarea>
+                                                </v-col>
+                                                <v-col cols="12" md="12">
+                                                    <v-textarea clearable label="ทีอยู่" prepend-icon="mdi-home"
+                                                        color="primary" variant="outlined"></v-textarea>
+                                                </v-col>
+                                            </v-row>
+                                        </v-form>
+                                    </v-sheet>
+                                </v-tabs-window-item>
+
+
+                                <!-- 🟡 TAB 3: สัญญา -->
+                                <v-tabs-window-item value="contracts" lass="overflow-y-auto"
+                                    style="height: 600px;  display: flex; flex-direction: column;">
+                                    <v-sheet class="pa-4" color="grey-lighten-5">
+                                        <div class="text-center pa-4">
+                                            <v-icon color="primary" size="48" class="mb-3">
+                                                mdi-file-document-plus-outline
+                                            </v-icon>
+                                            <h4 class="text-h6 mb-2">เพิ่มสัญญาใหม่</h4>
+                                            <v-btn color="primary" variant="flat" @click="AppGui.openContractDialog()">
+                                                <v-icon start>mdi-plus</v-icon>
+                                                เพิ่มสัญญา
+                                            </v-btn>
+                                        </div>
+                                    </v-sheet>
+                                </v-tabs-window-item>
+                            </v-tabs-window>
+                        </v-sheet>
+
+                        <!-- Footer -->
                         <v-divider></v-divider>
-                    </div>
-
-                    <!-- เนื้อหา (เป็นส่วนที่สกอลล์ได้) -->
-                    <v-card-text class="lead-dialog-body">
-                        <v-window v-model="leadTab">
-                            <v-window-item value="all">
-                                <v-form>
-                                    <v-row dense>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field label="ชื่อลูกค้า" placeholder="เช่น สมชาย ใจดี"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field label="เบอร์ติดต่อ" placeholder="เช่น 08x-xxx-xxxx"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-select :items="['ใหม่', 'ติดตาม', 'ปิดการขาย']" label="สถานะ Lead"
-                                                hide-details></v-select>
-                                        </v-col>
-                                        <v-col cols="12">
-                                            <v-textarea label="หมายเหตุ" rows="3" auto-grow hide-details></v-textarea>
-                                        </v-col>
-                                    </v-row>
-                                </v-form>
-                            </v-window-item>
-                            <!-- TAB 1: ข้อมูลลูกค้า -->
-                            <v-window-item value="basic">
-                                <v-form>
-                                    <v-row dense>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field label="ชื่อลูกค้า" placeholder="เช่น สมชาย ใจดี"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field label="เบอร์ติดต่อ" placeholder="เช่น 08x-xxx-xxxx"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-select :items="['ใหม่', 'ติดตาม', 'ปิดการขาย']" label="สถานะ Lead"
-                                                hide-details></v-select>
-                                        </v-col>
-                                        <v-col cols="12">
-                                            <v-textarea label="หมายเหตุ" rows="3" auto-grow hide-details></v-textarea>
-                                        </v-col>
-                                    </v-row>
-                                </v-form>
-                            </v-window-item>
-
-                            <!-- TAB 2: ข้อมูลรถ -->
-                            <v-window-item value="vehicle">
-                                <v-form>
-                                    <v-row dense>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field label="ยี่ห้อ" placeholder="เช่น Toyota"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field label="รุ่น" placeholder="เช่น Vios"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field label="ปี" placeholder="เช่น 2018"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field label="ทะเบียน" placeholder="เช่น 1กก-1234"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12">
-                                            <v-textarea label="รายละเอียดรถเพิ่มเติม" rows="3" auto-grow
-                                                hide-details></v-textarea>
-                                        </v-col>
-                                    </v-row>
-                                </v-form>
-                            </v-window-item>
-
-                            <!-- TAB 3: สินเชื่อ/เอกสาร -->
-                            <v-window-item value="loan">
-                                <v-form>
-                                    <v-row dense>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field label="วงเงินที่ต้องการ (บาท)" type="number"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-select :items="['Top-Up', 'รีไฟแนนซ์', 'ใหม่']" label="ประเภทคำขอ"
-                                                hide-details></v-select>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-select :items="['บัตรประชาชน', 'เล่มทะเบียนรถ', 'สลิปเงินเดือน']"
-                                                label="เอกสารที่มี" multiple hide-details></v-select>
-                                        </v-col>
-                                        <v-col cols="12">
-                                            <v-textarea label="หมายเหตุ/เงื่อนไขสินเชื่อ" rows="3" auto-grow
-                                                hide-details></v-textarea>
-                                        </v-col>
-                                    </v-row>
-                                </v-form>
-                            </v-window-item>
-                        </v-window>
-                    </v-card-text>
-
-                    <v-divider></v-divider>
-                    <!-- ปุ่มล่าง ตรึงท้าย -->
-                    <v-card-actions class="lead-dialog-actions pa-4">
-                        <v-spacer></v-spacer>
-                        <v-btn variant="text" @click="toggleMenu('isOpenModalLead')">ยกเลิก</v-btn>
-                        <v-btn color="primary" variant="flat">บันทึก</v-btn>
-                    </v-card-actions>
+                        <v-card-actions class="pa-4 border-t bg-grey-lighten-4"
+                            style="position: sticky; bottom: 0; z-index: 10;">
+                            <v-spacer></v-spacer>
+                            <v-btn variant="text" color="grey" @click="toggleMenu('isOpenModalLead')">
+                                ยกเลิก
+                            </v-btn>
+                            <v-btn color="primary" variant="flat" @click="LeadLogic.addLead(leadForm)">
+                                <v-icon start>mdi-content-save</v-icon>
+                                บันทึกข้อมูล
+                            </v-btn>
+                        </v-card-actions>
                 </v-card>
             </v-dialog>
+
+
+
+
+
+
+
+
+
 
 
         </v-app>
     </div>
 
-    <!-- Scripts -->
     <!-- --------------------------------------------------------
-     🧠 ลำดับการโหลดไฟล์ JavaScript ที่ถูกต้อง
-     สำคัญมาก! เพราะแต่ละโมดูลพึ่งพากันแบบเป็นลำดับ
-     -------------------------------------------------------- -->
-    <!-- 1️⃣ โหลด State ก่อนสุด เพราะทุกโมดูลต้องอ้างอิง -->
+ 🧠 ลำดับการโหลดไฟล์ JavaScript 
+ สำคัญมาก! แกนของระบบทำงานตาม Flow นี้เท่านั้น
+-------------------------------------------------------- -->
+    <!-- 1️⃣ โหลด State ก่อนสุด (ตัวแปร ref / reactive ของ Vue ทั้งหมด) -->
     <script src="./js/state.js"></script>
-    <!-- 2️⃣ โหลด Store (แหล่งข้อมูลหลักของระบบ) -->
+
+    <!-- 2️⃣ โหลด Dexie (ฐานข้อมูล IndexedDB ของระบบ ต้องมาก่อน Store เสมอ) -->
+    <script src="./js/dexie.js"></script>
+
+    <!-- 3️⃣ โหลด Store (ชั้น UI Memory สำหรับเก็บข้อมูลที่แสดงบนหน้าจอ) -->
     <script src="./js/store.js"></script>
-    <!-- 3️⃣ โหลด Utils (ฟังก์ชันช่วย เช่น กรอง/เรียง/จัดรูปแบบ) -->
+
+    <!-- 4️⃣ โหลด Utils (ฟังก์ชันช่วย เช่น ค้นหา / เรียงข้อมูล / จัดรูปแบบ) -->
     <script src="./js/utils.js"></script>
-    <!-- 4️⃣ โหลด GUI (จัดการการแสดงผล / Pagination / Search) -->
+
+    <!-- 5️⃣ โหลด GUI Logic (ฟังก์ชันเกี่ยวกับ UI: toggle, pagination, search) -->
     <script src="./js/gui.js"></script>
-    <!-- 5️⃣ โหลด LeadLogic (เกี่ยวกับข้อมูลลูกค้า/ลีด) -->
+
+    <!-- 6️⃣ โหลด Lead Logic (เพิ่ม/ลบ/อัปเดต Lead สำหรับ Dexie + UI) -->
     <script src="./js/lead.js"></script>
-    <!-- 6️⃣ โหลด Finance (เกี่ยวกับสินเชื่อ) -->
+
+    <!-- 7️⃣ โหลด Finance Logic (ฟังก์ชันคำนวณสินเชื่อทั้งหมด) -->
     <script src="./js/finance.js"></script>
-    <!-- 7️⃣ โหลด Car (ข้อมูลรถยนต์) -->
+
+    <!-- 8️⃣ โหลด Car Logic (ข้อมูลรถยนต์ใน UI และฟังก์ชันเพิ่มลบ) -->
     <script src="./js/car.js"></script>
-    <!-- 8️⃣ โหลด Bot (ระบบอัตโนมัติ เช่น ดึงข้อมูล) -->
+
+    <!-- 9️⃣ โหลด Bot Logic (ระบบทำงานอัตโนมัติ เช่น Autofill) -->
     <script src="./js/bot.js"></script>
-    <!-- 9️⃣ โหลด Notification (แจ้งเตือนระบบ) -->
+
+    <!-- 🔟 โหลด Notification (ระบบแจ้งเตือนข้อความภายในโปรแกรม) -->
     <script src="./js/notification.js"></script>
-    <!-- 🔟 โหลด LogSystem (ระบบบันทึกกิจกรรม) -->
+
+    <!-- 11️⃣ โหลด Log System (ระบบบันทึกเหตุการณ์ เช่น โทรหา, ติดตาม) -->
     <script src="./js/log.js"></script>
-    <!-- 11️⃣ โหลด ShortcutKey (ระบบคีย์ลัด Alt+...) -->
+
+    <!-- 12️⃣ โหลด Shortcut Key (กำหนดคีย์ลัด Alt+L / Alt+C เป็นต้น) -->
     <script src="./js/shortcutKey.js"></script>
-    <!-- 12️⃣ โหลด App.js สุดท้าย (ตัวรวมศูนย์ทุกโมดูล + Mount Vue) -->
+
+    <!-- 13️⃣ โหลด Old Import (ใช้เฉพาะนำเข้าข้อมูลระบบเก่า CSV) -->
+    <script src="./js/oldimport.js"></script>
+
+    <!-- 14️⃣ โหลด FileSystem (ระบบดาวน์โหลดไฟล์ CSV/ZIP/VCF ผ่าน Blob) -->
+    <script src="./js/fileSystem.js"></script>
+
+    <!-- ⭐ โหลด API (นำเข้า/ส่งออก CSV, ZIP, VCF → ต้องมาก่อน app.js) -->
+    <script src="./js/api.js"></script>
+
+    <!-- ทดสอบค่าต่างๆ -->
+    <script src="./js/testData.js"></script>
+
+    <!-- 15️⃣ โหลด App.js (ไฟล์ Hub หลัก รวมทุกโมดูล + Mount Vue) -->
     <script src="./js/app.js"></script>
+
 
 </body>
 

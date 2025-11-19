@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คู่มือการทำงาน: Lead Manager (Optimized)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        h2 {
+            color: #28a745;
+            margin-top: 30px;
+            font-weight: 600;
+        }
+
+        h3 {
+            color: #6c757d;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+
+        .flow-diagram {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+
+        .module-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+
+        .module-table th,
+        .module-table td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .module-table th {
+            background-color: #007bff;
+            color: white;
+            font-weight: 600;
+            width: 30%;
+        }
+
+        .module-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #dc3545;
+            /* สีแดงสำหรับเน้น Optimization */
+        }
+
+        .step {
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 3px solid #ffc107;
+        }
+
+        .step strong {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>📘 คู่มือหลักการทำงาน: Lead Manager (Virtual Scroll Optimized)</h1>
+        <p>นี่คือภาพรวมของสถาปัตยกรรมและการไหลของข้อมูล (Data Flow) ในระบบ Lead Manager ของคุณ
+            ซึ่งถูกออกแบบมาโดยเน้นประสิทธิภาพสูงสุดสำหรับข้อมูลหลักหมื่นรายการ</p>
+
+        ---
+
+        <h2>🧠 หลักการทำงานและหน้าที่ของแต่ละโมดูล</h2>
+        <p>ระบบถูกแบ่งเป็นชั้น (Layers) ชัดเจน เพื่อให้การจัดการข้อมูลและการแสดงผลเป็นอิสระต่อกัน:</p>
+
+        <table class="module-table">
+            <tr>
+                <th>ไฟล์/โมดูล</th>
+                <th>หน้าที่หลัก (Responsibility)</th>
+                <th>หัวใจของการทำงาน</th>
+            </tr>
+            <tr>
+                <td><code>dexie.js</code> (AppDexie)</td>
+                <td><strong>Storage Layer (ฐานข้อมูล)</strong>: จัดการการบันทึกและดึงข้อมูลถาวรทั้งหมดจาก <span
+                        class="highlight">IndexedDB</span> ในเบราว์เซอร์</td>
+                <td>เป็นผู้ให้บริการฟังก์ชัน CRUD (Create, Read, Update, Delete) ให้ <code>LeadApp</code></td>
+            </tr>
+            <tr>
+                <td><code>store.js</code> (Store)</td>
+                <td><strong>Memory Layer (หน่วยความจำ UI)</strong>: เป็นตัวกลางเก็บข้อมูลสำหรับ UI โดยใช้ <span
+                        class="highlight">shallowReactive + Object.freeze</span></td>
+                <td>เก็บข้อมูลที่ Optimize แล้ว (<span class="highlight">Store.data.leadItems</span>) เพื่อให้ UI
+                    (<code>gui.js</code>) ดึงไปใช้โดยตรง</td>
+            </tr>
+            <tr>
+                <td><code>lead.js</code> (LeadApp)</td>
+                <td><strong>Business Logic</strong>: จัดการวงจรชีวิตของ Lead (เพิ่ม, ลบ, แก้ไข, โหลดทั้งหมด)</td>
+                <td><strong>สั่งการ</strong>: ดึงจาก <code>AppDexie</code> และส่งไปอัปเดตที่ <code>Store</code></td>
+            </tr>
+            <tr>
+                <td><code>gui.js</code> (AppGui)</td>
+                <td><strong>UI Logic</strong>: จัดการการค้นหา การแบ่งหน้า (Pagination) และ Virtual Scroll</td>
+                <td><strong>คำนวณ</strong>: ดึง <code>Store.data.leadItems</code> มาสร้าง Computed Properties เช่น
+                    <code>pagedLeads</code></td>
+            </tr>
+            <tr>
+                <td><code>state.js</code> (AppState)</td>
+                <td><strong>UI State</strong>: เก็บสถานะเปิด/ปิดเมนู, ค่าค้นหา, หน้าปัจจุบัน, ข้อมูลที่กรองแล้ว</td>
+                <td>เป็นกล่องเก็บค่ากลางที่ทุกไฟล์อ่าน/เขียนได้</td>
+            </tr>
+        </table>
+
+        ---
+
+        <h2>🔄 ลำดับเหตุการณ์ตั้งแต่เปิดเว็บ (Startup Flow)</h2>
+        <p>นี่คือสิ่งที่เกิดขึ้นตั้งแต่ `index.html` เริ่มโหลดจนถึงการ์ด Lead ปรากฏบนหน้าจอ:</p>
+
+        <div class="flow-diagram">
+            <strong>ภาพรวม Data Flow</strong>:
+            <code>
+            IndexedDB ➡ (AppDexie.getAll) ➡ LeadApp.loadAll() ➡ Store.setItems() ➡ Store.data.leadItems ➡ (Computed Property ใน gui.js) ➡ AppState.pagedLeads ➡ UI (v-for / v-virtual-scroll)
+        </code>
+        </div>
+
+        <h3>ขั้นตอนที่ 1: เตรียมพร้อม (Setup)</h3>
+        <div class="step">
+            <strong>ไฟล์ที่ทำงาน:</strong> <code>index.html</code>, <code>dexie.js</code>, <code>store.js</code>,
+            <code>state.js</code>
+            <ul>
+                <li>ไฟล์พื้นฐานโหลด (Vue, Vuetify, Dexie).</li>
+                <li><code>dexie.js</code>: สร้างฐานข้อมูล <strong>AppDexie</strong> และกำหนดตาราง <code>leads</code>
+                    ไว้รอรับคำสั่ง.</li>
+                <li><code>store.js</code>: สร้าง <strong>Store</strong> ที่มี <code>leadItems</code> เป็น <span
+                        class="highlight">shallowReactive</span> (พร้อมรับข้อมูลขนาดใหญ่).</li>
+                <li><code>state.js</code>: สร้าง <strong>AppState</strong> เพื่อเก็บค่า UI ต่าง ๆ (หน้าปัจจุบัน,
+                    ค่าค้นหา).</li>
+            </ul>
+        </div>
+
+        <h3>ขั้นตอนที่ 2: เริ่มต้นแอปและการดึงข้อมูล (Bootstrap & Fetch)</h3>
+        <div class="step">
+            <strong>ไฟล์ที่ทำงาน:</strong> <code>app.js</code>, <code>lead.js</code>, <code>store.js</code>
+            <ul>
+                <li><code>app.js</code>: เริ่มต้นแอป Vue และรันฟังก์ชัน <code>setup()</code>.</li>
+                <li><strong>การเรียกหลัก:</strong> <code>LeadApp.loadAll()</code> ถูกเรียกใช้ทันที.</li>
+                <li><code>LeadApp.loadAll()</code> สั่ง <code>AppDexie.lead.getAll()</code> เพื่อดึงข้อมูล Lead
+                    ทั้งหมดจาก IndexedDB.</li>
+                <li><code>LeadApp</code> ส่งข้อมูลไปที่ <code>Store.setItems('Lead', items)</code>.</li>
+                <li><strong>Optimization:</strong> <code>Store.setItems()</code> สร้างรายการใหม่ที่ <span
+                        class="highlight">Object.freeze()</span> ทุกรายการ แล้วกำหนดทับ
+                    <code>Store.data.leadItems</code>.</li>
+            </ul>
+        </div>
+
+        <h3>ขั้นตอนที่ 3: ประมวลผลและแสดงผล (Render)</h3>
+        <div class="step">
+            <strong>ไฟล์ที่ทำงาน:</strong> <code>gui.js</code>, <code>index.html</code> (Template)
+            <ul>
+                <li><code>app.js</code> เรียก <code>AppGui.setupComputed()</code>.</li>
+                <li><code>gui.js</code> สร้าง **Computed Properties** โดยดึงข้อมูลจาก <code>Store.data.leadItems</code>:
+                    <ul>
+                        <li>คำนวณ <code>filteredLeads</code> (รายการหลังค้นหา).</li>
+                        <li>คำนวณ <code>totalPages</code> และ <code>pagedLeads</code> (รายการที่จะแสดง).</li>
+                    </ul>
+                </li>
+                <li>UI ใน <code>index.html</code> ใช้ <span class="highlight">v-for</span> หรือ <span
+                        class="highlight">v-virtual-scroll</span> วนลูปอยู่บน <code>AppState.pagedLeads</code>.</li>
+                <li><strong>ผลลัพธ์:</strong> ข้อมูล Lead แสดงผลบนหน้าจออย่างรวดเร็วและลื่นไหล.</li>
+            </ul>
+        </div>
+
+        ---
+
+        <h2>🚀 จุดเน้นประสิทธิภาพ (Optimization Keys)</h2>
+        <p>ประสิทธิภาพที่เพิ่มขึ้นมานั้น มาจาก 2 เทคนิคหลักที่ทำงานร่วมกัน:</p>
+
+        <h3>1. การจัดการหน่วยความจำที่รวดเร็ว (Store.js)</h3>
+        <ul>
+            <li><strong><code>Vue.shallowReactive</code>:</strong> บอก Vue ว่าให้เฝ้าดูแค่ตัวแปร <code>leadItems</code>
+                ทั้งก้อนเท่านั้น <span class="highlight">(ห้ามเฝ้าดูการเปลี่ยนแปลงของ Object แต่ละตัวใน Array)</span>
+                ทำให้เมื่อมีข้อมูล 10,000 รายการ Vue ไม่ต้องสร้าง Watcher ถึง 10,000 ตัว</li>
+            <li><strong><code>Object.freeze()</code>:</strong> ข้อมูลแต่ละรายการที่ถูกส่งเข้า Store จะถูกแช่แข็ง <span
+                    class="highlight">(ทำให้เป็น Read-Only)</span> เพื่อลดภาระการจัดเก็บและประมวลผลของ JavaScript Engine
+            </li>
+            <li><strong>Replace Reference:</strong> เมื่อมีการอัปเดต จะใช้วิธีเปลี่ยน
+                <code>Store.data.leadItems = newList</code> แทนการใช้ <code>push()</code> หรือ <code>splice()</code>
+                ซึ่งเป็นวิธีที่เร็วที่สุดสำหรับ shallowReactive</li>
+        </ul>
+
+        <h3>2. การจัดการ UI ที่ประหยัด (Virtual Scroll)</h3>
+        <ul>
+            <li><strong>Virtual Scroll:</strong> เมื่อผู้ใช้เลือก 'All' UI จะไม่พยายามเรนเดอร์การ์ด Lead ทั้งหมด 10,000
+                ใบ แต่จะเรนเดอร์เพียงแค่ <span class="highlight">~20-30 ใบ</span> ที่มองเห็นอยู่บนหน้าจอเท่านั้น</li>
+            <li><strong>ผลลัพธ์:</strong> ทำให้หน้าเว็บสามารถจัดการกับข้อมูลนับหมื่นรายการได้
+                โดยที่เบราว์เซอร์ยังคงลื่นไหลและใช้หน่วยความจำน้อยลงมาก</li>
+        </ul>
+        <p>การแยกหน้าที่เหล่านี้ทำให้คุณสามารถแก้ไขโค้ดได้ง่ายขึ้น เช่น หากต้องการเปลี่ยนวิธีการค้นหา ก็ไปแก้แค่
+            <code>utils.js</code> โดยไม่กระทบต่อ <code>store.js</code> หรือ <code>dexie.js</code> ครับ</p>
+    </div>
+
+</body>
+
+</html>
