@@ -45,8 +45,76 @@ const AppState = {
   // ------------------------------------------------------
   filteredLeads: Vue.ref([]), // รายการที่ผ่านการค้นหาแล้ว
 
+  // lead dialog
+  Switch_newCustomer: Vue.ref(false),
+  // ------------------------------------------------------
+  // 🆕 Contract Tabs (Browser-style TAB ระดับที่ 1)
+  // ------------------------------------------------------
+  contractTab: Vue.ref("new"), // แท็บของสัญญา (#1,#2,+) ค่าเริ่มต้น = new (แท็บ +)
+
+  // ------------------------------------------------------
+  // 🆕 Contract Inner Tabs (TAB ระดับที่ 2 → ALL/info/finance/...)
+  // ------------------------------------------------------
+  contractInnerTab: Vue.ref("all"), // ค่าเริ่มต้นอยู่ที่ ALL
+
+  // ------------------------------------------------------
+  // 🆕 Contract Expansion Panels (ใช้ใน TAB ALL)
+  // เปิดเป็นค่าเริ่มต้นทั้งหมด แต่ผู้ใช้พับได้
+  // ------------------------------------------------------
+  contractPanels: Vue.ref([
+    "info", // ข้อมูลสัญญา
+    "finance", // การเงิน
+    "status", // สถานะบัญชี
+    "asset", // ทรัพย์สิน
+    "history", // ประวัติย้อนหลัง
+    "other", // อื่น ๆ
+  ]),
+
+  // ------------------------------------------------------
+  // 🆕 ฟอร์มสัญญาใหม่ (ใช้ตอนกด TAB +)
+  // ------------------------------------------------------
+  newContractForm: Vue.reactive({}), // จะถูก reset ทุกครั้งเวลาเปิด TAB +
+
+  // ------------------------------------------------------
+  // 🆕 ฟังก์ชัน reset UI สัญญาทั้งหมด
+  // เรียกใช้ทุกครั้งเมื่อเปิด modal lead
+  // ------------------------------------------------------
+  resetContractUI() {
+    // รีเซ็ตแท็บสัญญาให้เปิด TAB "+"
+    this.contractTab.value = this.contractTab.value = "new";
+
+    // รีเซ็ตแท็บย่อยให้ไปที่ ALL
+    this.contractInnerTab.value = "all";
+
+    // รีเซ็ต Expansion Panels ให้เปิดทุกอันเป็นค่าเริ่มต้น
+    this.contractPanels.value = [
+      "info",
+      "finance",
+      "status",
+      "asset",
+      "history",
+      "other",
+    ];
+
+    // ล้างฟอร์มสัญญาใหม่
+    if (typeof LeadApp?.resetNewContractForm === "function") {
+      LeadApp.resetNewContractForm(); // เรียกจาก LeadApp (จะเพิ่มในไฟล์ lead.js)
+    }
+  },
   // ⭐ แท็บของ Modal Lead (leadInfo / contracts)
   leadTab: Vue.ref("leadInfo"), // ค่าเริ่มต้นอยู่ที่แท็บข้อมูลลูกค้า
+  // ⭐ แท็บของสัญญาใน Modal Lead (ใช้เก็บ contract.id) // [ใหม่] เก็บ ID ของสัญญาที่กำลังถูกเปิดอยู่
+  activeContractTab: Vue.ref(null), // [ใหม่] ค่าเริ่มต้นเป็น null หรือ ID ของสัญญาแรกเมื่อเปิด Modal
+  // ⭐ เมื่อเปิด modal lead ครั้งแรก → สร้างแท็บสัญญาเปล่าให้ 1 อัน
+  onOpenLeadDialog() {
+    // ถ้ายังไม่มีสัญญาเลย → เพิ่ม tab เปล่า 1 อัน
+    if (!LeadApp.form.contracts || LeadApp.form.contracts.length === 0) {
+      LeadApp.addEmptyContract(); // ← ใช้ฟังก์ชันที่มีอยู่แล้ว
+    }
+
+    // ให้ TAB ไปที่สัญญาแรกแทน leadInfo ถ้าต้องการ
+    AppState.leadTab.value = "contract-0";
+  },
 };
 
 // --------------------------------------------------------

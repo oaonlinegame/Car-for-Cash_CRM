@@ -39,7 +39,9 @@ const app = Vue.createApp({
       isMenuOpenFilterSearch: AppState.isMenuOpenFilterSearch, // คอมเมนต์: สถานะเปิด/ปิดเมนู filter search
       isOpenModalLead: AppState.isOpenModalLead, // คอมเมนต์: สถานะเปิด/ปิด modal เพิ่ม lead
       leadTab: AppState.leadTab, //แท็บของ Modal Lead (leadInfo / contracts)
+      Switch_newCustomer: AppState.Switch_newCustomer, //เลือกว่าจะเป็นเป็นลุกค้าใหม่หรือไม่ lead dialog
 
+      // Search
       searchRef: AppState.searchRef, // คอมเมนต์: ref ของช่อง search สำหรับผูกกับ v-menu activator
       searchQuery: AppState.searchQuery, // คอมเมนต์: ข้อความที่ใช้ค้นหา lead
 
@@ -54,7 +56,7 @@ const app = Vue.createApp({
       leadHeaders: Store.data.leadHeaders, // คอมเมนต์: header ของตาราง lead (ถ้ามีใช้ในที่อื่น)
 
       // Lead Logic
-      leadForm: LeadState.form, // คอมเมนต์: ฟอร์มของ lead ที่ใช้ใน modal
+      leadForm: LeadApp.form, // คอมเมนต์: ฟอร์มของ lead ที่ใช้ใน modal
       addLead: () => LeadApp.addLead(), // คอมเมนต์: ฟังก์ชันเพิ่ม lead ใหม่ (เรียกผ่าน LeadApp)
       updateLead: LeadApp.updateLead, // คอมเมนต์: ฟังก์ชันอัปเดตข้อมูล lead
       deleteLead: LeadApp.deleteLead, // คอมเมนต์: ฟังก์ชันลบ lead

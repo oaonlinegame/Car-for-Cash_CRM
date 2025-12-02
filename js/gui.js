@@ -52,7 +52,6 @@ const AppGui = {
   // ฟังก์ชันตั้งค่า Computed หลักทั้งหมดของ UI (Filter, Page, Chunking)
   // ----------------------------------------------------
   setupUIMainComputed() {
-    // <--- เปลี่ยนชื่อจาก PagesComputed()
     // --------------------------------------------------
     // 🔍 1) filteredLeads → ใช้ Utils.filterLeads กรองข้อมูล (เฝ้าดู Store.data.leadItems)
     // --------------------------------------------------
@@ -106,6 +105,63 @@ const AppGui = {
 
       return all.slice(start, end); // คืนเฉพาะรายการที่อยู่ในช่วงของหน้านั้นเท่านั้น
     });
+  },
+
+  // ----------------------------------------------------
+  // 🆕 openContractTabPlus()
+  // ฟังก์ชันเปิด TAB "+" ของสัญญา
+  // เรียกทุกครั้งที่ต้องเพิ่มสัญญาใหม่
+  // ----------------------------------------------------
+  openContractTabPlus() {
+    // ย้ายไป TAB "new"
+    AppState.contractTab.value = "new";
+
+    // reset TAB ย่อยให้ไปหน้า ALL
+    AppState.contractInnerTab.value = "all";
+
+    // reset Panels ให้เปิดหมด (ค่าเริ่มต้น)
+    AppState.contractPanels.value = [
+      "info",
+      "finance",
+      "status",
+      "asset",
+      "history",
+      "other",
+    ];
+
+    // สั่งให้ LeadApp เคลียร์ฟอร์มสัญญาใหม่
+    if (typeof LeadApp?.resetNewContractForm === "function") {
+      LeadApp.resetNewContractForm();
+    }
+  },
+
+  // ----------------------------------------------------
+  // 🆕 resetContractPanels()
+  // ใช้เมื่อเปิด dialog ใหม่ เพื่อป้องกัน Vuetify จำสถานะ panel เก่า
+  // ----------------------------------------------------
+  resetContractPanels() {
+    AppState.contractPanels.value = [
+      "info",
+      "finance",
+      "status",
+      "asset",
+      "history",
+      "other",
+    ];
+  },
+
+  // ----------------------------------------------------
+  // 🆕 resetContractScroll(el)
+  // รีเซ็ต scrollTop ของพื้นที่สัญญา
+  // ต้องเรียกหลัง nextTick เพื่อให้ DOM ขึ้นก่อน
+  // ----------------------------------------------------
+  resetContractScroll(el) {
+    if (!el) return; // ถ้าไม่มี element → หยุด
+    try {
+      el.scrollTop = 0; // ตั้ง scroll ให้กลับไปบนสุด
+    } catch (err) {
+      console.warn("resetContractScroll():", err);
+    }
   },
 
   // ----------------------------------------------------
