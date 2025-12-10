@@ -1,403 +1,328 @@
-// ------------------------------------------------------------
-// 📘 โมดูล LeadApp: จัดการข้อมูลลูกค้า (Lead)
-// ทำหน้าที่:
-// - ฟอร์ม lead (เพิ่ม/แก้ไข)
-// - บันทึกลง Dexie
-// - โหลดข้อมูลทั้งหมด
-// - รีเซ็ตค่าเมื่อเปิด/ปิดฟอร์ม
-// - รองรับระบบสัญญา (contracts)
-// ------------------------------------------------------------
+// ------------------------------------------------------------ // คอมเมนต์: เส้นคั่นส่วนหัวของไฟล์
+// 📘 โมดูล LeadApp: จัดการข้อมูลลูกค้า (Lead) + สัญญา (Contracts) // คอมเมนต์: อธิบายหน้าที่หลักของโมดูลนี้
+// ------------------------------------------------------------ // คอมเมนต์: ปิดส่วนหัวของคำอธิบาย
 
 const LeadApp = {
-  // ------------------------------------------------------------
-  // ⭐ form: ฟอร์มข้อมูล Lead หลัก (Reactive)
-  // ย้ายมาจาก LeadState เพื่อให้เหลือ Global เดียว = LeadApp
-  // ------------------------------------------------------------
+  // คอมเมนต์: ประกาศอ็อบเจ็กต์หลัก LeadApp สำหรับเก็บฟอร์มและฟังก์ชันทั้งหมด
+
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนฟอร์มหลัก
+  // ⭐ form: ฟอร์มหลักของลูกค้า (Lead Form)                  // คอมเมนต์: ส่วนเก็บข้อมูลฟอร์ม Lead
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อฟอร์มหลัก
   form: Vue.reactive({
-    id: null, // ไอดีของ Lead (ใช้ตรวจสอบว่าแก้ไขหรือเพิ่มใหม่)
-    firstName: "", // ชื่อ-นามสกุล
-    nickName: "", // ชื่อเล่น
-    phones: "", // เบอร์โทรหลายเบอร์ (คั่นด้วย ,)
-    address: "", // ที่อยู่
-    province: "", // จังหวัด
-    postalCode: "", // รหัสไปรษณีย์
-    occupation: "", // อาชีพ
-    status: "ลูกค้าใหม่", // สถานะลูกค้า
-    isProspect: true, // ลูกค้าใหม่ (true) หรือไม่
-    prospectStage: "สนใจ", // ขั้นตอนของ Prospect ปัจจุบัน
-    rating: 3, // คะแนน (1–5)
-    note: "", // หมายเหตุเพิ่มเติม
-    createDate: "", // วันที่สร้าง Lead (กำหนดตอนบันทึก)
-    contracts: [], // รายการสัญญาของลูกค้า (รองรับหลายสัญญา)
-  }),
+    // คอมเมนต์: ใช้ Vue.reactive เพื่อให้ผูกกับ UI แบบสองทางได้
 
-  // ------------------------------------------------------------
-  // ⭐ resetLeadForm()
-  // รีเซ็ตฟอร์ม Lead ทั้งหมดกลับเป็นค่าเริ่มต้น
-  // เรียกใช้เมื่อเปิด modal ใหม่ หรือหลังเพิ่มเสร็จ
-  // ------------------------------------------------------------
+    id: null, // คอมเมนต์: ไอดีของ Lead ใช้เช็คว่าเป็นเพิ่มใหม่หรือแก้ไข
+    firstName: "", // คอมเมนต์: ชื่อ-นามสกุลลูกค้า หรือชื่อบริษัท
+    nickName: "", // คอมเมนต์: ชื่อเล่น หรือชื่อผู้ติดต่อหลัก
+    phones: "", // คอมเมนต์: เบอร์โทรหลายเบอร์คั่นด้วยจุลภาค
+    address: "", // คอมเมนต์: ที่อยู่หลักของลูกค้า
+    province: "", // คอมเมนต์: จังหวัดของลูกค้า
+    postalCode: "", // คอมเมนต์: รหัสไปรษณีย์
+    occupation: "", // คอมเมนต์: อาชีพลูกค้า
+    status: "ลูกค้าใหม่", // คอมเมนต์: สถานะลูกค้า เริ่มต้นเป็นลูกค้าใหม่
+    isProspect: true, // คอมเมนต์: true = ลูกค้าใหม่ที่ยังไม่เคยทำสัญญา
+    prospectStage: "สนใจ", // คอมเมนต์: ขั้นตอนในกระบวนการขายเริ่มต้นเป็น “สนใจ”
+    rating: 3, // คอมเมนต์: คะแนนประเมินลูกค้าเบื้องต้น 1–5
+    note: "", // คอมเมนต์: หมายเหตุเพิ่มเติมเกี่ยวกับลูกค้า
+    createDate: "", // คอมเมนต์: วันที่สร้าง Lead จะเซ็ตตอนบันทึก
+    contracts: [], // คอมเมนต์: อาร์เรย์เก็บรายการสัญญาของลูกค้ารายนี้
+  }), // คอมเมนต์: ปิดอ็อบเจ็กต์ form
+
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนรีเซ็ตฟอร์ม
+  // ⭐ resetLeadForm()                                         // คอมเมนต์: ฟังก์ชันรีเซ็ตฟอร์มลูกค้า
+  // รีเซ็ตฟอร์มลูกค้ากลับเป็นค่าเริ่มต้น                   // คอมเมนต์: อธิบายสั้น ๆ ว่าทำอะไร
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ resetLeadForm
   resetLeadForm() {
-    this.form.id = null; // ล้าง ID
-    this.form.firstName = ""; // ล้างชื่อ
-    this.form.nickName = ""; // ล้างชื่อเล่น
-    this.form.phones = ""; // ล้างเบอร์โทร
-    this.form.address = ""; // ล้างที่อยู่
-    this.form.province = ""; // ล้างจังหวัด
-    this.form.postalCode = ""; // ล้างรหัสไปรษณีย์
-    this.form.occupation = ""; // ล้างอาชีพ
-    this.form.status = "ลูกค้าใหม่"; // รีเซ็ตสถานะเริ่มต้น
-    this.form.isProspect = true; // รีเซ็ตลูกค้าใหม่
-    this.form.prospectStage = "สนใจ"; // รีเซ็ตขั้นตอน
-    this.form.rating = 3; // รีเซ็ตคะแนนเริ่มต้น
-    this.form.note = ""; // ล้างหมายเหตุ
-    this.form.createDate = new Date().toLocaleDateString("th-TH"); // ตั้งวันที่ใหม่
-    this.form.contracts = []; // ล้างรายการสัญญาทั้งหมด
-  },
+    // คอมเมนต์: ประกาศฟังก์ชันรีเซ็ตฟอร์ม Lead
 
-  // ------------------------------------------------------------
-  // ⭐ loadAll()
-  // โหลดรายการ Lead ทั้งหมดจาก IndexedDB (Dexie)
-  // แล้วอัปเดตไปยัง Store เพื่อให้ UI แสดงผล
-  // ------------------------------------------------------------
-  async loadAll() {
-    try {
-      const items = await AppDexie.lead.getAll(); // ดึงข้อมูลทั้งหมดจาก IndexedDB
-      Store.setItems("Lead", items); // ส่งข้อมูลให้ Store (UI)
-    } catch (err) {
-      console.error("❌ loadAll() error:", err); // แสดง error
-    }
-  },
+    LeadApp.form.id = null; // คอมเมนต์: ล้างค่า id ให้เป็น null
+    LeadApp.form.firstName = ""; // คอมเมนต์: ล้างชื่อ-นามสกุล
+    LeadApp.form.nickName = ""; // คอมเมนต์: ล้างชื่อเล่น
+    LeadApp.form.phones = ""; // คอมเมนต์: ล้างเบอร์โทรทั้งหมด
+    LeadApp.form.address = ""; // คอมเมนต์: ล้างที่อยู่
+    LeadApp.form.province = ""; // คอมเมนต์: ล้างจังหวัด
+    LeadApp.form.postalCode = ""; // คอมเมนต์: ล้างรหัสไปรษณีย์
+    LeadApp.form.occupation = ""; // คอมเมนต์: ล้างอาชีพ
+    LeadApp.form.status = "ลูกค้าใหม่"; // คอมเมนต์: เซ็ตสถานะกลับเป็นลูกค้าใหม่
+    LeadApp.form.isProspect = true; // คอมเมนต์: เซ็ตให้เป็นลูกค้าใหม่
+    LeadApp.form.prospectStage = "สนใจ"; // คอมเมนต์: เซ็ตขั้นตอนกลับเป็น “สนใจ”
+    LeadApp.form.rating = 3; // คอมเมนต์: เซ็ตคะแนนกลับเป็น 3 ดาว
+    LeadApp.form.note = ""; // คอมเมนต์: ล้างหมายเหตุ
+    LeadApp.form.createDate = new Date().toLocaleDateString("th-TH"); // คอมเมนต์: เซ็ตวันที่สร้างเป็นวันนี้
+    LeadApp.form.contracts = []; // คอมเมนต์: ล้างรายการสัญญาทั้งหมด
+  }, // คอมเมนต์: ปิดฟังก์ชัน resetLeadForm
 
-  // ------------------------------------------------------------
-  // ⭐ add()
-  // เพิ่มลูกค้าใหม่ลงฐานข้อมูล Dexie
-  // ------------------------------------------------------------
-  async add() {
-    try {
-      const data = {
-        ...this.form, // คัดลอกข้อมูลจากฟอร์มทั้งหมด
-        id: crypto.randomUUID(), // สร้าง ID ใหม่แบบ UUID
-        createDate: new Date().toLocaleDateString("th-TH"), // วันที่สร้าง
-      };
-
-      await AppDexie.lead.add(data); // บันทึกลง IndexedDB
-      await this.loadAll(); // โหลดข้อมูลใหม่ (refresh UI)
-      AppGui.toggleMenu("isOpenModalLead", false); // ปิดหน้าต่าง modal
-      AppNotifications.show("เพิ่ม Lead สำเร็จ"); // แจ้งเตือน
-
-      this.resetLeadForm(); // เคลียร์ฟอร์มสำหรับครั้งถัดไป
-    } catch (err) {
-      console.error("❌ add() error:", err); // แสดง error
-    }
-  },
-
-  // ------------------------------------------------------------
-  // ⭐ update()
-  // แก้ไขข้อมูล Lead ที่มีอยู่
-  // ------------------------------------------------------------
-  async update() {
-    try {
-      // ❗ ต้องมี ID ก่อนถึงจะอัปเดตได้
-      if (!this.form.id) {
-        console.warn("⚠ update() เรียกแต่ไม่มี ID");
-        return;
-      }
-
-      await AppDexie.lead.update(this.form.id, { ...this.form }); // บันทึกลง Dexie
-      await this.loadAll(); // อัปเดต UI
-      AppGui.toggleMenu("isOpenModalLead", false); // ปิด modal
-      AppNotifications.show("อัปเดตข้อมูลเรียบร้อย"); // แจ้งเตือน
-    } catch (err) {
-      console.error("❌ update() error:", err); // แสดง error
-    }
-  },
-
-  // ------------------------------------------------------------
-  // ⭐ delete(id)
-  // ลบลูกค้าออกจาก Dexie
-  // ------------------------------------------------------------
-  async delete(id) {
-    try {
-      await AppDexie.lead.delete(id); // ลบข้อมูลตาม ID
-      await this.loadAll(); // โหลดใหม่เพื่อ refresh UI
-      AppNotifications.show("ลบข้อมูลแล้ว"); // แจ้งเตือน
-    } catch (err) {
-      console.error("❌ delete() error:", err); // แสดง error
-    }
-  },
-
-  // ------------------------------------------------------------
-  // ⭐ openEdit(lead)
-  // โหลดข้อมูล Lead เดิมเข้า form เพื่อแก้ไข
-  // ------------------------------------------------------------
-  openEdit(lead) {
-    Object.assign(this.form, lead); // คัดลอกข้อมูลทั้งหมดมาใส่ฟอร์ม
-    AppGui.toggleMenu("isOpenModalLead", true); // เปิด modal แก้ไข
-  },
-  // --------------------------------------------------------
-  // 🆕 createEmptyContract()
-  // สร้างโครงสัญญาใหม่ตาม DataSpec (เวอร์ชันเต็ม)
-  // --------------------------------------------------------
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนสร้างสัญญาเปล่า
+  // ⭐ createEmptyContract()                                   // คอมเมนต์: ฟังก์ชันสร้างโครงสัญญาเปล่า
+  // สร้างโครงสัญญาเปล่า 1 อัน (ใช้เป็น template ของ TAB ใหม่) // คอมเมนต์: ใช้เวลาจะเพิ่มสัญญาใหม่
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ createEmptyContract
   createEmptyContract() {
+    // คอมเมนต์: ประกาศฟังก์ชันสร้างสัญญาเปล่า
+
     return {
-      contractId: "", // รหัสสัญญา
-      leadId: "", // FK → Lead.id
-      type: "", // ประเภทสินเชื่อ
-      carid: "", // รหัสรถ
-      carbrandid: "", // รหัสยี่ห้อรถ
-      statusAccount: "", // สถานะบัญชี
-      statusOverdue: 0, // จำนวนงวดค้าง
-      contractDate: "", // วันที่ทำสัญญา
-      expireDate: "", // วันที่ครบสัญญา
-      grade: "", // เกรดลูกค้า
-      campaign: "", // แคมเปญ
-      loanAmount: 0, // ยอดขอสินเชื่อ
-      approvedAmount: 0, // ยอดอนุมัติ
-      interestRate: 0, // ดอกเบี้ย %
-      interestType: "", // ประเภทดอกเบี้ย
-      term: 0, // จำนวนงวด
-      installmentAmount: 0, // ค่างวดต่อเดือน
-      installmentVAT: 0, // VAT ของค่างวด
-      paymentDay: 1, // วันชำระประจำเดือน
-      paidInstallments: 0, // งวดที่ชำระแล้ว
-      remainingInstallments: 0, // งวดคงเหลือ
-      OVD: 0, // overdue
-      last3Payments: [], // สถานะย้อนหลัง 3 เดือน
-      lastUpdate: "", // วันที่อัปเดตล่าสุด
-      outstanding: 0, // หนี้คงเหลือ
-      unrealized: 0, // ดอกเบี้ยค้างรับ
-      closeAmount: 0, // ยอดปิดบัญชี
-      closeDate: "", // วันที่ปิดบัญชี
-      financeName: "", // ชื่อไฟแนนซ์
-      remark: "", // หมายเหตุ
-      isSubContract: false, // เป็นสัญญาย่อยหรือไม่
-      assets: [], // รายการทรัพย์สิน เช่น รถ/ที่ดิน
-      subContracts: [], // สัญญาย่อย
-    };
-  },
+      // คอมเมนต์: คืนค่าเป็นอ็อบเจกต์สัญญาเปล่า 1 ชุด
+      contractId: "", // คอมเมนต์: รหัสสัญญา (ว่าง = สัญญาใหม่)
+      leadId: "", // คอมเมนต์: รหัสลูกค้าที่สัญญานี้สังกัด
+      type: "", // คอมเมนต์: ประเภทสินเชื่อ เช่น จำนำทะเบียน
+      carid: "", // คอมเมนต์: รหัสรถถ้ามีระบบรถแยก
+      carbrandid: "", // คอมเมนต์: รหัสยี่ห้อรถถ้ามี
+      statusAccount: "ปกติ", // คอมเมนต์: สถานะบัญชีเริ่มต้นเป็นปกติ
+      statusOverdue: 0, // คอมเมนต์: จำนวนงวดที่ค้างชำระเริ่มต้น 0
+      contractDate: new Date().toISOString().substr(0, 10), // คอมเมนต์: วันที่ทำสัญญาเริ่มต้นเป็นวันนี้ (รูปแบบ YYYY-MM-DD)
+      expireDate: "", // คอมเมนต์: วันที่ครบสัญญา
+      grade: "", // คอมเมนต์: เกรดลูกค้า
+      campaign: "", // คอมเมนต์: ชื่อแคมเปญ
+      loanAmount: 0, // คอมเมนต์: ยอดขอสินเชื่อ
+      approvedAmount: 0, // คอมเมนต์: ยอดอนุมัติสินเชื่อ
+      interestRate: 0, // คอมเมนต์: อัตราดอกเบี้ย %
+      interestType: "", // คอมเมนต์: ประเภทดอกเบี้ย เช่น flat หรือ effective
+      term: 0, // คอมเมนต์: จำนวนงวดทั้งหมด
+      installmentAmount: 0, // คอมเมนต์: ค่างวดที่ต้องจ่ายต่อเดือน
+      installmentVAT: 0, // คอมเมนต์: VAT ของค่างวด
+      paymentDay: 1, // คอมเมนต์: วันที่ต้องชำระในแต่ละเดือน (1–31)
+      paidInstallments: 0, // คอมเมนต์: จำนวนงวดที่จ่ายแล้ว
+      remainingInstallments: 0, // คอมเมนต์: จำนวนงวดคงเหลือ
+      OVD: 0, // คอมเมนต์: จำนวนงวดที่ค้างชำระ (Overdue)
+      last3Payments: [], // คอมเมนต์: สถานะชำระย้อนหลัง 3 เดือน
+      lastUpdate: "", // คอมเมนต์: วันที่อัปเดตข้อมูลล่าสุด
+      outstanding: 0, // คอมเมนต์: ยอดหนี้คงเหลือ
+      unrealized: 0, // คอมเมนต์: ดอกเบี้ยค้างรับ
+      closeAmount: 0, // คอมเมนต์: ยอดปิดบัญชี
+      closeDate: "", // คอมเมนต์: วันที่ปิดบัญชี
+      financeName: "", // คอมเมนต์: ชื่อไฟแนนซ์
+      remark: "", // คอมเมนต์: หมายเหตุของสัญญา
+      isSubContract: false, // คอมเมนต์: true = เป็นสัญญาย่อย
+      assets: [], // คอมเมนต์: รายการทรัพย์สินหลักประกัน
+      subContracts: [], // คอมเมนต์: รายการสัญญาย่อย
+    }; // คอมเมนต์: ปิดอ็อบเจกต์ที่คืนค่า
+  }, // คอมเมนต์: ปิดฟังก์ชัน createEmptyContract
 
-  // --------------------------------------------------------
-  // 🆕 resetNewContractForm()
-  // รีเซ็ตฟอร์มสัญญาใหม่ (ใช้ตอนกด TAB +)
-  // --------------------------------------------------------
-  resetNewContractForm() {
-    const empty = this.createEmptyContract(); // สร้างสัญญาใหม่แบบว่าง
-    Object.keys(empty).forEach((k) => {
-      AppState.newContractForm[k] = empty[k]; // ใส่ลง newContractForm
-    });
-  },
-
-  // --------------------------------------------------------
-  // 🆕 addContractFromNewForm()
-  // เพิ่มสัญญาใหม่เข้า leadForm
-  // --------------------------------------------------------
-  addContractFromNewForm() {
-    if (!LeadState.form.contracts) {
-      LeadState.form.contracts = []; // ถ้ายังไม่มี array → สร้างใหม่
-    }
-
-    // ยัดฟอร์มใหม่ลง contracts
-    LeadState.form.contracts.push(
-      JSON.parse(JSON.stringify(AppState.newContractForm))
-    );
-
-    // หลังเพิ่มเสร็จ → reset ฟอร์มใหม่ทันที
-    this.resetNewContractForm();
-
-    // เปลี่ยน ContractTab ไปที่สัญญาชุดล่าสุด
-    AppState.contractTab.value = LeadState.form.contracts.length - 1;
-
-    AppNotifications.show("เพิ่มสัญญาสำเร็จ");
-  },
-
-  // --------------------------------------------------------
-  // 🆕 editContract(index)
-  // โหลดสัญญาเก่ามาแก้ไขใน newContractForm
-  // --------------------------------------------------------
-  editContract(index) {
-    if (!LeadState.form.contracts || !LeadState.form.contracts[index]) return;
-
-    const data = LeadState.form.contracts[index];
-
-    Object.keys(data).forEach((k) => {
-      AppState.newContractForm[k] = data[k]; // โหลดข้อมูลเก่ามาแก้
-    });
-
-    // เปิดแท็บสัญญาที่ต้องการแก้ไข
-    AppState.contractTab.value = index;
-
-    // ไปหน้า ALL
-    AppState.contractInnerTab.value = "all";
-
-    // เปิด Panels ทั้งหมด
-    AppState.contractPanels.value = [
-      "info",
-      "finance",
-      "status",
-      "asset",
-      "history",
-      "other",
-    ];
-  },
-
-  // --------------------------------------------------------
-  // 🆕 deleteContract(index)
-  // ลบสัญญาออกจาก leadForm
-  // --------------------------------------------------------
-  deleteContract(index) {
-    if (!LeadState.form.contracts) return;
-    LeadState.form.contracts.splice(index, 1);
-
-    AppNotifications.show("ลบสัญญาแล้ว");
-
-    // ถ้าลบจนเหลือ 0 → ไป TAB "+"
-    if (LeadState.form.contracts.length === 0) {
-      AppState.contractTab.value = "new";
-    } else {
-      AppState.contractTab.value = 0;
-    }
-  },
-
-  // ------------------------------------------------------------
-  // ⭐ addEmptyContract()
-  // เพิ่ม Tab สัญญาใหม่แบบ Browser Style
-  // 1. สร้าง Object สัญญาเปล่า
-  // 2. ยัดใส่ Array contracts
-  // 3. สั่งให้หน้าจอเด้งไปหา Tab ใหม่ทันที
-  // ------------------------------------------------------------
-  // ------------------------------------------------------------
-  // ⭐ addEmptyContract() [ปรับปรุงใหม่]
-  // เพิ่ม Tab สัญญาใหม่แบบ Browser Style
-  // 1. สร้าง Object สัญญาเปล่า
-  // 2. ยัดใส่ Array contracts
-  // 3. สั่งให้หน้าจอเด้งไปหา Tab ใหม่ทันที
-  // ------------------------------------------------------------
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนเพิ่มสัญญาใหม่
+  // ⭐ addEmptyContract()                                      // คอมเมนต์: ฟังก์ชันเพิ่มสัญญาใหม่แบบ Browser TAB
+  // เพิ่มสัญญาใหม่ 1 อัน + กระโดดไป TAB นั้น (Browser Style) // คอมเมนต์: ทำให้รู้สึกเหมือนเปิดแท็บใหม่ใน browser
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ addEmptyContract
   addEmptyContract() {
-    // [ถาวร] 1. สร้างสัญญาเปล่าตามโครงสร้าง DataSpec
-    const empty = this.createEmptyContract();
+    // คอมเมนต์: ประกาศฟังก์ชันเพิ่มสัญญาใหม่ 1 แท็บ
 
-    // [ถาวร] 2. ตรวจสอบว่ามี array contracts หรือยัง ถ้าไม่มีให้สร้างใหม่
-    if (!this.form.contracts) {
-      this.form.contracts = [];
-    }
+    const empty = LeadApp.createEmptyContract(); // คอมเมนต์: สร้างสัญญาเปล่าจาก template
 
-    // [ถาวร] 3. เพิ่มสัญญาใหม่เข้า array (Tab จะงอกออกมาเองตาม v-for ใน html)
-    this.form.contracts.push(empty);
+    if (!Array.isArray(LeadApp.form.contracts)) {
+      // คอมเมนต์: ถ้า contracts ยังไม่ใช่ array ให้สร้างใหม่
+      LeadApp.form.contracts = []; // คอมเมนต์: เซ็ต contracts เป็นอาร์เรย์ว่าง
+    } // คอมเมนต์: ปิดเงื่อนไขตรวจสอบ contracts
 
-    // [ถาวร] 4. คำนวณ index ของสัญญาตัวใหม่ (ตัวสุดท้าย)
-    const newIndex = this.form.contracts.length - 1;
+    LeadApp.form.contracts.push(empty); // คอมเมนต์: เพิ่มสัญญาใหม่เข้าไปในรายการ
 
-    // [ถาวร] 5. สั่งให้ UI กระโดดไปที่ Tab ใหม่ทันที (Browser feel)
-    // ต้องใช้ setTimeout เล็กน้อยเพื่อให้ Vue Render Tab เสร็จก่อนค่อยย้าย
+    const newIndex = LeadApp.form.contracts.length - 1; // คอมเมนต์: หา index ของสัญญาตัวใหม่ (ตัวสุดท้าย)
+
     setTimeout(() => {
-      AppState.leadTab.value = "contract-" + newIndex;
-    }, 50);
+      // คอมเมนต์: ใช้ setTimeout เพื่อให้ Vue render TAB ให้ทันก่อนเปลี่ยนค่า
+      if (window.AppState && AppState.leadTab) {
+        // คอมเมนต์: เช็คว่ามีตัวแปร leadTab ให้ใช้งาน
+        AppState.leadTab.value = "contract-" + newIndex; // คอมเมนต์: เซ็ต v-model ของ v-tabs ให้ไปที่แท็บสัญญาใหม่
+      } // คอมเมนต์: ปิด if ตรวจสอบ AppState.leadTab
+    }, 50); // คอมเมนต์: ดีเลย์ 50ms เพื่อความชัวร์ในการ render
 
-    // [ถาวร] 6. ตั้งค่า Tab ย่อยภายในให้เป็นหน้า ALL (ภาพรวม)
-    AppState.contractInnerTab.value = "all";
+    if (window.AppState && AppState.contractInnerTab) {
+      // คอมเมนต์: ถ้ามีตัวแปรแท็บย่อยของสัญญา
+      AppState.contractInnerTab.value = "all"; // คอมเมนต์: เซ็ตแท็บย่อยด้านในให้เริ่มที่ ALL
+    } // คอมเมนต์: ปิด if contractInnerTab
 
-    // [ถาวร] 7. เปิด Panels ทั้งหมดรอไว้
-    AppState.contractPanels.value = [
-      "info",
-      "finance",
-      "status",
-      "asset",
-      "history",
-      "other",
-    ];
+    if (window.AppState && AppState.contractPanels) {
+      // คอมเมนต์: ถ้ามีตัวแปร panels ของสัญญา
+      AppState.contractPanels.value = [
+        // คอมเมนต์: เซ็ตให้ panels ทั้งหมดเปิดอยู่
+        "info", // คอมเมนต์: panel ข้อมูลสัญญา
+        "finance", // คอมเมนต์: panel การเงิน
+        "status", // คอมเมนต์: panel สถานะบัญชี
+        "asset", // คอมเมนต์: panel ทรัพย์สินหลักประกัน
+        "history", // คอมเมนต์: panel ประวัติย้อนหลัง
+        "other", // คอมเมนต์: panel อื่น ๆ
+      ]; // คอมเมนต์: ปิดอาร์เรย์รายชื่อ panels
+    } // คอมเมนต์: ปิด if contractPanels
 
-    // [ถาวร] แจ้งเตือนผู้ใช้
-    AppNotifications.show("เพิ่มแท็บสัญญาใหม่เรียบร้อย");
-  },
+    if (window.AppNotifications && AppNotifications.show) {
+      // คอมเมนต์: ถ้ามีระบบแจ้งเตือน
+      AppNotifications.show("เพิ่มแท็บสัญญาใหม่เรียบร้อย"); // คอมเมนต์: แจ้งเตือนผู้ใช้ว่ามีการเพิ่มสัญญาใหม่แล้ว
+    } // คอมเมนต์: ปิด if AppNotifications
+  }, // คอมเมนต์: ปิดฟังก์ชัน addEmptyContract
 
-  // --------------------------------------------------------
-  // 🆕 createEmptyContract()
-  // สร้างโครงสัญญาใหม่ตาม DataSpec (เวอร์ชันเต็ม)
-  // --------------------------------------------------------
-  createEmptyContract() {
-    return {
-      contractId: "", // รหัสสัญญา (ว่างไว้เพื่อให้ Tab แสดงว่า 'สัญญาใหม่')
-      leadId: "", // FK → Lead.id
-      type: "", // ประเภทสินเชื่อ
-      carid: "", // รหัสรถ
-      carbrandid: "", // รหัสยี่ห้อรถ
-      statusAccount: "ปกติ", // สถานะบัญชีเริ่มต้น
-      statusOverdue: 0, // จำนวนงวดค้าง
-      contractDate: new Date().toISOString().substr(0, 10), // วันที่ทำสัญญา (default วันนี้)
-      expireDate: "", // วันที่ครบสัญญา
-      grade: "", // เกรดลูกค้า
-      campaign: "", // แคมเปญ
-      loanAmount: 0, // ยอดขอสินเชื่อ
-      approvedAmount: 0, // ยอดอนุมัติ
-      interestRate: 0, // ดอกเบี้ย %
-      interestType: "", // ประเภทดอกเบี้ย
-      term: 0, // จำนวนงวด
-      installmentAmount: 0, // ค่างวดต่อเดือน
-      installmentVAT: 0, // VAT ของค่างวด
-      paymentDay: 1, // วันชำระประจำเดือน
-      paidInstallments: 0, // งวดที่ชำระแล้ว
-      remainingInstallments: 0, // งวดคงเหลือ
-      OVD: 0, // overdue
-      last3Payments: [], // สถานะย้อนหลัง 3 เดือน
-      lastUpdate: "", // วันที่อัปเดตล่าสุด
-      outstanding: 0, // หนี้คงเหลือ
-      unrealized: 0, // ดอกเบี้ยค้างรับ
-      closeAmount: 0, // ยอดปิดบัญชี
-      closeDate: "", // วันที่ปิดบัญชี
-      financeName: "", // ชื่อไฟแนนซ์
-      remark: "", // หมายเหตุ
-      isSubContract: false, // เป็นสัญญาย่อยหรือไม่
-      assets: [], // รายการทรัพย์สิน เช่น รถ/ที่ดิน
-      subContracts: [], // สัญญาย่อย
-    };
-  },
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนรีเซ็ตฟอร์มสัญญาใหม่
+  // ⭐ resetNewContractForm()                                  // คอมเมนต์: ฟังก์ชันรีเซ็ตฟอร์มสัญญาใน AppState
+  // ใช้ซิงก์สัญญาเปล่าไปที่ AppState.newContractForm (ถ้ามี) // คอมเมนต์: ใช้ตอนต้องการเคลียร์ฟอร์มสัญญาแบบแยก
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ resetNewContractForm
+  resetNewContractForm() {
+    // คอมเมนต์: ประกาศฟังก์ชันรีเซ็ตฟอร์มสัญญาใน AppState
 
-  // ... (โค้ดส่วน createEmptyContract และอื่นๆ คงเดิม) ...
+    if (!window.AppState || !AppState.newContractForm) {
+      // คอมเมนต์: ถ้าไม่มี AppState.newContractForm ให้หยุดทำงาน
+      return; // คอมเมนต์: ออกจากฟังก์ชันทันที
+    } // คอมเมนต์: ปิด if ตรวจสอบ AppState.newContractForm
 
-  // --------------------------------------------------------
-  // 🆕 createEmptyContract()
-  // สร้างโครงสัญญาใหม่ตาม DataSpec (เวอร์ชันเต็ม)
-  // --------------------------------------------------------
-  createEmptyContract() {
-    return {
-      contractId: "", // รหัสสัญญา (ว่างไว้เพื่อให้ Tab แสดงว่า 'สัญญาใหม่')
-      leadId: "", // FK → Lead.id
-      type: "", // ประเภทสินเชื่อ
-      carid: "", // รหัสรถ
-      carbrandid: "", // รหัสยี่ห้อรถ
-      statusAccount: "ปกติ", // สถานะบัญชีเริ่มต้น
-      statusOverdue: 0, // จำนวนงวดค้าง
-      contractDate: new Date().toISOString().substr(0, 10), // วันที่ทำสัญญา (default วันนี้)
-      expireDate: "", // วันที่ครบสัญญา
-      grade: "", // เกรดลูกค้า
-      campaign: "", // แคมเปญ
-      loanAmount: 0, // ยอดขอสินเชื่อ
-      approvedAmount: 0, // ยอดอนุมัติ
-      interestRate: 0, // ดอกเบี้ย %
-      interestType: "", // ประเภทดอกเบี้ย
-      term: 0, // จำนวนงวด
-      installmentAmount: 0, // ค่างวดต่อเดือน
-      installmentVAT: 0, // VAT ของค่างวด
-      paymentDay: 1, // วันชำระประจำเดือน
-      paidInstallments: 0, // งวดที่ชำระแล้ว
-      remainingInstallments: 0, // งวดคงเหลือ
-      OVD: 0, // overdue
-      last3Payments: [], // สถานะย้อนหลัง 3 เดือน
-      lastUpdate: "", // วันที่อัปเดตล่าสุด
-      outstanding: 0, // หนี้คงเหลือ
-      unrealized: 0, // ดอกเบี้ยค้างรับ
-      closeAmount: 0, // ยอดปิดบัญชี
-      closeDate: "", // วันที่ปิดบัญชี
-      financeName: "", // ชื่อไฟแนนซ์
-      remark: "", // หมายเหตุ
-      isSubContract: false, // เป็นสัญญาย่อยหรือไม่
-      assets: [], // รายการทรัพย์สิน เช่น รถ/ที่ดิน
-      subContracts: [], // สัญญาย่อย
-    };
-  },
-};
+    const empty = LeadApp.createEmptyContract(); // คอมเมนต์: สร้างสัญญาเปล่ามาเป็นต้นแบบ
 
-// ------------------------------------------------------------
-// 🌍 Export ออกแบบ Global เดียว (ตามกติกาของคุณ)
-// ------------------------------------------------------------
-window.LeadApp = LeadApp; // ✔ มี Global เดียวเท่านั้น
+    Object.keys(empty).forEach((k) => {
+      // คอมเมนต์: วนทุก key ของอ็อบเจกต์สัญญาเปล่า
+      AppState.newContractForm[k] = empty[k]; // คอมเมนต์: คัดลอกค่าจาก empty ไปเก็บที่ newContractForm
+    }); // คอมเมนต์: ปิดการวนลูป Object.keys
+  }, // คอมเมนต์: ปิดฟังก์ชัน resetNewContractForm
+
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนโหลดข้อมูลจาก Dexie
+  // ⭐ loadAll()                                               // คอมเมนต์: ฟังก์ชันโหลด Lead ทั้งหมดจาก IndexedDB
+  // โหลด Lead ทั้งหมดจาก Dexie → Store เพื่อแสดงใน UI       // คอมเมนต์: ใช้ตอนเริ่มระบบหรือหลังจากมีการแก้ไขข้อมูล
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ loadAll
+  async loadAll() {
+    // คอมเมนต์: ประกาศฟังก์ชัน async สำหรับโหลดข้อมูลทั้งหมด
+
+    try {
+      // คอมเมนต์: ใช้ try/catch เพื่อดัก error
+      const items = await AppDexie.lead.getAll(); // คอมเมนต์: ดึง Lead ทั้งหมดจากตาราง leads ใน Dexie
+      Store.setItems("Lead", items); // คอมเมนต์: ส่งข้อมูลเข้า Store เพื่อให้ UI ใช้งาน
+    } catch (err) {
+      // คอมเมนต์: ถ้ามี error เกิดขึ้น
+      console.error("❌ LeadApp.loadAll() error:", err); // คอมเมนต์: แสดง error ใน console เพื่อ debug
+    } // คอมเมนต์: ปิด try/catch
+  }, // คอมเมนต์: ปิดฟังก์ชัน loadAll
+
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนเพิ่ม Lead ใหม่
+  // ⭐ add(formData)                                           // คอมเมนต์: ฟังก์ชันเพิ่ม Lead ใหม่
+  // เพิ่มลูกค้าใหม่ลง Dexie + รีเฟรช UI                      // คอมเมนต์: ใช้ตอนกดปุ่มบันทึกในโหมดเพิ่มใหม่
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ add
+  async add(formData) {
+    // คอมเมนต์: ประกาศฟังก์ชัน async สำหรับเพิ่ม Lead
+
+    try {
+      // คอมเมนต์: ใช้ try/catch ป้องกัน error
+      const src = formData || LeadApp.form; // คอมเมนต์: ถ้าส่ง formData มาให้ใช้ตัวนั้น ไม่งั้นใช้ฟอร์มหลักใน LeadApp
+
+      const dataToSave = {
+        // คอมเมนต์: เตรียมอ็อบเจกต์สำหรับบันทึกลงฐานข้อมูล
+        ...src, // คอมเมนต์: คัดลอกทุกฟิลด์จากฟอร์ม
+        id: crypto.randomUUID(), // คอมเมนต์: สร้างไอดีใหม่แบบสุ่ม UUID
+        createDate: new Date().toLocaleDateString("th-TH"), // คอมเมนต์: กำหนดวันที่สร้างเป็นวันนี้
+      }; // คอมเมนต์: ปิดอ็อบเจกต์ dataToSave
+
+      await AppDexie.lead.add(dataToSave); // คอมเมนต์: บันทึกข้อมูล Lead ใหม่ลง Dexie
+      await LeadApp.loadAll(); // คอมเมนต์: โหลดข้อมูลใหม่ทั้งหมดเพื่อให้ UI อัปเดต
+
+      if (window.AppGui && AppGui.toggleMenu) {
+        // คอมเมนต์: ถ้ามีโมดูล AppGui และฟังก์ชัน toggleMenu
+        AppGui.toggleMenu("isOpenModalLead", false); // คอมเมนต์: ปิด dialog เพิ่ม/แก้ไข Lead
+      } // คอมเมนต์: ปิด if ตรวจสอบ AppGui
+
+      if (window.AppNotifications && AppNotifications.show) {
+        // คอมเมนต์: ถ้ามีระบบแจ้งเตือน
+        AppNotifications.show("เพิ่ม Lead สำเร็จ"); // คอมเมนต์: แจ้งเตือนว่าบันทึกสำเร็จ
+      } // คอมเมนต์: ปิด if AppNotifications
+
+      LeadApp.resetLeadForm(); // คอมเมนต์: รีเซ็ตฟอร์มเตรียมไว้ใช้รอบต่อไป
+    } catch (err) {
+      // คอมเมนต์: ถ้ามี error เกิดขึ้นระหว่างบันทึก
+      console.error("❌ LeadApp.add() error:", err); // คอมเมนต์: แสดงข้อความ error ใน console
+    } // คอมเมนต์: ปิด try/catch
+  }, // คอมเมนต์: ปิดฟังก์ชัน add
+
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนอัปเดต Lead
+  // ⭐ update()                                                // คอมเมนต์: ฟังก์ชันอัปเดต Lead เดิม
+  // แก้ไขข้อมูล Lead เดิมใน Dexie                            // คอมเมนต์: ใช้ตอนแก้ไขข้อมูลแล้วกดบันทึก
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ update
+  async update() {
+    // คอมเมนต์: ประกาศฟังก์ชัน async สำหรับอัปเดต Lead
+
+    try {
+      // คอมเมนต์: ใช้ try/catch ป้องกัน error
+      if (!LeadApp.form.id) {
+        // คอมเมนต์: ถ้าไม่มี id แสดงว่าไม่รู้จะแก้ตัวไหน
+        console.warn("⚠ LeadApp.update() ถูกเรียก แต่ไม่มี id"); // คอมเมนต์: แจ้งเตือนนักพัฒนาใน console
+        return; // คอมเมนต์: หยุดทำงานไม่ทำต่อ
+      } // คอมเมนต์: ปิด if ตรวจสอบ id
+
+      await AppDexie.lead.update(LeadApp.form.id, { ...LeadApp.form }); // คอมเมนต์: ส่งข้อมูลฟอร์มไปอัปเดตใน Dexie
+      await LeadApp.loadAll(); // คอมเมนต์: โหลดข้อมูลใหม่ทั้งหมดให้ UI อัปเดต
+
+      if (window.AppGui && AppGui.toggleMenu) {
+        // คอมเมนต์: ถ้ามี AppGui
+        AppGui.toggleMenu("isOpenModalLead", false); // คอมเมนต์: ปิด dialog แก้ไข Lead
+      } // คอมเมนต์: ปิด if AppGui
+
+      if (window.AppNotifications && AppNotifications.show) {
+        // คอมเมนต์: ถ้ามีระบบแจ้งเตือน
+        AppNotifications.show("อัปเดตข้อมูล Lead เรียบร้อย"); // คอมเมนต์: แจ้งเตือนว่าการแก้ไขสำเร็จ
+      } // คอมเมนต์: ปิด if AppNotifications
+    } catch (err) {
+      // คอมเมนต์: ถ้าเกิด error ระหว่างอัปเดต
+      console.error("❌ LeadApp.update() error:", err); // คอมเมนต์: แสดง error ใน console
+    } // คอมเมนต์: ปิด try/catch
+  }, // คอมเมนต์: ปิดฟังก์ชัน update
+
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนลบ Lead
+  // ⭐ delete(id)                                              // คอมเมนต์: ฟังก์ชันลบ Lead ตาม id
+  // ลบ Lead ออกจาก Dexie ตาม id                               // คอมเมนต์: ใช้ตอนผู้ใช้สั่งลบลูกค้า
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ delete
+  async delete(id) {
+    // คอมเมนต์: ประกาศฟังก์ชัน async สำหรับลบ Lead
+
+    try {
+      // คอมเมนต์: ใช้ try/catch ดัก error
+      await AppDexie.lead.delete(id); // คอมเมนต์: ลบข้อมูล Lead จาก Dexie ตาม id ที่ส่งมา
+      await LeadApp.loadAll(); // คอมเมนต์: โหลดข้อมูลใหม่ให้ตารางอัปเดต
+
+      if (window.AppNotifications && AppNotifications.show) {
+        // คอมเมนต์: ถ้ามีระบบแจ้งเตือน
+        AppNotifications.show("ลบข้อมูล Lead เรียบร้อย"); // คอมเมนต์: แจ้งเตือนว่าลบแล้ว
+      } // คอมเมนต์: ปิด if AppNotifications
+    } catch (err) {
+      // คอมเมนต์: ถ้าเกิด error ระหว่างลบ
+      console.error("❌ LeadApp.delete() error:", err); // คอมเมนต์: แสดง error ใน console
+    } // คอมเมนต์: ปิด try/catch
+  }, // คอมเมนต์: ปิดฟังก์ชัน delete
+
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วนเปิดฟอร์มแก้ไข Lead
+  // ⭐ openEdit(lead)                                          // คอมเมนต์: ฟังก์ชันโหลด Lead เดิมเข้า form
+  // โหลดข้อมูล Lead เดิมเข้า form เพื่อแก้ไข                 // คอมเมนต์: ใช้ตอนกดแก้ไขจากรายการ
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ openEdit
+  openEdit(lead) {
+    // คอมเมนต์: ประกาศฟังก์ชันสำหรับเตรียมฟอร์มแก้ไข Lead
+
+    if (!lead) {
+      // คอมเมนต์: ถ้าไม่ได้ส่งอ็อบเจกต์ lead เข้ามา
+      console.warn("⚠ LeadApp.openEdit() ไม่ได้รับอ็อบเจกต์ lead"); // คอมเมนต์: แจ้งเตือนใน console
+      return; // คอมเมนต์: หยุดทำงาน
+    } // คอมเมนต์: ปิด if ตรวจสอบ lead
+
+    Object.assign(LeadApp.form, lead); // คอมเมนต์: คัดลอกทุกฟิลด์จาก lead เข้าไปในฟอร์มหลัก
+
+    if (!Array.isArray(LeadApp.form.contracts)) {
+      // คอมเมนต์: ถ้า contracts ยังไม่ใช่อาร์เรย์
+      LeadApp.form.contracts = []; // คอมเมนต์: ให้เป็นอาร์เรย์ว่างเพื่อป้องกัน error
+    } // คอมเมนต์: ปิด if ตรวจสอบ contracts
+
+    if (window.AppGui && AppGui.toggleMenu) {
+      // คอมเมนต์: ถ้ามี AppGui
+      AppGui.toggleMenu("isOpenModalLead", true); // คอมเมนต์: เปิด dialog แก้ไข Lead
+    } // คอมเมนต์: ปิด if AppGui
+  }, // คอมเมนต์: ปิดฟังก์ชัน openEdit
+
+  // ---------------------------------------------------------- // คอมเมนต์: เส้นคั่นส่วน Alias ฟังก์ชันเก่า
+  // ⭐ addLead / updateLead / deleteLead                       // คอมเมนต์: alias ไว้กันโค้ดเก่าเรียก
+  // ---------------------------------------------------------- // คอมเมนต์: ปิดหัวข้อ alias
+  addLead(formData) {
+    // คอมเมนต์: alias เรียกไปที่ LeadApp.add
+    return LeadApp.add(formData); // คอมเมนต์: ส่งต่อไปใช้ฟังก์ชัน add จริง
+  }, // คอมเมนต์: ปิดฟังก์ชัน addLead
+
+  updateLead() {
+    // คอมเมนต์: alias เรียกไปที่ LeadApp.update
+    return LeadApp.update(); // คอมเมนต์: ส่งต่อไปใช้ฟังก์ชัน update จริง
+  }, // คอมเมนต์: ปิดฟังก์ชัน updateLead
+
+  deleteLead(id) {
+    // คอมเมนต์: alias เรียกไปที่ LeadApp.delete
+    return LeadApp.delete(id); // คอมเมนต์: ส่งต่อไปใช้ฟังก์ชัน delete จริง
+  }, // คอมเมนต์: ปิดฟังก์ชัน deleteLead
+}; // คอมเมนต์: ปิดอ็อบเจกต์ LeadApp
+
+// ------------------------------------------------------------ // คอมเมนต์: เส้นคั่นส่วน export
+// 🌍 Export LeadApp เป็น Global ให้ไฟล์อื่นใช้งาน            // คอมเมนต์: ผูก LeadApp เข้ากับ window
+// ------------------------------------------------------------ // คอมเมนต์: ปิดหัวข้อ export
+window.LeadApp = LeadApp; // คอมเมนต์: ทำให้ LeadApp ใช้ได้จาก index.html และ app.js

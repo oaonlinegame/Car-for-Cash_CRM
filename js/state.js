@@ -12,6 +12,14 @@ const AppState = {
   // ------------------------------------------------------
   isMenuOpenFilterSearch: Vue.ref(false), // เปิด/ปิดเมนูตัวกรองค้นหา
   isOpenModalLead: Vue.ref(false), // เปิด/ปิด modal เพิ่ม Lead
+  isOpenSubContractDialog: Vue.ref(false), // เปิด/ปิด modal ย่อย สัญญา
+  isOpenModalLeadAutoFill: Vue.ref(false), // เปิด/ปิด modal autofill lead
+  isOpenModalLog: Vue.ref(false), // เปิด/ปิด modal บันทึกการโทร/ติดตาม
+  isOpenModalRecordCallResult: Vue.ref(false), // เปิด/ปิด modal บันทึกผลการโทร
+  isOpenModalCarSettings: Vue.ref(false), // เปิด/ปิด modal การตั้งค่าข้อมูลรถยนต์
+  callResultTab: Vue.ref("conversation"), // แท็บของ modal บันทึกผลการโทร (conversation/result)
+  carSettingTab: Vue.ref("price_list"), // แท็บของ modal การตั้งค่าข้อมูลรถยนต์ (price_list/other_settings)
+  isOpenModalCarPriceSelector: Vue.ref(false), // เปิด/ปิด modal เลือกราคากลางรถยนต์
 
   // ------------------------------------------------------
   // 🔍 Search
