@@ -97,8 +97,11 @@ const app = Vue.createApp({
       // Notifications
       notify: AppNotifications.show, //   ฟังก์ชันแจ้งเตือนข้อความในระบบ
 
-      // Car Logic
-      CarLogic, // คอมเมนต์: ส่งออก CarLogic ให้ HTML เรียกใช้ได้ (เช่น ปุ่มเลือกราคา)
+      // Car Logic (เปลี่ยนจาก CarLogic เป็น CarApp)
+      CarApp, // คอมเมนต์: ส่งออก CarApp ให้ HTML เรียกใช้ได้ (รวม Logic และ State รถยนต์)
+
+      // Finance Logic (เพิ่ม FinanceApp)
+      FinanceApp, // คอมเมนต์: ส่งออก FinanceApp ให้ HTML เรียกใช้ได้ (รวม Logic และ State สินเชื่อ)
     }; //   จบการคืนค่าจาก setup()
   }, //   จบฟังก์ชัน setup
 }); //   จบการสร้างแอป Vue.createApp
