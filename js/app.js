@@ -59,6 +59,8 @@ const app = Vue.createApp({
       isOpenModalCarSettings: AppState.isOpenModalCarSettings, // สถานะเปิด/ปิด modal การตั้งค่าข้อมูลรถยนต์
       carSettingTab: AppState.carSettingTab, // แท็บของ modal การตั้งค่าข้อมูลรถยนต์ (price_list/other_settings)
       isOpenModalCarPriceSelector: AppState.isOpenModalCarPriceSelector, // modal เลือกราคากลางรถยนต์
+      handleAddOccupation: LeadApp.handleAddOccupation, // ส่งออกฟังก์ชันจัดการอาชีพใหม่
+      occupationItems: AppState.occupationItems, // รายการอาชีพสำหรับ v-combobox
 
       // Search
       searchRef: AppState.searchRef, // ref ของช่อง search สำหรับผูกกับ v-menu activator
@@ -80,6 +82,7 @@ const app = Vue.createApp({
       addLead: LeadApp.add, //   ฟังก์ชันเพิ่ม lead ใหม่ (เรียกผ่าน LeadApp)
       updateLead: LeadApp.updateLead, //   ฟังก์ชันอัปเดตข้อมูล lead
       deleteLead: LeadApp.deleteLead, //   ฟังก์ชันลบ lead
+      LeadApp, // ส่งออก LeadApp object ทั้งก้อน เพื่อให้สามารถเรียก LeadApp.handleAddOccupation ได้โดยตรงใน Template
 
       // ---------- Contract Actions ----------
       addEmptyContract: LeadApp.addEmptyContract, //   ฟังก์ชันเพิ่มสัญญาเปล่าให้ lead ปัจจุบัน

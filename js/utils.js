@@ -109,6 +109,45 @@ const Utils = {
     const rand = Math.floor(Math.random() * 1000); // เลขสุ่ม 0-999
     return `${prefix}_${time}_${rand}`; // คืนค่ารหัสที่ไม่ซ้ำ
   },
+  // ⚡ NEW FUNCTION: addUniqueItemToRef(targetRef, newVal, notifyPrefix)
+  // ฟังก์ชันกลาง: เพิ่มค่าใหม่เข้าไปใน Vue Ref (ที่เป็น Array) หากยังไม่มีอยู่
+  // ----------------------------------------------------
+  addUniqueItemToRef(targetRef, newVal, notifyPrefix = "รายการ") {
+    //  ฟังก์ชันกลางสำหรับเพิ่มรายการที่ไม่ซ้ำเข้าใน Vue Ref (Array)
+    const item = String(newVal || "").trim(); //  ทำความสะอาดค่าที่ผู้ใช้ป้อน
+    if (
+      !item ||
+      !targetRef ||
+      !targetRef.value ||
+      !Array.isArray(targetRef.value)
+    )
+      return false; //  ถ้าค่าว่างหรือ targetRef ไม่ถูกต้องให้หยุดทำงาน
+
+    const list = targetRef.value; //  ดึง Array ออกมา
+
+    //  ตรวจสอบว่ารายการนี้มีอยู่ใน Array อยู่แล้วหรือไม่
+    const exists = list.some(
+      (existingItem) =>
+        String(existingItem).toLowerCase() === item.toLowerCase()
+    ); //  ตรวจสอบแบบไม่คำนึงถึงตัวพิมพ์เล็กใหญ่
+
+    if (!exists) {
+      //  ถ้ายังไม่มีในรายการ
+      list.push(item); //  เพิ่มรายการใหม่เข้าไปใน Array
+      if (window.AppNotifications && AppNotifications.show) {
+        //  ถ้ามีระบบแจ้งเตือน
+        AppNotifications.show(
+          `✅ เพิ่ม ${notifyPrefix} "${item}" เข้าไปในตัวเลือกแล้ว`
+        ); //  แจ้งเตือนผู้ใช้
+      } //  ปิด if AppNotifications
+      console.log(`✅ Utils: เพิ่ม ${notifyPrefix} ใหม่ "${item}"`); //  แสดง log
+      return true; //  คืนค่า true (เพิ่มสำเร็จ)
+    } else {
+      //  ถ้ามีอยู่แล้ว
+      console.log(`ℹ️ Utils: ${notifyPrefix} "${item}" มีอยู่ในรายการแล้ว`); //  แสดง log
+      return false; //  คืนค่า false (ไม่ได้เพิ่ม)
+    } //  ปิดเงื่อนไข exists
+  }, //  ปิด addUniqueItemToRef
 };
 
 // --------------------------------------------------------

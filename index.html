@@ -785,7 +785,23 @@
                                                                 prepend-inner-icon="mdi-cake-variant-outline"
                                                                 hide-details="auto"></v-text-field>
                                                         </v-col>
+                                                        <v-col cols="12" md="6">
+                                                            <v-combobox v-model="leadForm.occupation" label="อาชีพ"
+                                                                :items="occupationItems" density="comfortable"
+                                                                variant="outlined" color="primary"
+                                                                prepend-inner-icon="mdi-badge-account-horizontal-outline"
+                                                                append-inner-icon="" hide-details="auto"
+                                                                @keydown.enter.prevent="LeadApp.handleAddOccupation($event.target.value)"></v-combobox>
+                                                        </v-col>
 
+                                                    </v-row>
+                                                    <v-row dense class="form-row">
+                                                        <v-col cols="12" md="6">
+                                                            <v-text-field v-model="leadForm.birthDate" label="ชื่อเล่น"
+                                                                type="text" variant="outlined" density="comfortable"
+                                                                prepend-inner-icon="mdi-teddy-bear"
+                                                                hide-details="auto"></v-text-field>
+                                                        </v-col>
                                                         <v-col cols="12" md="6" class="d-flex align-center">
                                                             <v-switch color="primary" inset label="ลูกค้าใหม่"
                                                                 v-model="leadForm.isProspect" hide-details></v-switch>
