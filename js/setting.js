@@ -7,7 +7,6 @@ const AppSetting = {
   // ----------------------------------------------------
   // ⭐ Data & Metadata
   // ----------------------------------------------------
-  // รายการ Config ที่ให้เลือกแก้ไขได้
   configOptions: [
     {
       label: "รายการอาชีพ",
@@ -16,18 +15,18 @@ const AppSetting = {
     },
     { label: "แหล่งที่มา", key: "sourceItems", icon: "mdi-web" },
   ],
-  newItemInput: Vue.ref(""), // ตัวแปรสำหรับ input เพิ่มค่าใหม่
-  draggedIndex: Vue.ref(null), // [ใหม่] Index ของรายการที่กำลังลาก
+  newItemInput: Vue.ref(""),
+  draggedIndex: Vue.ref(null),
 
   // ----------------------------------------------------
   // ➕ addItem(key)
   // ----------------------------------------------------
   async addItem(key) {
-    // คอมเมนต์: ฟังก์ชันเพิ่มรายการใหม่
-    const val = this.newItemInput.value; // คอมเมนต์: ดึงค่าจาก input
-    if (!val || !val.trim()) return; // คอมเมนต์: ถ้าค่าว่างให้ออก
+    const val = this.newItemInput.value;
+    if (!val || !val.trim()) return;
 
-    // คอมเมนต์: ใช้ Utils ช่วยเพิ่ม (จะเช็คซ้ำและ save ให้)
+    // Utils.handleConfigItemAdd จะจัดการ push และ save ให้
+    // (push มักจะกระตุ้น UI ได้ดีกว่า แต่ถ้าอยากให้ชัวร์ที่สุดต้องแก้ Utils ด้วย แต่เบื้องต้นแค่นี้มักจะพอสำหรับ add)
     const success = await Utils.handleConfigItemAdd(
       val,
       key,
@@ -36,11 +35,9 @@ const AppSetting = {
     );
 
     if (success) {
-      // คอมเมนต์: ถ้าเพิ่มสำเร็จ
-      this.newItemInput.value = ""; // คอมเมนต์: ล้างช่องกรอก
+      this.newItemInput.value = "";
     } else {
-      // คอมเมนต์: ถ้าเพิ่มไม่สำเร็จ (ซ้ำ)
-      alert("รายการนี้มีอยู่แล้ว"); // คอมเมนต์: แจ้งเตือน
+      alert("รายการนี้มีอยู่แล้ว");
     }
   },
 
@@ -48,96 +45,94 @@ const AppSetting = {
   // 🗑️ deleteItem(key, index)
   // ----------------------------------------------------
   async deleteItem(key, index) {
-    // คอมเมนต์: ฟังก์ชันลบรายการ
-    const list = AppState[key].value; // คอมเมนต์: ดึงรายการปัจจุบัน
-    // คอมเมนต์: ลบออกจาก Array
+    // [แก้ไข] สร้าง Array ใหม่ (Clone) เพื่อกระตุ้น Reactivity
+    const list = [...AppState[key].value];
+
+    // ลบออกจาก Array ใหม่
     list.splice(index, 1);
 
-    // คอมเมนต์: บันทึกลง Dexie
+    // อัปเดตกลับไปที่ AppState (เพื่อให้ UI รู้ว่าเปลี่ยนทั้งก้อน)
+    AppState[key].value = list;
+
+    // บันทึกลง Dexie
     await AppConfig.save(key, list);
 
-    if (window.AppNotifications) AppNotifications.show("ลบรายการเรียบร้อย"); // คอมเมนต์: แจ้งเตือน
+    if (window.AppNotifications) AppNotifications.show("ลบรายการเรียบร้อย");
   },
 
   // ----------------------------------------------------
   // 🔄 restoreDefaults(key)
   // ----------------------------------------------------
   async restoreDefaults(key) {
-    // คอมเมนต์: ฟังก์ชันคืนค่าเริ่มต้น
     if (
       !confirm(
         "ต้องการคืนค่าเริ่มต้นทั้งหมดของรายการนี้ใช่หรือไม่? ข้อมูลที่เพิ่มเองจะหายไป"
       )
     )
-      return; // คอมเมนต์: ยืนยันก่อน
+      return;
 
     const defaults = window.AppConfigDefaults
       ? window.AppConfigDefaults[key]
-      : []; // คอมเมนต์: ดึงค่า Default
+      : [];
 
-    // คอมเมนต์: รีเซ็ตค่าใน AppState (Deep Clone)
-    AppState[key].value = JSON.parse(JSON.stringify(defaults));
+    // [แก้ไข] สร้าง Array ใหม่แน่นอนจากการ parse/stringify
+    const newList = JSON.parse(JSON.stringify(defaults));
 
-    // คอมเมนต์: บันทึกลง Dexie
-    await AppConfig.save(key, AppState[key].value);
+    // อัปเดต AppState
+    AppState[key].value = newList;
+
+    // บันทึก
+    await AppConfig.save(key, newList);
 
     if (window.AppNotifications)
-      AppNotifications.show("คืนค่าเริ่มต้นเรียบร้อย"); // คอมเมนต์: แจ้งเตือน
+      AppNotifications.show("คืนค่าเริ่มต้นเรียบร้อย");
   },
 
   // ----------------------------------------------------
-  // ⭐ onDragStart(event, index) [ใหม่]
-  // เริ่มต้นการลาก
+  // ⭐ Drag & Drop Handlers
   // ----------------------------------------------------
   onDragStart(event, index) {
-    // คอมเมนต์: ตั้งค่าเมื่อเริ่มลาก
-    this.draggedIndex.value = index; // คอมเมนต์: เก็บ Index ที่กำลังลาก
-    event.dataTransfer.setData("text/plain", index); // คอมเมนต์: เก็บ Index ลง DataTransfer
-    event.currentTarget.classList.add("dragging"); // คอมเมนต์: เพิ่ม Class ให้ตัวที่ถูกลาก
+    this.draggedIndex.value = index;
+    event.dataTransfer.setData("text/plain", index);
+    event.currentTarget.classList.add("dragging");
   },
 
-  // ----------------------------------------------------
-  // ⭐ onDragEnd(event) [ใหม่]
-  // สิ้นสุดการลาก
-  // ----------------------------------------------------
   onDragEnd(event) {
-    // คอมเมนต์: ทำความสะอาดเมื่อหยุดลาก
-    this.draggedIndex.value = null; // คอมเมนต์: ล้าง Index ที่ลาก
-    event.currentTarget.classList.remove("dragging"); // คอมเมนต์: ลบ Class ที่ถูกลาก
+    this.draggedIndex.value = null;
+    event.currentTarget.classList.remove("dragging");
   },
 
-  // ----------------------------------------------------
-  // ⭐ onDragOver(event) [ใหม่]
-  // ป้องกันการทำงาน Default เพื่อให้วางได้
-  // ----------------------------------------------------
   onDragOver(event) {
-    // คอมเมนต์: อนุญาตให้วาง
-    event.preventDefault(); // คอมเมนต์: หยุดการทำงาน Default (สำคัญมาก)
-    event.dataTransfer.dropEffect = "move"; // คอมเมนต์: ตั้ง Drop Effect
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
   },
 
   // ----------------------------------------------------
-  // ⭐ onDrop(event, targetIndex, key) [ใหม่]
-  // เมื่อปล่อยรายการลงบนตำแหน่งใหม่
+  // ⭐ onDrop(event, targetIndex, key) [แก้ไขสำคัญ]
   // ----------------------------------------------------
   async onDrop(event, targetIndex, key) {
-    // คอมเมนต์: จัดการเมื่อวาง
-    event.preventDefault(); // คอมเมนต์: หยุดการทำงาน Default
+    event.preventDefault();
 
-    const fromIndex = parseInt(event.dataTransfer.getData("text/plain")); // คอมเมนต์: ดึง Index ต้นทาง
-    const toIndex = targetIndex; // คอมเมนต์: Index ปลายทาง
-    const list = AppState[key].value; // คอมเมนต์: ดึงรายการปัจจุบัน
+    const fromIndex = parseInt(event.dataTransfer.getData("text/plain"));
+    const toIndex = targetIndex;
+
+    // [แก้ไข] ดึงค่ามา Clone เป็น Array ก้อนใหม่ทันที (...)
+    const list = [...AppState[key].value];
 
     if (fromIndex !== toIndex) {
-      // คอมเมนต์: ถ้าต้นทางไม่เท่าปลายทาง
-      const [movedItem] = list.splice(fromIndex, 1); // คอมเมนต์: ลบรายการต้นทาง (และเก็บไว้)
-      list.splice(toIndex, 0, movedItem); // คอมเมนต์: แทรกรายการที่ตำแหน่งใหม่
+      // สลับตำแหน่งใน Array ก้อนใหม่
+      const [movedItem] = list.splice(fromIndex, 1);
+      list.splice(toIndex, 0, movedItem);
 
-      // คอมเมนต์: บันทึกการเปลี่ยนแปลงลง Dexie
+      // [สำคัญ] ยัด Array ก้อนใหม่กลับเข้าไปที่ AppState
+      // Vue จะเห็นว่า Reference เปลี่ยน และสั่ง Re-render หน้าจอทันที
+      AppState[key].value = list;
+
+      // บันทึกลง Dexie
       await AppConfig.save(key, list);
 
       if (window.AppNotifications)
-        AppNotifications.show("✅ จัดลำดับรายการเรียบร้อย"); // คอมเมนต์: แจ้งเตือน
+        AppNotifications.show("✅ จัดลำดับรายการเรียบร้อย");
     }
   },
 };

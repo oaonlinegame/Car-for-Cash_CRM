@@ -282,7 +282,6 @@
                 </v-container>
 
                 <!-- 🔽 เมนู dropdown ของช่อง search (ผูก state + activator) -->
-
                 <v-menu v-model="isMenuOpenFilterSearch" :activator="searchBarRef" :close-on-content-click="false"
                     :open-on-click="false" location="bottom center" :offset="[20, 5]" width="900" max-width="900">
                     <v-card
@@ -490,7 +489,7 @@
                                 เพิ่มข้อมูล Autofill
                             </v-btn>
 
-                            <v-btn color="success" @click="toggleMenu('isOpenModalLead')" class="ml-5">
+                            <v-btn color="success" @click="LeadApp.openNew()" class="ml-5">
                                 <v-icon>mdi-plus</v-icon>
                                 เพิ่ม Lead
                             </v-btn>
@@ -629,22 +628,19 @@
                     <v-tabs v-model="leadTab" color="primary" density="comfortable" align-tabs="start" class="px-4"
                         style="min-height: 42px;">
 
-                        <!-- TAB ข้อมูลลูกค้า -->
                         <v-tab value="leadInfo" style="text-transform:none; font-size:0.9rem;">
                             <v-icon start>mdi-account-box-outline</v-icon>
                             ข้อมูลลูกค้า
                         </v-tab>
 
-                        <!-- TAB สัญญาตาม index -->
                         <v-tab v-for="(ct, i) in leadForm.contracts" :key="'tab-'+i" :value="'contract-'+i"
-                            style="text-transform:none; font-size:0.9rem;">
-                            {{ ct.contractId ? ct.contractId : 'สัญญาใหม่ (' + (i + 1) + ')' }}
+                            style="text-transform:none; font-size:0.9rem;" v-if="!leadForm.isProspect"> {{ ct.contractId
+                            ? ct.contractId : 'สัญญาใหม่ (' + (i + 1) + ')' }}
                         </v-tab>
 
-                        <!-- ปุ่มเพิ่มสัญญา (+) → ไม่ใช่ TAB จริง -->
                         <v-tab @click.stop="addEmptyContract()" :ripple="false"
-                            style="text-transform:none; font-size:0.9rem;">
-                            <v-icon color="success">mdi-plus-box</v-icon>
+                            style="text-transform:none; font-size:0.9rem;" v-if="!leadForm.isProspect"> <v-icon
+                                color="success">mdi-plus-box</v-icon>
                             <span class="ml-1 text-success">เพิ่มสัญญา</span>
                         </v-tab>
 
@@ -668,77 +664,57 @@
                                     style="background:white; border:1px solid rgba(0,0,0,0.05);">
                                     <v-form>
                                         <v-container class="pa-0" fluid>
+                                            <!-- HEADER: ข้อมูลลูกค้า -->
+                                            <v-sheet rounded="lg" class="pa-3 mb-3"
+                                                :color="leadForm.isProspect ? 'green-lighten-5' : 'blue-lighten-5'"
+                                                style="border: 1px solid rgba(0,0,0,0.05);">
 
-                                            <!-- HERO HEADER: ข้อมูลลูกค้า -->
-                                            <v-sheet rounded="lg" class="pa-3 mb-3" color="blue-lighten-5">
                                                 <div class="d-flex align-center justify-space-between">
                                                     <div class="d-flex align-center">
-                                                        <v-avatar size="40" color="blue-darken-2" class="mr-3">
-                                                            <v-icon icon="mdi-account-circle-outline"
-                                                                color="white"></v-icon>
+                                                        <v-avatar size="48"
+                                                            :color="leadForm.isProspect ? 'green-lighten-4' : 'blue-lighten-4'"
+                                                            class="mr-3 elevation-1">
+                                                            <v-icon size="24"
+                                                                :icon="leadForm.isProspect ? 'mdi-account-star' : 'mdi-account-check'"
+                                                                :color="leadForm.isProspect ? 'green-darken-3' : 'blue-darken-3'"></v-icon>
                                                         </v-avatar>
 
                                                         <div>
-                                                            <div class="text-overline text-blue-darken-3">
+                                                            <div class="text-overline"
+                                                                :class="leadForm.isProspect ? 'text-green-darken-3' : 'text-blue-darken-3'">
                                                                 LEAD PROFILE
                                                             </div>
-                                                            <div class="text-subtitle-1 font-weight-semibold">
-                                                                ข้อมูลลูกค้า / ผู้ติดต่อ
+                                                            <div class="text-h6 font-weight-bold text-grey-darken-3"
+                                                                style="line-height: 1.2;">
+                                                                {{ leadForm.firstName || 'ลูกค้าใหม่' }}
                                                             </div>
-                                                            <div class="text-caption text-blue-darken-3">
-                                                                ข้อมูลพื้นฐาน · ช่องทางการติดต่อ · สินทรัพย์ · หมายเหตุ
+                                                            <div v-if="leadForm.nickName"
+                                                                class="text-caption text-grey-darken-1">
+                                                                ({{ leadForm.nickName }})
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                     <div class="d-flex flex-column align-end">
                                                         <div class="mb-1">
-                                                            <v-chip v-if="leadForm.isProspect" size="small"
-                                                                color="green-darken-1" class="mr-1" variant="flat">
-                                                                <v-icon start size="x-small"
-                                                                    icon="mdi-star-outline"></v-icon>
-                                                                ลูกค้าใหม่
+                                                            <v-chip v-if="leadForm.isProspect" color="green-darken-1"
+                                                                variant="flat" class="font-weight-bold"
+                                                                prepend-icon="mdi-star">
+                                                                ลูกค้าใหม่ (Prospect)
                                                             </v-chip>
-                                                            <v-chip v-else size="small" color="blue-grey-darken-1"
-                                                                variant="tonal">
-                                                                <v-icon start size="x-small"
-                                                                    icon="mdi-account-check-outline"></v-icon>
+
+                                                            <v-chip v-else color="blue-darken-1" variant="flat"
+                                                                class="font-weight-bold"
+                                                                prepend-icon="mdi-account-check">
                                                                 ลูกค้าปัจจุบัน
                                                             </v-chip>
                                                         </div>
-
-                                                        <div class="text-caption text-blue-darken-3">
-                                                            Lead ID: —
+                                                        <div class="text-caption text-grey">
+                                                            Lead ID: <span class="font-weight-medium font-monospace">{{
+                                                                leadForm.id ? leadForm.id.substring(0,8) + '...' : 'New'
+                                                                }}</span>
                                                         </div>
                                                     </div>
-                                                </div>
-
-                                                <!-- step indicator เล็ก ๆ -->
-                                                <div class="mt-2 d-flex flex-wrap">
-                                                    <v-chip size="x-small" class="mr-2 mb-1" color="blue-darken-2"
-                                                        variant="flat">
-                                                        <v-icon start size="x-small"
-                                                            icon="mdi-numeric-1-circle"></v-icon>
-                                                        ข้อมูลพื้นฐาน
-                                                    </v-chip>
-                                                    <v-chip size="x-small" class="mr-2 mb-1" color="teal-darken-2"
-                                                        variant="flat">
-                                                        <v-icon start size="x-small"
-                                                            icon="mdi-numeric-2-circle"></v-icon>
-                                                        ช่องทางติดต่อ
-                                                    </v-chip>
-                                                    <v-chip size="x-small" class="mr-2 mb-1" color="amber-darken-2"
-                                                        variant="flat">
-                                                        <v-icon start size="x-small"
-                                                            icon="mdi-numeric-3-circle"></v-icon>
-                                                        แหล่งที่มา
-                                                    </v-chip>
-                                                    <v-chip size="x-small" class="mb-1" color="light-green-darken-2"
-                                                        variant="flat">
-                                                        <v-icon start size="x-small"
-                                                            icon="mdi-numeric-4-circle"></v-icon>
-                                                        สินทรัพย์ & หมายเหตุ
-                                                    </v-chip>
                                                 </div>
                                             </v-sheet>
 
@@ -753,17 +729,13 @@
                                                         </v-avatar>
                                                         <div>
                                                             <div class="text-body-1 font-weight-medium">
-                                                                ข้อมูลพื้นฐานลูกค้า
-                                                            </div>
-                                                            <div class="text-caption text-grey-darken-1">
-                                                                ชื่อ / บริษัท · ผู้ติดต่อ · วันเกิด · สถานะลูกค้าใหม่
-                                                            </div>
+                                                                ข้อมูลพื้นฐานลูกค้า</div>
+                                                            <div class="text-caption text-grey-darken-1">ข้อมูลส่วนตัว ·
+                                                                อาชีพ · การวิเคราะห์เบื้องต้น</div>
                                                         </div>
                                                     </div>
                                                 </v-card-title>
-
                                                 <v-divider></v-divider>
-
                                                 <v-card-text class="pt-4 pb-3">
                                                     <v-row dense class="mb-2 form-row">
                                                         <v-col cols="12" md="6">
@@ -773,10 +745,10 @@
                                                                 prepend-inner-icon="mdi-account"
                                                                 hide-details="auto"></v-text-field>
                                                         </v-col>
-
                                                         <v-col cols="12" md="6">
-                                                            <v-text-field v-model="leadForm.nickName" label="ผู้ติดต่อ"
-                                                                density="comfortable" variant="outlined" color="primary"
+                                                            <v-text-field v-model="leadForm.nickName"
+                                                                label="ผู้ติดต่อ / ชื่อเล่น" density="comfortable"
+                                                                variant="outlined" color="primary"
                                                                 prepend-inner-icon="mdi-account-tie-outline"
                                                                 hide-details="auto"></v-text-field>
                                                         </v-col>
@@ -794,23 +766,45 @@
                                                                 :items="occupationItems" density="comfortable"
                                                                 variant="outlined" color="primary"
                                                                 prepend-inner-icon="mdi-badge-account-horizontal-outline"
-                                                                append-inner-icon="" hide-details="auto"
+                                                                hide-details="auto"
                                                                 @keydown.enter.prevent="handleAddConfigItem($event.target.value, 'occupation')"></v-combobox>
                                                         </v-col>
+                                                    </v-row>
 
-                                                    </v-row>
-                                                    <v-row dense class="form-row">
+                                                    <v-divider class="my-3 border-dashed"></v-divider>
+
+                                                    <v-row dense class="form-row align-center">
                                                         <v-col cols="12" md="6">
-                                                            <v-text-field v-model="leadForm.birthDate" label="ชื่อเล่น"
-                                                                type="text" variant="outlined" density="comfortable"
-                                                                prepend-inner-icon="mdi-teddy-bear"
-                                                                hide-details="auto"></v-text-field>
+                                                            <div class="d-flex flex-column pl-1">
+                                                                <span
+                                                                    class="text-caption text-grey-darken-2 font-weight-bold mb-1">
+                                                                    <v-icon icon="mdi-chart-line" size="x-small"
+                                                                        class="mr-1"></v-icon>
+                                                                    วิเคราะห์ศักยภาพลูกค้า (Rating)
+                                                                </span>
+                                                                <div class="d-flex align-center">
+                                                                    <v-rating v-model="leadForm.rating"
+                                                                        color="grey-darken-1"
+                                                                        active-color="amber-darken-3"
+                                                                        empty-icon="mdi-star-outline"
+                                                                        full-icon="mdi-star" hover density="comfortable"
+                                                                        size="32"></v-rating>
+                                                                    <span
+                                                                        class="text-body-2 font-weight-bold text-amber-darken-4 ml-3 pt-1">
+                                                                        {{ leadForm.rating || 0 }} / 5
+                                                                    </span>
+                                                                </div>
+                                                            </div>
                                                         </v-col>
-                                                        <v-col cols="12" md="6" class="d-flex align-center">
-                                                            <v-switch color="primary" inset label="ลูกค้าใหม่"
-                                                                v-model="leadForm.isProspect" hide-details></v-switch>
+
+                                                        <v-col cols="12" md="6" class="d-flex align-center justify-end">
+                                                            <v-switch color="primary" inset
+                                                                label="ลูกค้าใหม่ (Prospect)"
+                                                                v-model="leadForm.isProspect" hide-details
+                                                                density="compact"></v-switch>
                                                         </v-col>
                                                     </v-row>
+
                                                 </v-card-text>
                                             </v-card>
 
@@ -823,43 +817,40 @@
                                                             <v-icon size="small" icon="mdi-phone-message-outline"
                                                                 color="teal-darken-3"></v-icon>
                                                         </v-avatar>
-                                                        <div>
-                                                            <div class="text-body-1 font-weight-medium">
-                                                                ช่องทางการติดต่อ
-                                                            </div>
-                                                            <div class="text-caption text-grey-darken-1">
-                                                                เบอร์โทร · LINE · Facebook · ที่อยู่
-                                                            </div>
+                                                        <div class="text-body-1 font-weight-medium">ช่องทางการติดต่อ
                                                         </div>
                                                     </div>
                                                 </v-card-title>
-
                                                 <v-divider></v-divider>
-
                                                 <v-card-text class="pt-4 pb-3">
                                                     <v-row dense class="mb-2 form-row">
-                                                        <v-col cols="12" md="6">
-                                                            <v-text-field v-model="leadForm.phones" label="เบอร์โทร"
-                                                                density="comfortable" variant="outlined" color="primary"
-                                                                prepend-inner-icon="mdi-phone-outline"
+                                                        <v-col cols="12" md="3">
+                                                            <v-text-field v-model="leadForm.phones"
+                                                                label="เบอร์โทร 1 (หลัก)" density="comfortable"
+                                                                variant="outlined" color="primary"
+                                                                prepend-inner-icon="mdi-phone"
                                                                 hide-details="auto"></v-text-field>
                                                         </v-col>
-
-                                                        <v-col cols="12" md="6">
+                                                        <v-col cols="12" md="3">
+                                                            <v-text-field v-model="leadForm.phone2"
+                                                                label="เบอร์โทร 2 (สำรอง)" density="comfortable"
+                                                                variant="outlined" color="primary"
+                                                                prepend-inner-icon="mdi-phone-plus-outline"
+                                                                hide-details="auto"></v-text-field>
+                                                        </v-col>
+                                                        <v-col cols="12" md="3">
                                                             <v-text-field label="LINE" density="comfortable"
                                                                 variant="outlined" color="primary"
                                                                 prepend-inner-icon="mdi-chat-processing-outline"
                                                                 hide-details="auto"></v-text-field>
                                                         </v-col>
-
-                                                        <v-col cols="12" md="6">
+                                                        <v-col cols="12" md="3">
                                                             <v-text-field label="Facebook" density="comfortable"
                                                                 variant="outlined" color="primary"
                                                                 prepend-inner-icon="mdi-facebook"
                                                                 hide-details="auto"></v-text-field>
                                                         </v-col>
                                                     </v-row>
-
                                                     <v-row dense class="form-row">
                                                         <v-col cols="12">
                                                             <v-textarea v-model="leadForm.address" label="ที่อยู่"
@@ -872,7 +863,8 @@
                                                 </v-card-text>
                                             </v-card>
 
-                                            <!-- CARD 3: เฉพาะลูกค้าใหม่ (แหล่งที่มา) -->
+
+                                            <!-- CARD 3: ข้อมูลแหล่งที่มา -->
                                             <v-card v-if="leadForm.isProspect" variant="outlined" rounded="xl"
                                                 class="section-card section-card--lead-prospect">
                                                 <v-card-title class="py-3">
@@ -881,19 +873,11 @@
                                                             <v-icon size="small" icon="mdi-bullhorn-outline"
                                                                 color="amber-darken-3"></v-icon>
                                                         </v-avatar>
-                                                        <div>
-                                                            <div class="text-body-1 font-weight-medium">
-                                                                ข้อมูลแหล่งที่มา / แคมเปญ
-                                                            </div>
-                                                            <div class="text-caption text-grey-darken-1">
-                                                                ช่องทางการได้ลูกค้า · ชื่อกิจกรรมหรือแคมเปญ
-                                                            </div>
+                                                        <div class="text-body-1 font-weight-medium">ข้อมูลแหล่งที่มา
                                                         </div>
                                                     </div>
                                                 </v-card-title>
-
                                                 <v-divider></v-divider>
-
                                                 <v-card-text class="pt-4 pb-3">
                                                     <v-row dense class="form-row">
                                                         <v-col cols="12" md="6">
@@ -901,10 +885,9 @@
                                                                 :items="sourceItems" density="comfortable"
                                                                 variant="outlined" color="primary"
                                                                 prepend-inner-icon="mdi-source-branch"
-                                                                append-inner-icon="" hide-details="auto"
+                                                                hide-details="auto"
                                                                 @keydown.enter.prevent="handleAddConfigItem($event.target.value, 'source')"></v-combobox>
                                                         </v-col>
-
                                                         <v-col cols="12" md="6">
                                                             <v-text-field label="ชื่อกิจกรรมหรือแคมเปญ"
                                                                 density="comfortable" variant="outlined" color="primary"
@@ -915,7 +898,7 @@
                                                 </v-card-text>
                                             </v-card>
 
-                                            <!-- CARD 4: สินทรัพย์ -->
+                                            <!-- CARD 4: สินทรัพย์ของลูกค้า & หมายเหตุ -->
                                             <v-card variant="outlined" rounded="xl"
                                                 class="section-card section-card--lead-asset">
                                                 <v-card-title class="py-3">
@@ -926,10 +909,10 @@
                                                         </v-avatar>
                                                         <div>
                                                             <div class="text-body-1 font-weight-medium">
-                                                                สินทรัพย์ของลูกค้า
+                                                                สินทรัพย์ของลูกค้า ({{ leadForm.assets.length }} รายการ)
                                                             </div>
                                                             <div class="text-caption text-grey-darken-1">
-                                                                ประเภทสินทรัพย์ · รายละเอียดเพิ่มเติม
+                                                                รายละเอียดทรัพย์สิน (เฉพาะลูกค้าใหม่)
                                                             </div>
                                                         </div>
                                                     </div>
@@ -938,28 +921,220 @@
                                                 <v-divider></v-divider>
 
                                                 <v-card-text class="pt-4 pb-3">
-                                                    <v-row dense class="mb-2 form-row">
-                                                        <v-col cols="12" md="6">
-                                                            <v-select label="ประเภทสินทรัพย์"
-                                                                :items="['รถยนต์','มอเตอร์ไซค์','รถบรรทุก']"
-                                                                density="comfortable" variant="outlined"
-                                                                prepend-inner-icon="mdi-car-estate"
-                                                                hide-details="auto"></v-select>
-                                                        </v-col>
-                                                    </v-row>
+                                                    <v-alert v-if="!leadForm.isProspect" type="info" variant="tonal"
+                                                        density="compact" class="mb-3">
+                                                        สำหรับลูกค้าปัจจุบัน ข้อมูลหลักประกันจะอยู่ใน **แท็บสัญญา**
+                                                    </v-alert>
 
-                                                    <v-row dense class="form-row">
-                                                        <v-col cols="12">
-                                                            <v-textarea label="รายละเอียดสินทรัพย์เพิ่มเติม" auto-grow
-                                                                rows="2" density="comfortable" variant="outlined"
-                                                                prepend-inner-icon="mdi-text-box-search-outline"
-                                                                hide-details="auto"></v-textarea>
-                                                        </v-col>
-                                                    </v-row>
+                                                    <template v-else>
+                                                        <v-card v-for="(asset, index) in leadForm.assets"
+                                                            :key="asset.assetId" class="mb-4 pa-4" variant="outlined"
+                                                            style="border: 1px solid #7cb342; background-color: #fcfdfc;">
+
+                                                            <div class="d-flex justify-space-between align-center mb-3">
+                                                                <div
+                                                                    class="text-subtitle-2 font-weight-bold text-light-green-darken-3 d-flex align-center">
+                                                                    <v-icon start
+                                                                        size="small">mdi-circle-slice-8</v-icon>
+                                                                    รายการที่ {{ index + 1 }}
+                                                                </div>
+                                                                <v-btn v-if="index > 0" icon="mdi-trash-can-outline"
+                                                                    size="small" variant="text" color="error"
+                                                                    @click="LeadApp.removeAsset(index)"
+                                                                    title="ลบรายการนี้">
+                                                                </v-btn>
+                                                            </div>
+                                                            <v-divider class="mb-3"></v-divider>
+
+                                                            <v-row dense class="mb-2 form-row">
+                                                                <v-col cols="12">
+                                                                    <v-combobox v-model="asset.type"
+                                                                        label="เลือกประเภทสินทรัพย์"
+                                                                        :items="['รถยนต์', 'มอเตอร์ไซค์', 'รถบิ๊กไบค์', 'รถตู้', 'รถบรรทุก', 'รถเพื่อการเกษตร', 'โฉนด', 'บำนาญ', 'ประกัน']"
+                                                                        density="comfortable" variant="outlined"
+                                                                        prepend-inner-icon="mdi-format-list-bulleted-type"
+                                                                        hide-details="auto"
+                                                                        color="light-green-darken-2">
+                                                                    </v-combobox>
+                                                                </v-col>
+
+                                                                <template
+                                                                    v-if="['รถยนต์', 'มอเตอร์ไซค์', 'รถบิ๊กไบค์', 'รถตู้', 'รถบรรทุก', 'รถเพื่อการเกษตร'].includes(asset.type)">
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model="asset.brand" label="ยี่ห้อ"
+                                                                            density="comfortable" variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model="asset.model" label="รุ่นรถ"
+                                                                            density="comfortable" variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="3"><v-text-field
+                                                                            v-model.number="asset.year" label="ปีรถ"
+                                                                            type="number" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="3"><v-text-field
+                                                                            v-model="asset.engineNo" label="เลขเครื่อง"
+                                                                            density="comfortable" variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="3"><v-text-field
+                                                                            v-model="asset.chassisNo" label="เลขตัวถัง"
+                                                                            density="comfortable" variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+
+                                                                    <v-col cols="12" md="3"
+                                                                        v-if="['รถบรรทุก', 'รถเพื่อการเกษตร'].includes(asset.type)">
+                                                                        <v-text-field v-model.number="asset.weight"
+                                                                            label="น้ำหนัก (กก.)" type="number"
+                                                                            density="comfortable" variant="outlined"
+                                                                            hide-details="auto"></v-text-field>
+                                                                    </v-col>
+
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model.number="asset.appraisedValue"
+                                                                            label="ราคาประเมิน (บ.)" type="number"
+                                                                            prefix="฿" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model="asset.regDate" label="วันจดทะเบียน"
+                                                                            type="date" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model="asset.possessionDate"
+                                                                            label="วันครอบครองเล่ม" type="date"
+                                                                            density="comfortable" variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model.number="asset.closeAmountOther"
+                                                                            label="ยอดปิดจากที่อื่น (บ.)" type="number"
+                                                                            prefix="฿" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                </template>
+
+                                                                <template v-else-if="asset.type === 'โฉนด'">
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model="asset.deedNumber"
+                                                                            label="เลขที่โฉนด" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model.number="asset.area"
+                                                                            label="เนื้อที่ (ไร่/งาน/ตร.วา)"
+                                                                            type="number" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model="asset.district" label="อำเภอ"
+                                                                            density="comfortable" variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model="asset.landProvince"
+                                                                            label="จังหวัดโฉนด" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12"><v-text-field
+                                                                            v-model.number="asset.appraisedValue"
+                                                                            label="ราคาประเมิน (บ.)" type="number"
+                                                                            prefix="฿" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                </template>
+
+                                                                <template v-else-if="asset.type === 'บำนาญ'">
+                                                                    <v-col cols="12"><v-text-field
+                                                                            v-model.number="asset.pensionAmount"
+                                                                            label="จำนวนเงินบำนาญ/เดือน (บ.)"
+                                                                            type="number" prefix="฿"
+                                                                            density="comfortable" variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                </template>
+
+                                                                <template v-else-if="asset.type === 'ประกัน'">
+                                                                    <v-col cols="12">
+                                                                        <v-select v-model="asset.insuranceType"
+                                                                            label="ประเภทประกันที่สนใจ"
+                                                                            :items="['ประกันรถ', 'ประกันอื่น']"
+                                                                            density="comfortable" variant="outlined"
+                                                                            hide-details="auto"
+                                                                            prepend-inner-icon="mdi-shield-check">
+                                                                        </v-select>
+                                                                    </v-col>
+
+                                                                    <template v-if="asset.insuranceType === 'ประกันรถ'">
+                                                                        <v-col cols="12"
+                                                                            class="text-caption text-blue-grey-darken-1 font-weight-bold mt-1">
+                                                                            * เลือกประเภทรถที่ต้องการทำประกัน
+                                                                        </v-col>
+                                                                        <v-col cols="12">
+                                                                            <v-select
+                                                                                v-model="asset.insuranceVehicleType"
+                                                                                label="ประเภทรถ"
+                                                                                :items="['รถยนต์', 'รถบรรทุก', 'มอเตอร์ไซค์', 'รถการเกษตร', 'รถบิ๊กไบค์', 'รถตู้']"
+                                                                                density="comfortable" variant="outlined"
+                                                                                hide-details="auto">
+                                                                            </v-select>
+                                                                        </v-col>
+
+                                                                        <template v-if="asset.insuranceVehicleType">
+                                                                            <v-col cols="12" md="6"><v-text-field
+                                                                                    v-model="asset.brand"
+                                                                                    label="ยี่ห้อรถ" density="compact"
+                                                                                    variant="outlined"
+                                                                                    hide-details="auto"></v-text-field></v-col>
+                                                                            <v-col cols="12" md="6"><v-text-field
+                                                                                    v-model="asset.model" label="รุ่นรถ"
+                                                                                    density="compact" variant="outlined"
+                                                                                    hide-details="auto"></v-text-field></v-col>
+                                                                            <v-col cols="12"><v-text-field
+                                                                                    v-model="asset.coverageDate"
+                                                                                    label="วันที่หมดความคุ้มครองเดิม"
+                                                                                    type="date" density="comfortable"
+                                                                                    variant="outlined"
+                                                                                    hide-details="auto"></v-text-field></v-col>
+                                                                        </template>
+                                                                    </template>
+
+                                                                    <template v-else>
+                                                                        <v-col cols="12">
+                                                                            <v-textarea v-model="asset.desiredCoverage"
+                                                                                label="ความต้องการ (สนใจประกันตัวไหน)"
+                                                                                rows="2" auto-grow density="comfortable"
+                                                                                variant="outlined"
+                                                                                hide-details="auto"></v-textarea>
+                                                                        </v-col>
+                                                                    </template>
+
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model.number="asset.insuranceCapital"
+                                                                            label="ทุนประกัน (บ.)" type="number"
+                                                                            prefix="฿" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model.number="asset.insurancePremium"
+                                                                            label="ค่าเบี้ยประกัน (บ.)" type="number"
+                                                                            prefix="฿" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details="auto"></v-text-field></v-col>
+                                                                </template>
+                                                            </v-row>
+                                                        </v-card>
+
+                                                        <v-btn block variant="tonal" color="success" class="mt-2 mb-2"
+                                                            prepend-icon="mdi-plus-circle-outline"
+                                                            style="border: 1px dashed #4caf50; height: 45px;"
+                                                            @click="LeadApp.addEmptyAsset()">
+                                                            เพิ่มรายการสินทรัพย์
+                                                        </v-btn>
+                                                    </template>
+
                                                 </v-card-text>
                                             </v-card>
 
-                                            <!-- CARD 5: หมายเหตุ -->
+                                            <!-- CARD 5: หมายเหตุเพิ่มเติม -->
                                             <v-card variant="outlined" rounded="xl"
                                                 class="section-card section-card--lead-note">
                                                 <v-card-title class="py-3">
@@ -968,19 +1143,11 @@
                                                             <v-icon size="small" icon="mdi-note-text-outline"
                                                                 color="blue-grey-darken-2"></v-icon>
                                                         </v-avatar>
-                                                        <div>
-                                                            <div class="text-body-1 font-weight-medium">
-                                                                หมายเหตุเพิ่มเติม
-                                                            </div>
-                                                            <div class="text-caption text-grey-darken-1">
-                                                                บันทึกสิ่งที่ควรรู้เกี่ยวกับลูกค้ารายนี้
-                                                            </div>
+                                                        <div class="text-body-1 font-weight-medium">หมายเหตุเพิ่มเติม
                                                         </div>
                                                     </div>
                                                 </v-card-title>
-
                                                 <v-divider></v-divider>
-
                                                 <v-card-text class="pt-4 pb-3">
                                                     <v-row dense class="form-row">
                                                         <v-col cols="12">
@@ -1005,10 +1172,11 @@
                             <!-- ========================================================= -->
                             <v-tabs-window-item v-for="(ct, i) in leadForm.contracts" :key="'contract-window-' + i"
                                 :value="'contract-' + i">
+
                                 <contract-editor :index="i">
                                     <v-container class="pa-3 pt-2" fluid>
 
-                                        <!-- HERO HEADER ด้านบน -->
+                                        <!-- ส่วนหัวสัญญา -->
                                         <v-sheet rounded="lg" class="pa-3 mb-3" color="indigo-lighten-5">
                                             <div class="d-flex align-center justify-space-between">
                                                 <div class="d-flex align-center">
@@ -1016,68 +1184,27 @@
                                                         <v-icon icon="mdi-file-document-edit-outline"
                                                             color="white"></v-icon>
                                                     </v-avatar>
-
                                                     <div>
-                                                        <div class="text-overline text-indigo-darken-3">
-                                                            CONTRACT PROFILE
+                                                        <div class="text-overline text-indigo-darken-3">CONTRACT PROFILE
                                                         </div>
-                                                        <div class="text-subtitle-1 font-weight-semibold">
-                                                            สัญญา #{{ i + 1 }}
-                                                        </div>
+                                                        <div class="text-subtitle-1 font-weight-semibold">สัญญา #{{ i +
+                                                            1 }}</div>
                                                         <div class="text-caption text-indigo-darken-3">
-                                                            ข้อมูลสัญญา · การเงิน · หลักทรัพย์ · สัญญาย่อย
+                                                            {{ ct.contractId || 'สัญญาใหม่' }} · {{ ct.type }} · {{
+                                                            ct.statusAccount }}
                                                         </div>
                                                     </div>
                                                 </div>
-
                                                 <div class="d-flex flex-column align-end">
-                                                    <div class="mb-1">
-                                                        <v-chip size="small" color="green-darken-1" class="mr-1"
-                                                            variant="flat">
-                                                            <v-icon start size="x-small"
-                                                                icon="mdi-check-circle"></v-icon>
-                                                            ปกติ
-                                                        </v-chip>
-
-                                                        <v-chip size="small" color="amber-darken-2" variant="tonal">
-                                                            <v-icon start size="x-small"
-                                                                icon="mdi-alert-decagram-outline"></v-icon>
-                                                            ลูกค้าเกรดดี
-                                                        </v-chip>
-                                                    </div>
-
-                                                    <div class="text-caption text-indigo-darken-3">
-                                                        อัปเดตล่าสุด: —
-                                                    </div>
+                                                    <v-chip size="small"
+                                                        :color="ct.statusAccount === 'Active' ? 'success' : 'grey'"
+                                                        variant="flat">
+                                                        <v-icon start size="x-small" icon="mdi-circle-slice-8"></v-icon>
+                                                        {{ ct.statusAccount }}
+                                                    </v-chip>
                                                 </div>
-                                            </div>
-
-                                            <!-- step indicator เล็ก ๆ -->
-                                            <div class="mt-2 d-flex flex-wrap">
-                                                <v-chip size="x-small" class="mr-2 mb-1" color="indigo-darken-2"
-                                                    variant="flat">
-                                                    <v-icon start size="x-small" icon="mdi-numeric-1-circle"></v-icon>
-                                                    สัญญา
-                                                </v-chip>
-                                                <v-chip size="x-small" class="mr-2 mb-1" color="deep-purple-darken-2"
-                                                    variant="flat">
-                                                    <v-icon start size="x-small" icon="mdi-numeric-2-circle"></v-icon>
-                                                    การเงิน
-                                                </v-chip>
-                                                <v-chip size="x-small" class="mr-2 mb-1" color="teal-darken-2"
-                                                    variant="flat">
-                                                    <v-icon start size="x-small" icon="mdi-numeric-3-circle"></v-icon>
-                                                    หลักทรัพย์
-                                                </v-chip>
-                                                <v-chip size="x-small" class="mb-1" color="orange-darken-2"
-                                                    variant="flat">
-                                                    <v-icon start size="x-small" icon="mdi-numeric-4-circle"></v-icon>
-                                                    สัญญาย่อย
-                                                </v-chip>
                                             </div>
                                         </v-sheet>
-
-                                        <!-- CARD 1: ข้อมูลสัญญา -->
                                         <v-card variant="outlined" rounded="xl"
                                             class="section-card section-card--contract">
                                             <v-card-title class="py-3">
@@ -1087,38 +1214,33 @@
                                                             color="indigo-darken-2"></v-icon>
                                                     </v-avatar>
                                                     <div>
-                                                        <div class="text-body-1 font-weight-medium">
-                                                            ข้อมูลสัญญา
-                                                        </div>
-                                                        <div class="text-caption text-grey-darken-1">
-                                                            เลขที่สัญญา · ประเภท · สถานะ · วันที่สำคัญ
-                                                        </div>
+                                                        <div class="text-body-1 font-weight-medium">ข้อมูลสัญญา</div>
+                                                        <div class="text-caption text-grey-darken-1">เลขที่สัญญา ·
+                                                            ประเภท · สถานะ · วันที่สำคัญ</div>
                                                     </div>
                                                 </div>
                                             </v-card-title>
-
                                             <v-divider></v-divider>
-
                                             <v-card-text class="pt-4 pb-3">
                                                 <v-row dense class="mb-2 form-row">
                                                     <v-col cols="12">
-                                                        <v-text-field label="เลขที่สัญญา" variant="outlined"
-                                                            density="comfortable" color="primary"
-                                                            prepend-inner-icon="mdi-pound-box"
-                                                            placeholder="LN-2024-00123" hide-details></v-text-field>
+                                                        <v-text-field v-model="ct.contractId" label="เลขที่สัญญา"
+                                                            variant="outlined" density="comfortable" color="primary"
+                                                            prepend-inner-icon="mdi-pound-box" placeholder="LN-xxxx"
+                                                            hide-details></v-text-field>
                                                     </v-col>
 
                                                     <v-col cols="12" sm="6">
-                                                        <v-select label="ประเภทสัญญา"
-                                                            :items="['จำนำทะเบียน', 'เช่าซื้อ', 'บำนาญ', 'โฉนดที่ดิน']"
+                                                        <v-select v-model="ct.type" label="ประเภทสัญญา"
+                                                            :items="['จำนำทะเบียน', 'เช่าซื้อ', 'บำนาญ', 'โฉนดที่ดิน', 'ประกัน', 'เช่าซื้อมอไซด์', 'จำนำมอไซด์']"
                                                             variant="outlined" density="comfortable"
                                                             prepend-inner-icon="mdi-file-certificate-outline"
                                                             hide-details></v-select>
                                                     </v-col>
 
                                                     <v-col cols="12" sm="6">
-                                                        <v-select label="สถานะสัญญา"
-                                                            :items="['ปกติ', 'ค้างชำระ', 'ปิดบัญชี', 'ฟ้องร้อง']"
+                                                        <v-select v-model="ct.statusAccount" label="สถานะสัญญา"
+                                                            :items="['Active', 'Closed', 'Early', 'Non-Active']"
                                                             variant="outlined" density="comfortable"
                                                             prepend-inner-icon="mdi-toggle-switch"
                                                             hide-details></v-select>
@@ -1134,37 +1256,39 @@
                                                     </v-col>
 
                                                     <v-col cols="12" sm="6">
-                                                        <v-text-field type="date" label="วันที่เริ่มสัญญา"
-                                                            variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-calendar-start"
+                                                        <v-text-field v-model="ct.contractDate" type="date"
+                                                            label="วันที่เริ่มสัญญา" variant="outlined"
+                                                            density="compact" prepend-inner-icon="mdi-calendar-start"
                                                             hide-details></v-text-field>
                                                     </v-col>
 
                                                     <v-col cols="12" sm="6">
-                                                        <v-text-field type="number" label="วันดิวชำระ" suffix="ของเดือน"
-                                                            variant="outlined" density="compact"
+                                                        <v-text-field v-model.number="ct.paymentDay" type="number"
+                                                            label="วันดิวชำระ" suffix="ของเดือน" variant="outlined"
+                                                            density="compact"
                                                             prepend-inner-icon="mdi-bell-alert-outline"
                                                             hide-details></v-text-field>
                                                     </v-col>
 
                                                     <v-col cols="12" sm="6">
-                                                        <v-text-field label="เกรดลูกค้า" variant="outlined"
+                                                        <v-combobox v-model="ct.grade" label="เกรดลูกค้า"
+                                                            :items="['A', 'B', 'C', 'D', 'F']" variant="outlined"
                                                             density="compact"
                                                             prepend-inner-icon="mdi-account-star-outline"
-                                                            hide-details></v-text-field>
+                                                            hide-details></v-combobox>
                                                     </v-col>
 
                                                     <v-col cols="12" sm="6">
-                                                        <v-text-field type="date" label="วันที่ Active ล่าสุด"
-                                                            variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-clock-outline"
+                                                        <v-text-field v-model="ct.lastUpdate" type="date"
+                                                            label="วันที่ Active ล่าสุด" variant="outlined"
+                                                            density="compact" prepend-inner-icon="mdi-clock-outline"
                                                             hide-details></v-text-field>
                                                     </v-col>
                                                 </v-row>
                                             </v-card-text>
                                         </v-card>
 
-                                        <!-- CARD 2: รายละเอียดการผ่อนชำระ -->
+                                        <!-- -->
                                         <v-card variant="outlined" rounded="xl"
                                             class="section-card section-card--installment">
                                             <v-card-title class="py-3">
@@ -1175,144 +1299,119 @@
                                                     </v-avatar>
                                                     <div>
                                                         <div class="text-body-1 font-weight-medium">
-                                                            รายละเอียดการผ่อนชำระ
-                                                        </div>
-                                                        <div class="text-caption text-grey-darken-1">
-                                                            ค่างวด · จำนวนงวด · ยอดกู้ตั้งต้น · หมายเหตุ
-                                                        </div>
+                                                            รายละเอียดการผ่อนชำระ</div>
+                                                        <div class="text-caption text-grey-darken-1">ค่างวด · จำนวนงวด ·
+                                                            ยอดกู้ตั้งต้น</div>
                                                     </div>
                                                 </div>
                                             </v-card-title>
-
                                             <v-divider></v-divider>
-
                                             <v-card-text class="pt-4 pb-3">
                                                 <v-row dense class="mb-2 form-row">
                                                     <v-col cols="6" sm="3">
-                                                        <v-text-field label="ค่างวด/เดือน" prefix="฿" variant="outlined"
-                                                            density="compact" prepend-inner-icon="mdi-cash-multiple"
+                                                        <v-text-field v-model.number="ct.installmentAmount"
+                                                            label="ค่างวด/เดือน" prefix="฿" variant="outlined"
+                                                            density="compact" hide-details></v-text-field>
+                                                    </v-col>
+                                                    <v-col cols="6" sm="3">
+                                                        <v-text-field v-model.number="ct.term" label="งวดรวม (ทั้งหมด)"
+                                                            type="number" variant="outlined" density="compact"
                                                             hide-details></v-text-field>
                                                     </v-col>
 
                                                     <v-col cols="6" sm="3">
-                                                        <v-text-field label="งวดรวม" type="number" variant="outlined"
-                                                            density="compact" prepend-inner-icon="mdi-counter"
+                                                        <v-text-field v-model.number="ct.expectedInstallments"
+                                                            label="งวดที่ควรชำระ (Target)" type="number"
+                                                            variant="outlined" density="compact" color="warning"
                                                             hide-details></v-text-field>
                                                     </v-col>
 
                                                     <v-col cols="6" sm="3">
-                                                        <v-text-field label="จ่ายแล้ว (งวด)" type="number"
-                                                            variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-progress-check" readonly
-                                                            hide-details></v-text-field>
-                                                    </v-col>
-
-                                                    <v-col cols="6" sm="3">
-                                                        <v-text-field label="คงเหลือ (งวด)" type="number"
-                                                            variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-progress-clock" readonly
+                                                        <v-text-field v-model.number="ct.paidInstallments"
+                                                            label="จ่ายจริง (Actual)" type="number" variant="outlined"
+                                                            density="compact" color="success"
                                                             hide-details></v-text-field>
                                                     </v-col>
 
                                                     <v-col cols="12" sm="6" class="mt-1">
-                                                        <v-text-field label="ยอดกู้ตั้งต้น" prefix="฿"
-                                                            variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-cash-100"
+                                                        <v-text-field v-model.number="ct.loanAmount"
+                                                            label="ยอดกู้ตั้งต้น" prefix="฿" variant="outlined"
+                                                            density="compact" hide-details></v-text-field>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="6" class="mt-1">
+                                                        <v-text-field
+                                                            :model-value="(ct.term || 0) - (ct.paidInstallments || 0)"
+                                                            label="คงเหลือ (คำนวณ)" type="number" variant="outlined"
+                                                            density="compact" readonly bg-color="grey-lighten-4"
                                                             hide-details></v-text-field>
                                                     </v-col>
                                                 </v-row>
 
                                                 <v-row dense class="mt-1 form-row">
-                                                    <v-col cols="12" sm="8">
-                                                        <v-textarea label="หมายเหตุ / ประวัติค่างวดย้อนหลัง" rows="2"
-                                                            auto-grow variant="outlined" density="compact"
+                                                    <v-col cols="12">
+                                                        <v-textarea v-model="ct.remark"
+                                                            label="หมายเหตุ / ประวัติค่างวดย้อนหลัง" rows="2" auto-grow
+                                                            variant="outlined" density="compact"
                                                             prepend-inner-icon="mdi-note-text-outline"
                                                             hide-details></v-textarea>
                                                     </v-col>
+                                                </v-row>
+                                            </v-card-text>
+                                        </v-card>
 
-                                                    <v-col cols="12" sm="4">
-                                                        <v-text-field label="ค่าติดตามทวงถาม" prefix="฿" type="number"
-                                                            variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-phone-alert-outline"
+                                        <!--  -->
+                                        <v-card variant="outlined" rounded="xl"
+                                            class="section-card section-card--finance">
+                                            <v-card-title class="py-3">
+                                                <div class="d-flex align-center">
+                                                    <v-avatar size="30" color="teal-lighten-4" class="mr-3">
+                                                        <v-icon size="small" icon="mdi-finance"
+                                                            color="teal-darken-3"></v-icon>
+                                                    </v-avatar>
+                                                    <div>
+                                                        <div class="text-body-1 font-weight-medium">การเงิน & ยอดคงเหลือ
+                                                        </div>
+                                                        <div class="text-caption text-grey-darken-1">Outstanding ·
+                                                            ดอกผลรอตัด · OVD</div>
+                                                    </div>
+                                                </div>
+                                            </v-card-title>
+                                            <v-divider></v-divider>
+                                            <v-card-text class="pt-4 pb-3">
+                                                <v-row dense>
+                                                    <v-col cols="12" sm="6">
+                                                        <v-text-field v-model.number="ct.outstanding"
+                                                            label="Outstanding Balance" prefix="฿" variant="outlined"
+                                                            density="comfortable" prepend-inner-icon="mdi-cash-remove"
+                                                            hide-details></v-text-field>
+                                                    </v-col>
+
+                                                    <v-col cols="12" sm="6">
+                                                        <v-text-field v-model.number="ct.unrealized"
+                                                            label="ดอกผลรอตัดบัญชี (Unrealized)" prefix="฿"
+                                                            variant="outlined" density="comfortable"
+                                                            prepend-inner-icon="mdi-chart-arc"
+                                                            hide-details></v-text-field>
+                                                    </v-col>
+
+                                                    <v-col cols="12" sm="6">
+                                                        <v-text-field v-model.number="ct.closeAmount"
+                                                            label="ยอดปิดบัญชี (ปัจจุบัน)" prefix="฿" variant="outlined"
+                                                            density="comfortable" prepend-inner-icon="mdi-bank-check"
+                                                            hide-details></v-text-field>
+                                                    </v-col>
+
+                                                    <v-col cols="12" sm="6">
+                                                        <v-text-field v-model.number="ct.OVD" label="OVD (งวดค้างชำระ)"
+                                                            type="number" variant="outlined" density="comfortable"
+                                                            prepend-inner-icon="mdi-alert-circle-outline"
                                                             hide-details></v-text-field>
                                                     </v-col>
                                                 </v-row>
                                             </v-card-text>
                                         </v-card>
 
-                                        <!-- CARD 3: การเงิน & ยอดคงเหลือ -->
-                                        <v-card variant="outlined" rounded="xl"
-                                            class="section-card section-card--finance">
-                                            <v-card-title class="py-3">
-                                                <div class="d-flex align-center justify-space-between">
-                                                    <div class="d-flex align-center">
-                                                        <v-avatar size="30" color="teal-lighten-4" class="mr-3">
-                                                            <v-icon size="small" icon="mdi-finance"
-                                                                color="teal-darken-3"></v-icon>
-                                                        </v-avatar>
-                                                        <div>
-                                                            <div class="text-body-1 font-weight-medium">
-                                                                การเงิน & ยอดคงเหลือ
-                                                            </div>
-                                                            <div class="text-caption text-grey-darken-1">
-                                                                Outstanding · ยอดปิดบัญชี · OVD
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <v-chip size="x-small" color="teal-darken-2" variant="flat">
-                                                        <v-icon start size="x-small"
-                                                            icon="mdi-shield-check-outline"></v-icon>
-                                                        ความเสี่ยงต่ำ
-                                                    </v-chip>
-                                                </div>
-                                            </v-card-title>
-
-                                            <v-divider></v-divider>
-
-                                            <v-card-text class="pt-4 pb-3">
-                                                <v-row dense>
-                                                    <v-col cols="12" class="mb-2">
-                                                        <v-alert type="info" variant="tonal" density="comfortable"
-                                                            border="start">
-                                                            <div class="d-flex justify-space-between align-center">
-                                                                <div class="text-body-2">
-                                                                    ภาพรวมสถานะการชำระของสัญญานี้
-                                                                </div>
-                                                                <v-chip size="x-small" color="blue-darken-2"
-                                                                    variant="flat">
-                                                                    <v-icon start size="x-small"
-                                                                        icon="mdi-chart-line"></v-icon>
-                                                                    สถานะปกติ
-                                                                </v-chip>
-                                                            </div>
-                                                        </v-alert>
-                                                    </v-col>
-
-                                                    <v-col cols="12">
-                                                        <v-text-field label="Outstanding Balance" prefix="฿"
-                                                            variant="solo-filled" density="comfortable"
-                                                            prepend-inner-icon="mdi-cash-remove" hide-details
-                                                            readonly></v-text-field>
-                                                    </v-col>
-
-                                                    <v-col cols="12">
-                                                        <v-text-field label="ยอดปิดบัญชี (ปัจจุบัน)" prefix="฿"
-                                                            variant="solo-filled" density="comfortable"
-                                                            prepend-inner-icon="mdi-bank-check" hide-details
-                                                            readonly></v-text-field>
-                                                    </v-col>
-
-                                                    <v-col cols="12">
-                                                        <v-text-field label="OVD (งวดค้างชำระ)" type="number"
-                                                            variant="solo-filled" density="comfortable"
-                                                            prepend-inner-icon="mdi-alert-circle-outline" hide-details
-                                                            readonly></v-text-field>
-                                                    </v-col>
-                                                </v-row>
-                                            </v-card-text>
-                                        </v-card>
-
-                                        <!-- CARD 4: หลักทรัพย์ค้ำประกัน -->
+                                        <!--  -->
                                         <v-card variant="outlined" rounded="xl"
                                             class="section-card section-card--asset">
                                             <v-card-title class="py-3">
@@ -1324,103 +1423,189 @@
                                                         </v-avatar>
                                                         <div>
                                                             <div class="text-body-1 font-weight-medium">
-                                                                หลักทรัพย์ค้ำประกัน
-                                                            </div>
-                                                            <div class="text-caption text-grey-darken-1">
-                                                                ประเภทหลักทรัพย์ · รายละเอียดรถ · ราคาประเมิน
-                                                            </div>
+                                                                หลักทรัพย์ค้ำประกัน ({{ ct.assets ? ct.assets.length : 0
+                                                                }})</div>
                                                         </div>
                                                     </div>
-
-                                                    <v-chip size="x-small" color="orange-darken-2" variant="tonal">
-                                                        <v-icon start size="x-small" icon="mdi-car-info"></v-icon>
-                                                        ทรัพย์เป็นรถ
-                                                    </v-chip>
+                                                    <v-btn size="small" variant="text" color="orange-darken-3"
+                                                        prepend-icon="mdi-plus"
+                                                        @click="ct.assets.push(LeadApp.createEmptyAsset())">เพิ่มทรัพย์</v-btn>
                                                 </div>
                                             </v-card-title>
-
                                             <v-divider></v-divider>
-
                                             <v-card-text class="pt-4 pb-3">
-                                                <v-row dense class="mb-2 form-row">
-                                                    <v-col cols="12" sm="6">
-                                                        <v-select label="ประเภทหลักทรัพย์"
-                                                            :items="['รถยนต์','มอเตอร์ไซค์','Bigbike','รถบรรทุก','ที่ดิน','บำนาญ']"
-                                                            variant="outlined" density="comfortable"
-                                                            prepend-inner-icon="mdi-shield-car" hide-details></v-select>
-                                                    </v-col>
 
-                                                    <v-col cols="12" sm="6">
-                                                        <v-text-field label="วันหมดอายุประกันภัย" type="date"
-                                                            variant="outlined" density="comfortable"
-                                                            prepend-inner-icon="mdi-calendar-alert"
-                                                            hide-details></v-text-field>
-                                                    </v-col>
-                                                </v-row>
+                                                <v-card v-for="(asset, k) in ct.assets" :key="'ct-asset-'+k"
+                                                    class="mb-3 pa-3" variant="outlined"
+                                                    style="border: 1px dashed #fb8c00; background-color: #fffaf5;">
+                                                    <div class="d-flex justify-space-between align-center mb-2">
+                                                        <div class="text-caption font-weight-bold text-orange-darken-4">
+                                                            ทรัพย์สิน #{{ k + 1 }}</div>
+                                                        <v-btn icon="mdi-trash-can-outline" size="x-small"
+                                                            variant="text" color="error"
+                                                            @click="ct.assets.splice(k, 1)"></v-btn>
+                                                    </div>
 
-                                                <v-row dense class="form-row">
-                                                    <v-col cols="12"
-                                                        class="text-subtitle-2 font-weight-medium text-grey-darken-1 mb-1 d-flex align-center">
-                                                        <v-icon size="small" class="mr-1" icon="mdi-car-info"></v-icon>
-                                                        รายละเอียดหลักทรัพย์ประเภทรถยนต์
-                                                    </v-col>
+                                                    <v-row dense class="form-row">
+                                                        <v-col cols="12">
+                                                            <v-combobox v-model="asset.type" label="ประเภทหลักทรัพย์"
+                                                                :items="['รถยนต์', 'มอเตอร์ไซค์', 'รถบิ๊กไบค์', 'รถตู้', 'รถบรรทุก', 'รถเพื่อการเกษตร', 'โฉนด', 'บำนาญ', 'ประกัน']"
+                                                                variant="outlined" density="comfortable" hide-details
+                                                                color="orange-darken-3"></v-combobox>
+                                                        </v-col>
 
-                                                    <v-col cols="12" sm="6">
-                                                        <v-text-field label="ยี่ห้อ" variant="outlined"
-                                                            density="compact"
-                                                            prepend-inner-icon="mdi-alpha-b-circle-outline"
-                                                            hide-details></v-text-field>
-                                                    </v-col>
+                                                        <template
+                                                            v-if="['รถยนต์', 'มอเตอร์ไซค์', 'รถบิ๊กไบค์', 'รถตู้', 'รถบรรทุก', 'รถเพื่อการเกษตร'].includes(asset.type)">
+                                                            <v-col cols="12" md="6"><v-text-field v-model="asset.brand"
+                                                                    label="ยี่ห้อ" density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field v-model="asset.model"
+                                                                    label="รุ่นรถ" density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="6" md="3"><v-text-field v-model="asset.year"
+                                                                    label="ปีรถ" type="number" density="compact"
+                                                                    variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="6" md="3"><v-text-field v-model="asset.cc"
+                                                                    label="CC / แรงม้า" density="compact"
+                                                                    variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="6" md="3"><v-text-field v-model="asset.weight"
+                                                                    label="น้ำหนัก (กก.)" type="number"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="6" md="3"><v-text-field
+                                                                    v-model="asset.licensePlate" label="ทะเบียน"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model="asset.engineNo" label="เลขเครื่อง"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model="asset.chassisNo" label="เลขตัวถัง"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model.number="asset.carPrice"
+                                                                    label="ราคารถตอนซื้อ" prefix="฿" density="compact"
+                                                                    variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model.number="asset.appraisedValue"
+                                                                    label="ราคาประเมิน" prefix="฿" density="compact"
+                                                                    variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model="asset.regDate" label="วันจดทะเบียน"
+                                                                    type="date" density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model="asset.possessionDate"
+                                                                    label="วันครอบครองเล่ม" type="date"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                        </template>
 
-                                                    <v-col cols="12" sm="6">
-                                                        <v-text-field label="รุ่น" variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-alpha-r-circle-outline"
-                                                            hide-details></v-text-field>
-                                                    </v-col>
+                                                        <template v-else-if="asset.type === 'โฉนด'">
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model="asset.deedNumber" label="เลขที่โฉนด"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model.number="asset.area"
+                                                                    label="เนื้อที่ (ไร่/งาน/ตร.วา)" type="number"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model="asset.district" label="อำเภอ"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model="asset.landProvince" label="จังหวัดโฉนด"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12"><v-text-field
+                                                                    v-model.number="asset.appraisedValue"
+                                                                    label="ราคาประเมิน (บ.)" type="number" prefix="฿"
+                                                                    density="compact" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                        </template>
 
-                                                    <v-col cols="12" sm="6">
-                                                        <v-text-field label="ปีจดทะเบียน" type="number"
-                                                            variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-calendar-range"
-                                                            hide-details></v-text-field>
-                                                    </v-col>
+                                                        <template v-else-if="asset.type === 'บำนาญ'">
+                                                            <v-col cols="12"><v-text-field
+                                                                    v-model.number="asset.pensionAmount"
+                                                                    label="จำนวนเงินบำนาญ/เดือน (บ.)" type="number"
+                                                                    prefix="฿" density="comfortable" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                        </template>
 
-                                                    <v-col cols="12" sm="6">
-                                                        <v-text-field label="ทะเบียนรถ" variant="outlined"
-                                                            density="compact" prepend-inner-icon="mdi-card-text-outline"
-                                                            hide-details></v-text-field>
-                                                    </v-col>
+                                                        <template v-else-if="asset.type === 'ประกัน'">
+                                                            <v-col cols="12">
+                                                                <v-select v-model="asset.insuranceType"
+                                                                    label="ประเภทประกันที่สนใจ"
+                                                                    :items="['ประกันรถ', 'ประกันอื่น']"
+                                                                    density="comfortable" variant="outlined"
+                                                                    hide-details
+                                                                    prepend-inner-icon="mdi-shield-check"></v-select>
+                                                            </v-col>
+                                                            <template v-if="asset.insuranceType === 'ประกันรถ'">
+                                                                <v-col cols="12"
+                                                                    class="text-caption text-grey-darken-1 font-weight-bold mt-1">*
+                                                                    เลือกประเภทรถที่ต้องการทำประกัน</v-col>
+                                                                <v-col cols="12">
+                                                                    <v-select v-model="asset.insuranceVehicleType"
+                                                                        label="ประเภทรถ"
+                                                                        :items="['รถยนต์', 'รถบรรทุก', 'มอเตอร์ไซค์', 'รถการเกษตร', 'รถบิ๊กไบค์', 'รถตู้']"
+                                                                        density="comfortable" variant="outlined"
+                                                                        hide-details></v-select>
+                                                                </v-col>
+                                                                <template v-if="asset.insuranceVehicleType">
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model="asset.brand" label="ยี่ห้อรถ"
+                                                                            density="compact" variant="outlined"
+                                                                            hide-details></v-text-field></v-col>
+                                                                    <v-col cols="12" md="6"><v-text-field
+                                                                            v-model="asset.model" label="รุ่นรถ"
+                                                                            density="compact" variant="outlined"
+                                                                            hide-details></v-text-field></v-col>
+                                                                    <v-col cols="12"><v-text-field
+                                                                            v-model="asset.coverageDate"
+                                                                            label="วันที่หมดความคุ้มครองเดิม"
+                                                                            type="date" density="comfortable"
+                                                                            variant="outlined"
+                                                                            hide-details></v-text-field></v-col>
+                                                                </template>
+                                                            </template>
+                                                            <template v-else>
+                                                                <v-col cols="12">
+                                                                    <v-textarea v-model="asset.desiredCoverage"
+                                                                        label="ความต้องการ (สนใจประกันตัวไหน)" rows="2"
+                                                                        auto-grow density="comfortable"
+                                                                        variant="outlined" hide-details></v-textarea>
+                                                                </v-col>
+                                                            </template>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model.number="asset.insuranceCapital"
+                                                                    label="ทุนประกัน (บ.)" type="number" prefix="฿"
+                                                                    density="comfortable" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                            <v-col cols="12" md="6"><v-text-field
+                                                                    v-model.number="asset.insurancePremium"
+                                                                    label="ค่าเบี้ยประกัน (บ.)" type="number" prefix="฿"
+                                                                    density="comfortable" variant="outlined"
+                                                                    hide-details></v-text-field></v-col>
+                                                        </template>
+                                                    </v-row>
+                                                </v-card>
 
-                                                    <v-col cols="12" sm="6">
-                                                        <v-text-field label="เลขตัวถัง (Chassis)" variant="outlined"
-                                                            density="compact" prepend-inner-icon="mdi-barcode-scan"
-                                                            hide-details></v-text-field>
-                                                    </v-col>
-
-                                                    <v-col cols="12" sm="6">
-                                                        <v-text-field label="เลขเครื่อง (Engine)" variant="outlined"
-                                                            density="compact" prepend-inner-icon="mdi-cog-outline"
-                                                            hide-details></v-text-field>
-                                                    </v-col>
-
-                                                    <v-col cols="12" sm="6">
-                                                        <v-text-field label="ราคาประเมิน" prefix="฿" type="number"
-                                                            variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-scale-balance"
-                                                            hide-details></v-text-field>
-                                                    </v-col>
-
-                                                    <v-col cols="12" sm="6">
-                                                        <v-text-field label="ราคากลาง" prefix="฿" type="number"
-                                                            variant="outlined" density="compact"
-                                                            prepend-inner-icon="mdi-hand-coin-outline"
-                                                            hide-details></v-text-field>
-                                                    </v-col>
-                                                </v-row>
+                                                <v-alert v-if="!ct.assets || ct.assets.length === 0" type="info"
+                                                    variant="tonal" density="compact" class="mt-2 text-caption">
+                                                    ยังไม่มีหลักทรัพย์ค้ำประกัน คลิก "เพิ่มทรัพย์" ด้านบน
+                                                </v-alert>
                                             </v-card-text>
                                         </v-card>
 
-                                        <!-- CARD 5: สัญญาย่อย -->
                                         <v-card variant="outlined" rounded="xl"
                                             class="section-card section-card--subcontract">
                                             <v-card-title class="py-3">
@@ -1431,15 +1616,12 @@
                                                                 color="purple-darken-3"></v-icon>
                                                         </v-avatar>
                                                         <div>
-                                                            <div class="text-body-1 font-weight-medium">
-                                                                รายการสัญญาย่อย
+                                                            <div class="text-body-1 font-weight-medium">รายการสัญญาย่อย
                                                             </div>
                                                             <div class="text-caption text-grey-darken-1">
-                                                                รายละเอียดสัญญาย่อยที่เชื่อมกับสัญญาหลักนี้
-                                                            </div>
+                                                                รายละเอียดสัญญาย่อยที่เชื่อมกับสัญญาหลักนี้</div>
                                                         </div>
                                                     </div>
-
                                                     <v-btn color="deep-purple-darken-1" prepend-icon="mdi-plus-circle"
                                                         variant="flat" size="small"
                                                         @click="toggleMenu('isOpenSubContractDialog', true)">
@@ -1447,70 +1629,37 @@
                                                     </v-btn>
                                                 </div>
                                             </v-card-title>
-
                                             <v-divider></v-divider>
-
                                             <v-card-text class="pt-2">
                                                 <v-table density="compact" class="mb-2">
                                                     <thead>
                                                         <tr>
                                                             <th
                                                                 class="text-left text-caption font-weight-medium text-grey-darken-2">
-                                                                # เลขที่สัญญา
-                                                            </th>
+                                                                # เลขที่สัญญา</th>
                                                             <th
                                                                 class="text-left text-caption font-weight-medium text-grey-darken-2">
-                                                                ประเภท
-                                                            </th>
+                                                                ประเภท</th>
                                                             <th
                                                                 class="text-left text-caption font-weight-medium text-grey-darken-2">
-                                                                สถานะ
-                                                            </th>
+                                                                สถานะ</th>
                                                             <th
                                                                 class="text-right text-caption font-weight-medium text-grey-darken-2">
-                                                                ยอดผ่อน/เดือน
-                                                            </th>
+                                                                ยอดผ่อน/เดือน</th>
                                                             <th class="text-center text-caption font-weight-medium text-grey-darken-2"
-                                                                style="width: 90px;">
-                                                                การจัดการ
-                                                            </th>
+                                                                style="width: 90px;">การจัดการ</th>
                                                         </tr>
                                                     </thead>
-
                                                     <tbody>
                                                         <tr>
-                                                            <td
-                                                                class="font-weight-medium text-primary d-flex align-center">
-                                                                <v-icon size="x-small" class="mr-1"
-                                                                    icon="mdi-link-variant"></v-icon>
-                                                                SC-0001
-                                                            </td>
-                                                            <td>เช่าซื้อ</td>
-                                                            <td>
-                                                                <v-chip size="x-small" color="success" variant="flat">
-                                                                    ปกติ
-                                                                </v-chip>
-                                                            </td>
-                                                            <td class="text-right font-weight-medium">
-                                                                ฿3,500.00
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <v-btn icon="mdi-pencil-outline" variant="text"
-                                                                    size="x-small"></v-btn>
-                                                                <v-btn icon="mdi-delete-outline" variant="text"
-                                                                    color="error" size="x-small"></v-btn>
-                                                            </td>
-                                                        </tr>
-
-                                                        <tr>
                                                             <td colspan="5" class="text-center text-grey-darken-1 py-4">
-                                                                ยังไม่มีข้อมูลสัญญาย่อยที่เกี่ยวข้อง
-                                                            </td>
+                                                                ยังไม่มีข้อมูลสัญญาย่อยที่เกี่ยวข้อง</td>
                                                         </tr>
                                                     </tbody>
                                                 </v-table>
                                             </v-card-text>
                                         </v-card>
+
                                     </v-container>
                                 </contract-editor>
                             </v-tabs-window-item>
@@ -1549,13 +1698,13 @@
                         <v-btn color="primary" variant="flat" class="ml-2" @click="LeadApp.add(leadForm)">
                             บันทึก
                         </v-btn>
-
                     </v-card-actions>
 
                 </v-card>
             </v-dialog>
+
             <!-- ================================ -->
-            <!-- 🟪 DIALOG สร้างสัญญาย่อย (Standalone) -->
+            <!-- 🟪 DIALOG สร้างสัญญาย่อย  -->
             <!-- ================================ -->
             <v-dialog v-model="isOpenSubContractDialog" max-width="700">
                 <v-card class="rounded-xl"
@@ -1580,7 +1729,7 @@
                     <!-- ================= CONTENT ================= -->
                     <v-card-text class="px-4 py-4" style="overflow-y:auto; background:#fafafa; flex:1 1 auto;">
 
-                        <!-- HERO HEADER -->
+                        <!-- HEADER  -->
                         <v-sheet class="pa-3 mb-3" color="deep-purple-lighten-5" rounded="lg">
                             <div class="text-overline text-deep-purple-darken-2">SUB-CONTRACT</div>
                             <div class="text-subtitle-1 font-weight-semibold">รายละเอียดสัญญาย่อย</div>
@@ -1589,7 +1738,7 @@
                             </div>
                         </v-sheet>
 
-                        <!-- CARD FORM -->
+                        <!-- ================= CARDS FORM ================= -->
 
                         <!-- CARD 1: ข้อมูลสัญญา -->
                         <v-card variant="outlined" rounded="xl" class="section-card section-card--contract">
