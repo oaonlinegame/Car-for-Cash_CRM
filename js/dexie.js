@@ -1,70 +1,69 @@
-// dexie.js
+// js/dexie.js
 // --------------------------------------------------------
-// 📘 Dexie Storage Layer (ทำหน้าที่จัดการ IndexedDB เท่านั้น)
-// --------------------------------------------------------
-// ❗ ไม่เรียก Store
-// ❗ ไม่มี logic เกี่ยวกับ Lead
-// ❗ ไม่ sync UI
+// 📘 Dexie Storage Layer (Cleaned Version)
 // --------------------------------------------------------
 
 const AppDexie = (() => {
   // ------------------------------------------------------
   // ⭐ สร้างฐานข้อมูล Dexie
   // ------------------------------------------------------
-  const db = new Dexie("LeadManagerDB"); // ชื่อฐานข้อมูล
+  const db = new Dexie("LeadManagerDB");
 
   // ------------------------------------------------------
-  // ⭐ กำหนด Schema (Lead แบบ B ครบฟิลด์)
+  // ⭐ กำหนด Schema
   // ------------------------------------------------------
-  db.version(1).stores({
+  db.version(2).stores({
     leads: "++id, firstName, phones, status, province, postalCode, createDate",
+    settings: "key", // ตารางสำหรับเก็บ Config
   });
 
-  // ------------------------------------------------------
-  // ⭐ อ้างอิงตารางใช้ CRUD
-  // ------------------------------------------------------
   const leadTable = db.leads;
+  const settingsTable = db.settings;
 
   // ------------------------------------------------------
-  // ⭐ Storage API (ไม่ปน UI)
+  // ⭐ Lead API
   // ------------------------------------------------------
   const lead = {
-    // ➕ เพิ่ม Lead
     async add(data) {
-      return await leadTable.add(data); // คืนค่า id ใหม่
+      return await leadTable.add(data);
     },
-
-    // ✏️ อัปเดต Lead
     async update(id, patch) {
       return await leadTable.update(id, patch);
     },
-
-    // 🗑️ ลบ Lead
     async delete(id) {
       return await leadTable.delete(id);
     },
-
-    // 📄 ดึงทั้งหมด
     async getAll() {
       return await leadTable.toArray();
     },
-
-    // 🧹 ล้างทั้งหมด
     async clear() {
       return await leadTable.clear();
     },
   };
 
   // ------------------------------------------------------
-  // ⭐ คืนค่า API
+  // ⭐ Settings API (ตัด delete ออก)
+  // ------------------------------------------------------
+  const settings = {
+    // บันทึกหรืออัปเดตค่า (Upsert)
+    async set(key, value) {
+      return await settingsTable.put({ key, value });
+    },
+    // ดึงค่า
+    async get(key) {
+      const result = await settingsTable.get(key);
+      return result ? result.value : null;
+    },
+  };
+
+  // ------------------------------------------------------
+  // ⭐ Export
   // ------------------------------------------------------
   return {
-    lead, // CRUD Lead
-    db, // ให้ debug ได้
+    lead,
+    settings,
+    db,
   };
 })();
 
-// --------------------------------------------------------
-// 📌 Export
-// --------------------------------------------------------
 window.AppDexie = AppDexie;

@@ -1,29 +1,25 @@
-// utils.js
+// js/utils.js
 // --------------------------------------------------------
-// 📘 ไฟล์นี้เก็บฟังก์ชันที่ใช้ซ้ำหลายจุดภายในระบบ
-// --------------------------------------------------------
-// หมายเหตุสำคัญ:
-// - ไม่มีการใช้ localStorage แล้ว
-// - ใช้ Dexie เป็นตัวเก็บข้อมูลถาวร 100%
-// - ฟังก์ชันกรองข้อมูล filterLeads() ถูกปรับให้รองรับ Lead แบบสั้น
+// 📘 ไฟล์นี้เก็บฟังก์ชันที่ใช้ซ้ำหลายจุดภายในระบบ (Cleaned Version)
 // --------------------------------------------------------
 
-// --------------------------------------------------------
-// ⭐ อ็อบเจกต์ Utils รวมฟังก์ชันที่ใช้ซ้ำทั้งหมด
-// --------------------------------------------------------
 const Utils = {
   // ----------------------------------------------------
   // 🔍 filterLeads(list, query)
-  // ฟังก์ชันกรองข้อมูล Lead แบบ Smart Search (โครงสร้างใหม่ B)
+  // ฟังก์ชันกรองข้อมูล Lead แบบ Smart Search (ใช้ใน gui.js)
   // ----------------------------------------------------
   filterLeads(list, query) {
-    if (!Array.isArray(list)) return [];
-    if (!query || query.trim() === "") return list;
+    // คอมเมนต์: ฟังก์ชันกรอง Lead
+    if (!Array.isArray(list)) return []; // คอมเมนต์: ตรวจสอบ Array
+    if (!query || query.trim() === "") return list; // คอมเมนต์: ถ้าไม่มี Query คืนทั้งหมด
 
-    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean); // คอมเมนต์: แยกคำค้นหา
 
     return list.filter((lead) => {
+      // คอมเมนต์: กรองรายการ
+      // รวมข้อมูลทุกฟิลด์เป็นก้อนข้อความเดียวเพื่อค้นหา
       const text = [
+        // คอมเมนต์: รวมฟิลด์ Lead
         lead.firstName,
         lead.nickName,
         lead.phones,
@@ -38,119 +34,83 @@ const Utils = {
         lead.createDate,
       ]
         .join(" ")
-        .toLowerCase();
+        .toLowerCase(); // คอมเมนต์: รวมเป็น String และแปลงเป็น Lowercase
 
-      return terms.every((t) => text.includes(t));
+      // ต้องเจอคำค้นหาครบทุกคำ (AND Logic)
+      return terms.every((t) => text.includes(t)); // คอมเมนต์: ตรวจสอบว่ามีทุกคำ
     });
   },
 
-  // ⚡ NEW FUNCTION: chunkArray(array, size)
-  // แบ่ง array ออกเป็นกลุ่มย่อยๆ (เช่น [1,2,3,4] → [[1,2], [3,4]])
+  // ----------------------------------------------------
+  // ⚡ chunkArray(array, size)
+  // แบ่ง array ออกเป็นกลุ่มย่อย (ใช้สำหรับ Grid View ใน gui.js)
+  // ----------------------------------------------------
   chunkArray(array, size) {
-    if (!Array.isArray(array) || size <= 0) return []; // ตรวจสอบว่าเป็น Array และ size > 0
-
-    const chunked = []; // Array สำหรับเก็บกลุ่มย่อย
+    // คอมเมนต์: ฟังก์ชันแบ่ง Array
+    if (!Array.isArray(array) || size <= 0) return []; // คอมเมนต์: ตรวจสอบ Input
+    const chunked = []; // คอมเมนต์: Array ผลลัพธ์
     for (let i = 0; i < array.length; i += size) {
-      // วนลูปตามขนาด size
-      // slice เพื่อตัด array ออกเป็นกลุ่มตาม size ที่กำหนด
-      chunked.push(array.slice(i, i + size)); // ตัด Array ย่อยและเพิ่มเข้า Array หลัก
+      // คอมเมนต์: วนลูปและแบ่ง
+      chunked.push(array.slice(i, i + size));
     }
-    return chunked; // คืนค่า Array ที่ถูกแบ่งเป็นกลุ่มแล้ว
+    return chunked; // คอมเมนต์: คืนผลลัพธ์
   },
 
   // ----------------------------------------------------
-  // 🔢 sortData(list, key, order)
-  // ฟังก์ชันเรียงข้อมูล
-  // ----------------------------------------------------
-  sortData(list, key, order = "asc") {
-    if (!Array.isArray(list)) return [];
-
-    const sorted = [...list];
-
-    sorted.sort((a, b) => {
-      const A = a[key];
-      const B = b[key];
-
-      // ถ้าเป็นตัวเลข → เรียงแบบตัวเลข
-      if (!isNaN(A) && !isNaN(B)) {
-        return order === "asc" ? A - B : B - A;
-      }
-
-      // ถ้าเป็น string → ใช้ localeCompare
-      const result = String(A).localeCompare(String(B));
-      return order === "asc" ? result : -result;
-    });
-
-    return sorted; // คืนค่าที่เรียงแล้ว
-  },
-
-  // ----------------------------------------------------
-  // 🗓️ formatDate(dateString)
-  // แปลงวันที่ให้เป็นรูปแบบ DD/MM/YYYY
-  // ----------------------------------------------------
-  formatDate(dateString) {
-    if (!dateString) return "-"; // ถ้าไม่มีค่า → แสดง "-"
-    const date = new Date(dateString); // แปลงเป็น Date Object
-    if (isNaN(date.getTime())) return "-"; // ถ้าค่าวันที่ผิด → แสดง "-"
-
-    const d = String(date.getDate()).padStart(2, "0");
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const y = date.getFullYear();
-
-    return `${d}/${m}/${y}`; // คืนค่าวันที่แบบไทยอ่านง่าย
-  },
-
-  // ----------------------------------------------------
-  // 🧠 generateId(prefix)
-  // สร้างรหัสไม่ซ้ำ เช่น ID_1731653920000_123
-  // ----------------------------------------------------
-  generateId(prefix = "ID") {
-    const time = Date.now(); // เวลาเป็นมิลลิวินาที
-    const rand = Math.floor(Math.random() * 1000); // เลขสุ่ม 0-999
-    return `${prefix}_${time}_${rand}`; // คืนค่ารหัสที่ไม่ซ้ำ
-  },
-  // ⚡ NEW FUNCTION: addUniqueItemToRef(targetRef, newVal, notifyPrefix)
-  // ฟังก์ชันกลาง: เพิ่มค่าใหม่เข้าไปใน Vue Ref (ที่เป็น Array) หากยังไม่มีอยู่
+  // ➕ addUniqueItemToRef(targetRef, newVal, notifyPrefix)
+  // เพิ่มค่าใหม่เข้า Vue Ref Array โดยตรวจสอบค่าซ้ำก่อน (ใช้ใน handleConfigItemAdd)
   // ----------------------------------------------------
   addUniqueItemToRef(targetRef, newVal, notifyPrefix = "รายการ") {
-    //  ฟังก์ชันกลางสำหรับเพิ่มรายการที่ไม่ซ้ำเข้าใน Vue Ref (Array)
-    const item = String(newVal || "").trim(); //  ทำความสะอาดค่าที่ผู้ใช้ป้อน
-    if (
-      !item ||
-      !targetRef ||
-      !targetRef.value ||
-      !Array.isArray(targetRef.value)
-    )
-      return false; //  ถ้าค่าว่างหรือ targetRef ไม่ถูกต้องให้หยุดทำงาน
+    // คอมเมนต์: ฟังก์ชันเพิ่มรายการไม่ซ้ำ
+    const item = String(newVal || "").trim(); // คอมเมนต์: จัดการ Input
+    if (!item || !targetRef || !Array.isArray(targetRef.value)) return false; // คอมเมนต์: ตรวจสอบความพร้อม
 
-    const list = targetRef.value; //  ดึง Array ออกมา
-
-    //  ตรวจสอบว่ารายการนี้มีอยู่ใน Array อยู่แล้วหรือไม่
+    const list = targetRef.value; // คอมเมนต์: ค่า Array ปัจจุบัน
+    // เช็คว่ามีอยู่แล้วหรือไม่ (Case Insensitive)
     const exists = list.some(
+      // คอมเมนต์: ตรวจสอบค่าซ้ำ
       (existingItem) =>
         String(existingItem).toLowerCase() === item.toLowerCase()
-    ); //  ตรวจสอบแบบไม่คำนึงถึงตัวพิมพ์เล็กใหญ่
+    );
 
     if (!exists) {
-      //  ถ้ายังไม่มีในรายการ
-      list.push(item); //  เพิ่มรายการใหม่เข้าไปใน Array
+      // คอมเมนต์: ถ้าไม่ซ้ำ
+      list.push(item); // คอมเมนต์: เพิ่มรายการ
       if (window.AppNotifications && AppNotifications.show) {
-        //  ถ้ามีระบบแจ้งเตือน
+        // คอมเมนต์: แจ้งเตือน
         AppNotifications.show(
           `✅ เพิ่ม ${notifyPrefix} "${item}" เข้าไปในตัวเลือกแล้ว`
-        ); //  แจ้งเตือนผู้ใช้
-      } //  ปิด if AppNotifications
-      console.log(`✅ Utils: เพิ่ม ${notifyPrefix} ใหม่ "${item}"`); //  แสดง log
-      return true; //  คืนค่า true (เพิ่มสำเร็จ)
-    } else {
-      //  ถ้ามีอยู่แล้ว
-      console.log(`ℹ️ Utils: ${notifyPrefix} "${item}" มีอยู่ในรายการแล้ว`); //  แสดง log
-      return false; //  คืนค่า false (ไม่ได้เพิ่ม)
-    } //  ปิดเงื่อนไข exists
-  }, //  ปิด addUniqueItemToRef
+        );
+      }
+      console.log(`✅ Utils: เพิ่ม ${notifyPrefix} ใหม่ "${item}"`); // คอมเมนต์: Log
+      return true; // คอมเมนต์: คืนค่า True
+    }
+    return false; // คอมเมนต์: คืนค่า False
+  },
+
+  // ----------------------------------------------------------
+  // ⭐ handleConfigItemAdd
+  // ฟังก์ชันกลางสำหรับเพิ่ม Config Item ลงทั้ง AppState และ Dexie (ใช้ใน lead.js)
+  // ----------------------------------------------------------
+  async handleConfigItemAdd(newVal, configKey, stateRef, notifyPrefix) {
+    // คอมเมนต์: ฟังก์ชันจัดการ Config Item
+    // 1. เพิ่มลง AppState (UI)
+    const isAdded = Utils.addUniqueItemToRef(stateRef, newVal, notifyPrefix); // คอมเมนต์: เพิ่มเข้า AppState
+
+    // 2. ถ้าเพิ่มสำเร็จ ให้บันทึกลง Dexie (DB)
+    if (isAdded && window.AppConfig && window.AppConfig.save) {
+      // คอมเมนต์: ถ้าเพิ่มสำเร็จและ AppConfig พร้อม
+      try {
+        await AppConfig.save(configKey, stateRef.value); // คอมเมนต์: บันทึกเข้า Dexie
+      } catch (error) {
+        console.error(
+          `❌ Utils.handleConfigItemAdd: บันทึก Config Key "${configKey}" ล้มเหลว`,
+          error
+        ); // คอมเมนต์: แสดง Error
+      }
+    }
+    return isAdded; // คอมเมนต์: คืนค่าผลลัพธ์
+  },
 };
 
-// --------------------------------------------------------
-// 🌍 เผยแพร่ Utils ให้ไฟล์อื่นสามารถเรียกใช้ได้
-// --------------------------------------------------------
-window.Utils = Utils;
+window.Utils = Utils; // คอมเมนต์: Export Utils

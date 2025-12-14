@@ -345,3 +345,54 @@ body {
 .section-card--lead-note .v-field.v-field--variant-outlined.v-field--focused {
   box-shadow: 0 0 0 5px rgba(96, 125, 139, 0.18); /* Glow Effect */
 }
+
+/* -------------------------------------------------------
+   🟦 DIALOG UTILITIES (New)
+------------------------------------------------------- */
+/* บังคับความสูง Dialog ให้เท่ากัน และจัดการ Scroll ภายใน */
+.dialog-card-full {
+  height: 90vh !important; /* สูง 90% ของหน้าจอเสมอ */
+  max-height: 90vh !important;
+  display: flex !important; /* ใช้ Flex เพื่อดัน Footer ลงล่างสุด */
+  flex-direction: column !important;
+  overflow: hidden !important; /* ซ่อน Scrollbar ของตัว Card หลัก */
+}
+
+/* พื้นที่ Header (จับลากได้) */
+.dialog-card-full .v-card-title {
+  cursor: move; /* เปลี่ยนเมาส์เป็นรูปย้ายของ */
+  user-select: none; /* ห้ามคลุมดำ text ตอนลาก */
+}
+
+/* พื้นที่ Content (ให้ Scroll ได้เฉพาะตรงนี้) */
+.dialog-card-full .v-card-text {
+  flex-grow: 1; /* ยืดให้เต็มพื้นที่ที่เหลือ */
+  overflow-y: auto; /* ให้ Scroll เฉพาะส่วนเนื้อหา */
+  min-height: 0; /* กัน Flexbox บั๊กไม่ยอมหด */
+}
+
+/* พื้นที่ Footer (ติดล่างสุดเสมอ) */
+.dialog-card-full .v-card-actions {
+  flex-shrink: 0; /* ห้ามหด */
+  background: #fff; /* สีพื้นหลัง */
+  border-top: 1px solid rgba(0, 0, 0, 0.05); /* เส้นคั่นบางๆ */
+}
+
+/* --- Drag & Drop Styles --- */
+/* รายการที่สามารถลากได้ (Handle) */
+.draggable-handle {
+  cursor: grab;
+  padding-right: 12px;
+}
+
+/* เอฟเฟกต์เมื่อกำลังลาก (ใช้กับตัวที่ถูกลาก) */
+.dragging {
+  opacity: 0.4;
+  border: 1px dashed #1565c0;
+  background-color: #f0f8ff;
+}
+
+/* เอฟเฟกต์เมื่อลากไปทับ (ใช้กับตัวที่จะถูกย้ายแทน) */
+.drag-over {
+  border-top: 2px solid #1565c0 !important;
+}

@@ -254,6 +254,10 @@
                                     <v-list-item prepend-icon="mdi-finance" @click="">
                                         <v-list-item-title>การตั้งค่าเกี่ยวกับสินเชื่อ</v-list-item-title>
                                     </v-list-item>
+                                    <v-list-item prepend-icon="mdi-format-list-bulleted-type"
+                                        @click="toggleMenu('isOpenModalConfigSettings', true)">
+                                        <v-list-item-title>จัดการตัวเลือก (Dropdowns)</v-list-item-title>
+                                    </v-list-item>
                                     <v-list-item prepend-icon="mdi-keyboard-outline" @click="">
                                         <v-list-item-title>การตั้งค่าคีย์ลัด</v-list-item-title>
                                     </v-list-item>
@@ -791,7 +795,7 @@
                                                                 variant="outlined" color="primary"
                                                                 prepend-inner-icon="mdi-badge-account-horizontal-outline"
                                                                 append-inner-icon="" hide-details="auto"
-                                                                @keydown.enter.prevent="LeadApp.handleAddOccupation($event.target.value)"></v-combobox>
+                                                                @keydown.enter.prevent="handleAddConfigItem($event.target.value, 'occupation')"></v-combobox>
                                                         </v-col>
 
                                                     </v-row>
@@ -893,11 +897,12 @@
                                                 <v-card-text class="pt-4 pb-3">
                                                     <v-row dense class="form-row">
                                                         <v-col cols="12" md="6">
-                                                            <v-select label="แหล่งที่มา"
-                                                                :items="['Facebook','Line','เดินเข้าร้าน','บัตรเครดิต']"
-                                                                density="comfortable" variant="outlined"
+                                                            <v-combobox v-model="leadForm.source" label="แหล่งที่มา"
+                                                                :items="sourceItems" density="comfortable"
+                                                                variant="outlined" color="primary"
                                                                 prepend-inner-icon="mdi-source-branch"
-                                                                hide-details="auto"></v-select>
+                                                                append-inner-icon="" hide-details="auto"
+                                                                @keydown.enter.prevent="handleAddConfigItem($event.target.value, 'source')"></v-combobox>
                                                         </v-col>
 
                                                         <v-col cols="12" md="6">
@@ -2501,7 +2506,6 @@
             <!-- ================================ -->
             <!-- 🟪 DIALOG การตั้งค่าข้อมูลรถยนต์ Car Settings -->
             <!-- ================================ -->
-
             <v-dialog v-model="isOpenModalCarSettings" max-width="1200" scrollable>
                 <v-card class="rounded-xl"
                     style="height: 90vh; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #fff;">
@@ -2563,34 +2567,36 @@
                                             ผลการค้นหา
                                         </v-card-title>
                                         <v-divider></v-divider>
-                                        <v-table density="comfortable" hover>
-                                            <thead>
-                                                <tr>
-                                                    <th class="text-left">เลขที่สัญญา</th>
-                                                    <th class="text-left">ชื่อลูกค้า</th>
-                                                    <th class="text-left">รถปัจจุบัน</th>
-                                                    <th class="text-center">สถานะ</th>
-                                                    <th class="text-center" style="width: 140px;">จัดการ</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr style="cursor: pointer;"
-                                                    @click="toggleMenu('isOpenModalCarPriceSelector', true)">
-                                                    <td class="font-weight-bold text-indigo">LN-6601-001</td>
-                                                    <td>นายสมชาย มีดี</td>
-                                                    <td class="text-grey-darken-1">Toyota Camry</td>
-                                                    <td class="text-center"><v-chip size="x-small"
-                                                            color="success">ปกติ</v-chip></td>
-                                                    <td class="text-center">
-                                                        <v-btn size="small" color="indigo" variant="tonal"
-                                                            prepend-icon="mdi-car-search"
-                                                            @click.stop="toggleMenu('isOpenModalCarPriceSelector', true)">
-                                                            เลือกรถ
-                                                        </v-btn>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </v-table>
+                                        <div style="height: 350px; overflow-y: auto;">
+                                            <v-table density="comfortable" hover>
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-left">เลขที่สัญญา</th>
+                                                        <th class="text-left">ชื่อลูกค้า</th>
+                                                        <th class="text-left">รถปัจจุบัน</th>
+                                                        <th class="text-center">สถานะ</th>
+                                                        <th class="text-center" style="width: 140px;">จัดการ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr style="cursor: pointer;"
+                                                        @click="toggleMenu('isOpenModalCarPriceSelector', true)">
+                                                        <td class="font-weight-bold text-indigo">LN-6601-001</td>
+                                                        <td>นายสมชาย มีดี</td>
+                                                        <td class="text-grey-darken-1">Toyota Camry</td>
+                                                        <td class="text-center"><v-chip size="x-small"
+                                                                color="success">ปกติ</v-chip></td>
+                                                        <td class="text-center">
+                                                            <v-btn size="small" color="indigo" variant="tonal"
+                                                                prepend-icon="mdi-car-search"
+                                                                @click.stop="toggleMenu('isOpenModalCarPriceSelector', true)">
+                                                                เลือกรถ
+                                                            </v-btn>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </v-table>
+                                        </div>
                                     </v-card>
                                 </v-container>
                             </v-tabs-window-item>
@@ -2608,31 +2614,33 @@
                                             prepend-icon="mdi-plus">เพิ่ม</v-btn>
                                     </v-toolbar>
                                     <v-divider></v-divider>
-                                    <v-table>
-                                        <thead>
-                                            <tr>
-                                                <th class="text-left" style="width: 80px;">Logo</th>
-                                                <th class="text-left">ยี่ห้อ (TH)</th>
-                                                <th class="text-left">ยี่ห้อ (EN)</th>
-                                                <th class="text-center">สถานะ</th>
-                                                <th class="text-center">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><v-avatar size="32" color="grey-lighten-3"><span
-                                                            class="text-caption">T</span></v-avatar></td>
-                                                <td>โตโยต้า</td>
-                                                <td>Toyota</td>
-                                                <td class="text-center"><v-chip size="x-small"
-                                                        color="success">ใช้งาน</v-chip></td>
-                                                <td class="text-center">
-                                                    <v-btn icon="mdi-pencil" size="x-small" variant="text"
-                                                        color="blue"></v-btn>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </v-table>
+                                    <div style="height: 510px; overflow-y: auto;">
+                                        <v-table>
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-left" style="width: 80px;">Logo</th>
+                                                    <th class="text-left">ยี่ห้อ (TH)</th>
+                                                    <th class="text-left">ยี่ห้อ (EN)</th>
+                                                    <th class="text-center">สถานะ</th>
+                                                    <th class="text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><v-avatar size="32" color="grey-lighten-3"><span
+                                                                class="text-caption">T</span></v-avatar></td>
+                                                    <td>โตโยต้า</td>
+                                                    <td>Toyota</td>
+                                                    <td class="text-center"><v-chip size="x-small"
+                                                            color="success">ใช้งาน</v-chip></td>
+                                                    <td class="text-center">
+                                                        <v-btn icon="mdi-pencil" size="x-small" variant="text"
+                                                            color="blue"></v-btn>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </v-table>
+                                    </div>
                                 </v-card>
                             </v-tabs-window-item>
 
@@ -2646,30 +2654,33 @@
                                             prepend-icon="mdi-plus">เพิ่มประเภท</v-btn>
                                     </v-toolbar>
                                     <v-divider></v-divider>
-                                    <v-table>
-                                        <thead>
-                                            <tr>
-                                                <th class="text-left" style="width: 60px;">Icon</th>
-                                                <th class="text-left">ชื่อประเภท</th>
-                                                <th class="text-left">คำอธิบาย</th>
-                                                <th class="text-center">LTV เริ่มต้น</th>
-                                                <th class="text-center">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><v-icon color="grey-darken-2">mdi-car-side</v-icon></td>
-                                                <td>รถเก๋ง (Sedan)</td>
-                                                <td class="text-caption text-grey">รถยนต์นั่งส่วนบุคคลไม่เกิน 7 ที่นั่ง
-                                                </td>
-                                                <td class="text-center">80%</td>
-                                                <td class="text-center">
-                                                    <v-btn icon="mdi-pencil" size="x-small" variant="text"
-                                                        color="blue"></v-btn>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </v-table>
+                                    <div style="height: 510px; overflow-y: auto;">
+                                        <v-table>
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-left" style="width: 60px;">Icon</th>
+                                                    <th class="text-left">ชื่อประเภท</th>
+                                                    <th class="text-left">คำอธิบาย</th>
+                                                    <th class="text-center">LTV เริ่มต้น</th>
+                                                    <th class="text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><v-icon color="grey-darken-2">mdi-car-side</v-icon></td>
+                                                    <td>รถเก๋ง (Sedan)</td>
+                                                    <td class="text-caption text-grey">รถยนต์นั่งส่วนบุคคลไม่เกิน 7
+                                                        ที่นั่ง
+                                                    </td>
+                                                    <td class="text-center">80%</td>
+                                                    <td class="text-center">
+                                                        <v-btn icon="mdi-pencil" size="x-small" variant="text"
+                                                            color="blue"></v-btn>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </v-table>
+                                    </div>
                                 </v-card>
                             </v-tabs-window-item>
 
@@ -2747,99 +2758,101 @@
                                 </v-card-title>
                                 <v-divider></v-divider>
 
-                                <v-table density="compact" hover class="table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-left" style="width: 60px;">No.</th>
-                                            <th class="text-left" style="width: 80px;">Brand</th>
-                                            <th class="text-left" style="width: 250px;">รุ่น (Model)</th>
-                                            <th class="text-center" style="min-width: 80px;">2018</th>
-                                            <th class="text-center" style="min-width: 80px;">2019</th>
-                                            <th class="text-center" style="min-width: 80px;">2020</th>
-                                            <th class="text-center" style="min-width: 80px;">2021</th>
-                                            <th class="text-center" style="min-width: 80px;">2022</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td class="text-grey text-caption">001</td>
-                                            <td class="font-weight-bold text-indigo">Toyota</td>
-                                            <td>
-                                                <div class="font-weight-medium">Camry 2.0 G</div>
-                                                <div class="text-caption text-grey">Sedan 4 Dr.</div>
-                                            </td>
+                                <div style="height: 350px; overflow-y: auto;">
+                                    <v-table density="compact" hover class="table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th class="text-left" style="width: 60px;">No.</th>
+                                                <th class="text-left" style="width: 80px;">Brand</th>
+                                                <th class="text-left" style="width: 250px;">รุ่น (Model)</th>
+                                                <th class="text-center" style="min-width: 80px;">2018</th>
+                                                <th class="text-center" style="min-width: 80px;">2019</th>
+                                                <th class="text-center" style="min-width: 80px;">2020</th>
+                                                <th class="text-center" style="min-width: 80px;">2021</th>
+                                                <th class="text-center" style="min-width: 80px;">2022</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-grey text-caption">001</td>
+                                                <td class="font-weight-bold text-indigo">Toyota</td>
+                                                <td>
+                                                    <div class="font-weight-medium">Camry 2.0 G</div>
+                                                    <div class="text-caption text-grey">Sedan 4 Dr.</div>
+                                                </td>
 
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('450,000')">450k</v-btn>
-                                            </td>
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('520,000')">520k</v-btn>
-                                            </td>
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('600,000')">600k</v-btn>
-                                            </td>
-                                            <td class="text-center"><span class="text-grey-lighten-2">-</span></td>
-                                            <td class="text-center"><span class="text-grey-lighten-2">-</span></td>
-                                        </tr>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('450,000')">450k</v-btn>
+                                                </td>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('520,000')">520k</v-btn>
+                                                </td>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('600,000')">600k</v-btn>
+                                                </td>
+                                                <td class="text-center"><span class="text-grey-lighten-2">-</span></td>
+                                                <td class="text-center"><span class="text-grey-lighten-2">-</span></td>
+                                            </tr>
 
-                                        <tr>
-                                            <td class="text-grey text-caption">002</td>
-                                            <td class="font-weight-bold text-indigo">Honda</td>
-                                            <td>
-                                                <div class="font-weight-medium">Civic 1.5 Turbo RS</div>
-                                                <div class="text-caption text-grey">Hatchback</div>
-                                            </td>
+                                            <tr>
+                                                <td class="text-grey text-caption">002</td>
+                                                <td class="font-weight-bold text-indigo">Honda</td>
+                                                <td>
+                                                    <div class="font-weight-medium">Civic 1.5 Turbo RS</div>
+                                                    <div class="text-caption text-grey">Hatchback</div>
+                                                </td>
 
-                                            <td class="text-center"><span class="text-grey-lighten-2">-</span></td>
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('680,000')">680k</v-btn>
-                                            </td>
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('750,000')">750k</v-btn>
-                                            </td>
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('820,000')">820k</v-btn>
-                                            </td>
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('890,000')">890k</v-btn>
-                                            </td>
-                                        </tr>
+                                                <td class="text-center"><span class="text-grey-lighten-2">-</span></td>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('680,000')">680k</v-btn>
+                                                </td>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('750,000')">750k</v-btn>
+                                                </td>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('820,000')">820k</v-btn>
+                                                </td>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('890,000')">890k</v-btn>
+                                                </td>
+                                            </tr>
 
-                                        <tr>
-                                            <td class="text-grey text-caption">003</td>
-                                            <td class="font-weight-bold text-indigo">Isuzu</td>
-                                            <td>
-                                                <div class="font-weight-medium">D-Max 1.9 Hi-Lander</div>
-                                                <div class="text-caption text-grey">Pickup Cab 4</div>
-                                            </td>
+                                            <tr>
+                                                <td class="text-grey text-caption">003</td>
+                                                <td class="font-weight-bold text-indigo">Isuzu</td>
+                                                <td>
+                                                    <div class="font-weight-medium">D-Max 1.9 Hi-Lander</div>
+                                                    <div class="text-caption text-grey">Pickup Cab 4</div>
+                                                </td>
 
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('420,000')">420k</v-btn>
-                                            </td>
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('480,000')">480k</v-btn>
-                                            </td>
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('550,000')">550k</v-btn>
-                                            </td>
-                                            <td class="text-center">
-                                                <v-btn size="x-small" variant="tonal" color="success" class="px-2"
-                                                    @click.stop="CarLogic.selectPrice('620,000')">620k</v-btn>
-                                            </td>
-                                            <td class="text-center"><span class="text-grey-lighten-2">-</span></td>
-                                        </tr>
-                                    </tbody>
-                                </v-table>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('420,000')">420k</v-btn>
+                                                </td>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('480,000')">480k</v-btn>
+                                                </td>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('550,000')">550k</v-btn>
+                                                </td>
+                                                <td class="text-center">
+                                                    <v-btn size="x-small" variant="tonal" color="success" class="px-2"
+                                                        @click.stop="CarLogic.selectPrice('620,000')">620k</v-btn>
+                                                </td>
+                                                <td class="text-center"><span class="text-grey-lighten-2">-</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </v-table>
+                                </div>
                             </v-card>
 
                         </v-container>
@@ -2860,7 +2873,120 @@
                 </v-card>
             </v-dialog>
 
+            <!-- ================================ -->
+            <!-- 🟪 DIALOG การตั้งค่ารายการตัวเลือก Config Settings เกี่ยวกับ  Dropdownlist-->
+            <!-- ================================ -->
+            <v-dialog v-model="isOpenModalConfigSettings" max-width="800" scrollable>
+                <v-card class="rounded-xl"
+                    style="height: 90vh; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #fff;">
 
+                    <v-card-title class="py-3 px-5 d-flex align-center justify-space-between"
+                        style="position: sticky; top: 0; z-index: 100; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0, 0, 0, 0.08);">
+                        <div class="d-flex align-center">
+                            <v-icon size="24" class="mr-2" color="primary">mdi-tune-vertical</v-icon>
+                            <span class="text-h6 font-weight-bold text-grey-darken-3">จัดการรายการตัวเลือก</span>
+                        </div>
+                        <v-btn icon variant="text" @click="toggleMenu('isOpenModalConfigSettings', false)"
+                            color="grey-darken-2">
+                            <v-icon>mdi-close</v-icon>
+                        </v-btn>
+                    </v-card-title>
+
+                    <v-tabs v-model="configSettingTab" color="primary" align-tabs="start" class="px-4 border-b">
+                        <v-tab v-for="opt in AppSetting.configOptions" :key="opt.key" :value="opt.key"
+                            style="text-transform:none;">
+                            <v-icon start>{{ opt.icon }}</v-icon> {{ opt.label }}
+                        </v-tab>
+                    </v-tabs>
+
+                    <v-card-text class="pa-0 bg-grey-lighten-5"
+                        style="flex: 1 1 auto; overflow-y: auto !important; min-height: 0 !important;">
+                        <v-container class="pa-4">
+
+                            <v-alert type="info" variant="tonal" density="compact" class="mb-4" border="start" closable>
+                                <template #prepend><v-icon>mdi-information-outline</v-icon></template>
+                                <div class="text-caption">
+                                    <strong>ลากและวาง (Drag & Drop) เพื่อจัดลำดับรายการใหม่</strong><br>
+                                    รายการแรก (บนสุด) จะเป็นค่าเริ่มต้นของฟอร์มเสมอ
+                                </div>
+                            </v-alert>
+
+                            <div class="d-flex align-center mb-4">
+                                <v-text-field v-model="AppSetting.newItemInput.value" label="เพิ่มรายการใหม่..."
+                                    density="compact" variant="outlined" hide-details class="mr-2 bg-white"
+                                    @keydown.enter="AppSetting.addItem(configSettingTab)"></v-text-field>
+                                <v-btn color="success" variant="flat" prepend-icon="mdi-plus"
+                                    @click="AppSetting.addItem(configSettingTab)">
+                                    เพิ่ม
+                                </v-btn>
+                            </div>
+
+                            <v-card variant="outlined" class="bg-white" rounded="lg"
+                                style="border-color: #B0BEC5 !important;">
+                                <div style="height: 350px; overflow-y: auto;">
+                                    <v-list density="compact" lines="one">
+
+                                        <v-list-item
+                                            v-for="(item, index) in (configSettingTab === 'occupationItems' ? occupationItems : sourceItems)"
+                                            :key="item + index" style="border-bottom: 1px solid #EEEEEE !important;"
+                                            draggable="true" @dragstart="AppSetting.onDragStart($event, index)"
+                                            @dragend="AppSetting.onDragEnd($event)"
+                                            @dragover="AppSetting.onDragOver($event)"
+                                            @drop="AppSetting.onDrop($event, index, configSettingTab)"
+                                            :class="{ 'drag-over': AppSetting.draggedIndex.value !== null && AppSetting.draggedIndex.value !== index && index > AppSetting.draggedIndex.value}">
+
+                                            <template #prepend>
+                                                <div class="d-flex align-center draggable-handle">
+                                                    <v-icon size="small"
+                                                        color="grey-darken-1">mdi-drag-horizontal-variant</v-icon>
+                                                </div>
+
+                                                <v-chip v-if="index === 0" color="primary" size="x-small" variant="flat"
+                                                    class="mr-2">Default</v-chip>
+                                                <span class="text-caption text-grey mr-2">{{ index + 1 }}.</span>
+                                            </template>
+
+                                            <v-list-item-title class="font-weight-medium">{{ item }}</v-list-item-title>
+
+                                            <template #append>
+                                                <v-btn icon="mdi-delete-outline" variant="text" color="error"
+                                                    size="small"
+                                                    @click="AppSetting.deleteItem(configSettingTab, index)"></v-btn>
+                                            </template>
+
+                                        </v-list-item>
+
+                                        <v-list-item
+                                            v-if="(configSettingTab === 'occupationItems' ? occupationItems : sourceItems).length === 0">
+                                            <v-list-item-title
+                                                class="text-center text-grey">ไม่มีรายการ</v-list-item-title>
+                                        </v-list-item>
+                                    </v-list>
+                                </div>
+                            </v-card>
+
+                            <div class="d-flex justify-center mt-4">
+                                <v-btn variant="text" color="grey-darken-1" size="small" prepend-icon="mdi-restore"
+                                    @click="AppSetting.restoreDefaults(configSettingTab)">
+                                    คืนค่าเริ่มต้น (Reset Defaults)
+                                </v-btn>
+                            </div>
+
+                        </v-container>
+                    </v-card-text>
+
+                    <v-card-actions class="py-3 px-4"
+                        style="position: sticky; bottom: 0; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-top: 1px solid rgba(0, 0, 0, 0.05);">
+
+                        <v-spacer></v-spacer>
+
+                        <v-btn variant="text" color="grey-darken-2"
+                            @click="toggleMenu('isOpenModalConfigSettings', false)">
+                            ปิด
+                        </v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
 
 
 
@@ -2876,55 +3002,70 @@
  🧠 ลำดับการโหลดไฟล์ JavaScript 
  สำคัญมาก! แกนของระบบทำงานตาม Flow นี้เท่านั้น
 -------------------------------------------------------- -->
-    <!-- 1️⃣ โหลด State ก่อนสุด (ตัวแปร ref / reactive ของ Vue ทั้งหมด) -->
+    <!-- โหลด State ก่อนสุด (ตัวแปร ref / reactive ของ Vue ทั้งหมด) -->
     <script src="./js/state.js"></script>
 
-    <!-- 2️⃣ โหลด Dexie (ฐานข้อมูล IndexedDB ของระบบ ต้องมาก่อน Store เสมอ) -->
+    <!--  หลด Dexie (ฐานข้อมูล IndexedDB ของระบบ ต้องมาก่อน Store เสมอ) -->
     <script src="./js/dexie.js"></script>
 
-    <!-- 3️⃣ โหลด Store (ชั้น UI Memory สำหรับเก็บข้อมูลที่แสดงบนหน้าจอ) -->
+    <!-- โหลด Config Data (ค่าตั้งต้น เช่น รายการอาชีพ, จังหวัด) -->
+    <script src="./js/configData.js"></script>
+
+    <!-- โหลด Config (ค่าตั้งต้นต่างๆ ของระบบ) -->
+    <script src="./js/config.js"></script>
+
+    <!-- โหลด Store (ชั้น UI Memory สำหรับเก็บข้อมูลที่แสดงบนหน้าจอ) -->
     <script src="./js/store.js"></script>
 
-    <!-- 4️⃣ โหลด Utils (ฟังก์ชันช่วย เช่น ค้นหา / เรียงข้อมูล / จัดรูปแบบ) -->
+    <!-- โหลด Utils (ฟังก์ชันช่วย เช่น ค้นหา / เรียงข้อมูล / จัดรูปแบบ) -->
     <script src="./js/utils.js"></script>
 
-    <!-- 5️⃣ โหลด GUI Logic (ฟังก์ชันเกี่ยวกับ UI: toggle, pagination, search) -->
+    <!-- โหลด GUI Logic (ฟังก์ชันเกี่ยวกับ UI: toggle, pagination, search) -->
     <script src="./js/gui.js"></script>
 
-    <!-- 6️⃣ โหลด Lead Logic (เพิ่ม/ลบ/อัปเดต Lead สำหรับ Dexie + UI) -->
+    <!-- โหลด Lead Logic (เพิ่ม/ลบ/อัปเดต Lead สำหรับ Dexie + UI) -->
     <script src="./js/lead.js"></script>
 
-    <!-- 7️⃣ โหลด Finance Logic (ฟังก์ชันคำนวณสินเชื่อทั้งหมด) -->
+    <!-- โหลด Finance Logic (ฟังก์ชันคำนวณสินเชื่อทั้งหมด) -->
     <script src="./js/finance.js"></script>
 
-    <!-- 8️⃣ โหลด Car Logic (ข้อมูลรถยนต์ใน UI และฟังก์ชันเพิ่มลบ) -->
+    <!-- โหลด Car Logic (ข้อมูลรถยนต์ใน UI และฟังก์ชันเพิ่มลบ) -->
     <script src="./js/car.js"></script>
 
-    <!-- 9️⃣ โหลด Bot Logic (ระบบทำงานอัตโนมัติ เช่น Autofill) -->
+    <!-- โหลด Bot Logic (ระบบทำงานอัตโนมัติ เช่น Autofill) -->
     <script src="./js/bot.js"></script>
 
-    <!-- 🔟 โหลด Notification (ระบบแจ้งเตือนข้อความภายในโปรแกรม) -->
+    <!-- โหลด Notification (ระบบแจ้งเตือนข้อความภายในโปรแกรม) -->
     <script src="./js/notification.js"></script>
 
-    <!-- 11️⃣ โหลด Log System (ระบบบันทึกเหตุการณ์ เช่น โทรหา, ติดตาม) -->
+    <!-- โหลด Log System (ระบบบันทึกเหตุการณ์ เช่น โทรหา, ติดตาม) -->
     <script src="./js/log.js"></script>
 
-    <!-- 12️⃣ โหลด Shortcut Key (กำหนดคีย์ลัด Alt+L / Alt+C เป็นต้น) -->
+    <!-- โหลด Shortcut Key (กำหนดคีย์ลัด Alt+L / Alt+C เป็นต้น) -->
     <script src="./js/shortcutKey.js"></script>
 
-    <!-- 13️⃣ โหลด Old Import (ใช้เฉพาะนำเข้าข้อมูลระบบเก่า CSV) -->
+    <!-- โหลด Old Import (ใช้เฉพาะนำเข้าข้อมูลระบบเก่า CSV) -->
     <script src="./js/oldimport.js"></script>
 
-    <!-- 14️⃣ โหลด FileSystem (ระบบดาวน์โหลดไฟล์ CSV/ZIP/VCF ผ่าน Blob) -->
+    <!-- โหลด FileSystem (ระบบดาวน์โหลดไฟล์ CSV/ZIP/VCF ผ่าน Blob) -->
     <script src="./js/fileSystem.js"></script>
 
-    <!-- ⭐ โหลด API (นำเข้า/ส่งออก CSV, ZIP, VCF → ต้องมาก่อน app.js) -->
+    <!-- โหลด API (นำเข้า/ส่งออก CSV, ZIP, VCF → ต้องมาก่อน app.js) -->
     <script src="./js/api.js"></script>
 
     <!-- ทดสอบค่าต่างๆ -->
     <script src="./js/testData.js"></script>
 
-    <!-- 15️⃣ โหลด App.js (ไฟล์ Hub หลัก รวมทุกโมดูล + Mount Vue) -->
+    <!-- โหลด Boot.js (ฟังก์ชันเริ่มต้นระบบ เช่น โหลด Dexie, โหลดข้อมูลเริ่มต้น) -->
+    <script src="./js/boot.js"></script>
+
+    <!-- โหลด Setting (ฟังก์ชันจัดการการตั้งค่าต่างๆ ของระบบ) -->
+    <script src="./js/setting.js"></script>
+
+    <!-- โหลด System Init (ฟังก์ชันรันหลังระบบพร้อมใช้งาน) -->
+    <script src="./js/systemInit.js"> </script>
+
+    <!-- โหลด App.js (ไฟล์ Hub หลัก รวมทุกโมดูล + Mount Vue) -->
     <script src="./js/app.js"></script>
 
 

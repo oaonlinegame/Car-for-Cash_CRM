@@ -8,16 +8,16 @@
 
 const AppBoot = {
   // ----------------------------------------------------
-  // ⭐ initSystem()
+  // ⭐ performInitialization()
   // ฟังก์ชันรวมการเริ่มต้นระบบทั้งหมด
   // ----------------------------------------------------
-  async initSystem() {
-    // คอมเมนต์: ฟังก์ชันเริ่มต้นระบบทั้งหมด
+  async performInitialization() {
+    // คอมเมนต์: ฟังก์ชันเริ่มต้นระบบทั้งหมด (ชื่อใหม่)
 
     // 1. โหลดข้อมูล Lead จาก Dexie เข้า Store (Persistence -> Memory)
     if (window.LeadApp && LeadApp.loadAll) {
       // คอมเมนต์: ตรวจสอบ LeadApp
-      await LeadApp.loadAll(); // คอมเมนต์: ดึงข้อมูล Lead ทั้งหมด
+      await LeadApp.loadAll(); // คอมเมนต์: ดึงข้อมูล Lead ทั้งหมด (รอให้เสร็จ)
     } else {
       // คอมเมนต์: ถ้าไม่พร้อม
       console.warn("⚠️ AppBoot: LeadApp.loadAll ไม่พร้อมใช้งาน"); // คอมเมนต์: แจ้งเตือน
@@ -26,7 +26,7 @@ const AppBoot = {
     // 2. โหลด Configs (เช่น รายการอาชีพ) จาก Dexie เข้า AppState
     if (window.AppConfig && AppConfig.loadAllConfigs) {
       // คอมเมนต์: ตรวจสอบ AppConfig
-      await AppConfig.loadAllConfigs(); // คอมเมนต์: โหลดค่า Configs ทั้งหมด
+      await AppConfig.loadAllConfigs(); // คอมเมนต์: โหลดค่า Configs ทั้งหมด (รอให้เสร็จ)
     } else {
       // คอมเมนต์: ถ้าไม่พร้อม
       console.warn("⚠️ AppBoot: AppConfig.loadAllConfigs ไม่พร้อมใช้งาน"); // คอมเมนต์: แจ้งเตือน
@@ -42,11 +42,11 @@ const AppBoot = {
     } // คอมเมนต์: ปิดเงื่อนไข AppGui
 
     console.log("🚀 System Initialization Complete."); // คอมเมนต์: แจ้งเตือนการเริ่มต้นระบบเสร็จสมบูรณ์
-  }, // คอมเมนต์: ปิด initSystem
+  }, // คอมเมนต์: ปิด performInitialization
 }; // คอมเมนต์: ปิด AppBoot
 
 // --------------------------------------------------------
-// 🌍 สั่งให้ระบบเริ่มทำงานทันทีเมื่อโหลดไฟล์นี้
+// 🌍 สั่งให้ระบบเริ่มทำงานและเก็บ Promise ไว้ใน Global
 // --------------------------------------------------------
-AppBoot.initSystem(); // คอมเมนต์: สั่งเริ่มทำงาน
-// [หมายเหตุ] ไม่จำเป็นต้อง Export เพราะเรียกตัวเองทันที
+window.AppInitPromise = AppBoot.performInitialization(); // คอมเมนต์: สั่งเริ่มทำงานและเก็บ Promise ไว้ใน Global
+// [หมายเหตุ] ไม่จำเป็นต้อง Export AppBoot เพราะเรียกใช้ผ่าน Promise แทน
