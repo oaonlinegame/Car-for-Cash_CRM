@@ -25,7 +25,7 @@ const LeadApp = {
     postalCode: "", //    รหัสไปรษณีย์
     occupation: "", //    อาชีพ (จะถูกเซ็ตค่าเริ่มต้นใน resetLeadForm)
     status: "ลูกค้าใหม่", //    สถานะลูกค้า (Default: ลูกค้าใหม่)
-    isProspect: true, //    เป็นผู้มุ่งหวังหรือไม่ (True = ยังไม่มีสัญญา)
+    isProspect: false, //    เป็นผู้มุ่งหวังหรือไม่ (True = ยังไม่มีสัญญา)
     prospectStage: "สนใจ", //    ขั้นตอนการขาย
     rating: 3, //    เกรดลูกค้า (1-5)
     note: "", //    หมายเหตุเพิ่มเติม
@@ -34,6 +34,34 @@ const LeadApp = {
     source: "", //    แหล่งที่มา (จะถูกเซ็ตค่าเริ่มต้นใน resetLeadForm)
     assets: [], //      Array เก็บรายการสินทรัพย์หลายรายการ
   }),
+
+  // ----------------------------------------------------------
+  // [ใหม่] ⭐ subContractForm: ฟอร์มสำหรับสัญญาย่อย (แยกจากสัญญาหลัก)
+  // ----------------------------------------------------------
+  subContractForm: Vue.reactive({}),
+
+  // ----------------------------------------------------------
+  // [ใหม่] ⭐ openSubContractDialog()
+  // เปิด Dialog สัญญาย่อยพร้อมรีเซ็ตค่า
+  // ----------------------------------------------------------
+  openSubContractDialog() {
+    // 1. สร้างสัญญาเปล่า
+    const empty = this.createEmptyContract();
+
+    // 2. ระบุว่าเป็นสัญญาย่อย
+    empty.isSubContract = true;
+
+    // 3. รีเซ็ตค่าลงในฟอร์ม (ลบ key เก่าก่อน แล้ว assign ใหม่)
+    Object.keys(this.subContractForm).forEach(
+      (k) => delete this.subContractForm[k]
+    );
+    Object.assign(this.subContractForm, empty);
+
+    // 4. เปิด Dialog ผ่าน AppGui
+    if (window.AppGui) {
+      AppGui.toggleMenu("isOpenSubContractDialog", true);
+    }
+  },
 
   // ----------------------------------------------------------
   // ⭐ createEmptyAsset()
@@ -86,9 +114,6 @@ const LeadApp = {
     }
     //    สร้างสินทรัพย์เปล่าและเพิ่มลงใน Array
     LeadApp.form.assets.push(LeadApp.createEmptyAsset());
-
-    //    (Optional) แจ้งเตือนผู้ใช้
-    // if (window.AppNotifications) AppNotifications.show("เพิ่มรายการสินทรัพย์ใหม่เรียบร้อย");
   },
 
   // ----------------------------------------------------------
@@ -129,7 +154,7 @@ const LeadApp = {
 
     //    รีเซ็ตสถานะเป็นค่าเริ่มต้น
     LeadApp.form.status = "ลูกค้าใหม่";
-    LeadApp.form.isProspect = true;
+    LeadApp.form.isProspect = false;
     LeadApp.form.prospectStage = "สนใจ";
     LeadApp.form.rating = 3;
     LeadApp.form.note = "";
@@ -239,7 +264,7 @@ const LeadApp = {
       lastUpdate: "", //    อัปเดตล่าสุด
       outstanding: 0, //    ยอดหนี้คงเหลือ
       unrealized: 0, //  ดอกผลรอตัดบัญชี
-      unrealized: 0, //    ดอกผลรอตัดบัญชี
+      // unrealized: 0, //    ดอกผลรอตัดบัญชี (ซ้ำ ลบออกหนึ่งบรรทัดได้ถ้าต้องการ)
       closeAmount: 0, //    ยอดปิดบัญชี
       closeDate: "", //    วันที่ปิดบัญชี
       financeName: "", //    ไฟแนนซ์
