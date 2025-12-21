@@ -1,61 +1,107 @@
-// log.js
+// js/log.js
 // --------------------------------------------------------
-// 📘 ไฟล์นี้เป็นโครงสร้างเริ่มต้น (Dev Base) ของระบบบันทึกการโทร (Log System)
-// ใช้เก็บข้อมูล เช่น การโทร, นัดหมาย, สิ่งที่นำเสนอ, วันที่เวลา ฯลฯ
+// 📘 LogApp: ศูนย์กลางจัดการสถานะการโทรและประวัติการติดต่อ (Call Logic Central)
 // --------------------------------------------------------
 
-// --------------------------------------------------------
-// 🧩 สร้างอ็อบเจ็กต์หลัก LogSystem เพื่อเก็บฟังก์ชันที่เกี่ยวข้องทั้งหมด
-// --------------------------------------------------------
 const LogApp = {
   // ----------------------------------------------------
-  // 📋 ตัวแปรหลักเก็บรายการ log ทั้งหมด (ภายหลังจะใช้ Vue.reactive)
+  // ⭐ createEmpty(): สร้าง Object Log ใหม่ตามโครงสร้าง DataSpec
   // ----------------------------------------------------
-  logs: [], // เริ่มต้นเป็น array ว่างไว้ก่อน
-
-  // ----------------------------------------------------
-  // ➕ addLog: เพิ่มข้อมูล log ใหม่
-  // ----------------------------------------------------
-  addLog(entry) {
-    // [dev] ภายหลังจะเพิ่มโค้ด push เข้า logs + sync ไป IndexedDB
-    console.log("เรียกใช้ addLog()", entry);
+  createEmpty(leadId = null) {
+    // คอมเมนต์: ฟังก์ชันสร้างอ็อบเจ็กต์บันทึกการโทรเริ่มต้น
+    return {
+      id: crypto.randomUUID(), // คอมเมนต์: สร้าง ID แบบสุ่มสำหรับ Log
+      leadId: leadId, // คอมเมนต์: เชื่อมโยงกับ ID ของลูกค้า
+      mainStatus: null, // คอมเมนต์: สถานะหลัก (pending, contacted, etc.)
+      subStatus: null, // คอมเมนต์: สถานะย่อยตามกลุ่มสถานะหลัก
+      rejectReason: null, // คอมเมนต์: สาเหตุที่ปฏิเสธ (ถ้ามี)
+      financeName: "", // คอมเมนต์: ชื่อไฟแนนซ์เดิมกรณีรีไฟแนนซ์
+      appointmentDate: "", // คอมเมนต์: วันนัดหมายหรือวันเริ่มรีไฟแนนซ์
+      appointmentTime: "", // คอมเมนต์: เวลานัดหมาย
+      offerAmount: null, // คอมเมนต์: ยอดวงเงินที่เสนอให้ลูกค้า
+      closeAmount: null, // คอมเมนต์: ยอดปิดบัญชีเดิมจากที่อื่น
+      note: "", // คอมเมนต์: บันทึกรายละเอียดเชิงลึกจากการสนทนา
+      timestamp: new Date().toISOString(), // คอมเมนต์: วันเวลาที่บันทึกข้อมูล
+      responseLevel: 3, // คอมเมนต์: ระดับความสนใจ (1-5 ดาว)
+      isCreateNewLead: false, // คอมเมนต์: สถานะการสร้างลีดใหม่จากโอกาสขาย
+    };
   },
 
   // ----------------------------------------------------
-  // 📄 listLogs: คืนค่า log ทั้งหมด
+  // ⭐ handleStatusChange(): จัดการเมื่อมีการเปลี่ยนสถานะหลัก
   // ----------------------------------------------------
-  listLogs() {
-    // [dev] ภายหลังอาจอ่านจาก IndexedDB แทนการใช้ตัวแปรในหน่วยความจำ
-    console.log("เรียกใช้ listLogs()");
-    return this.logs;
+  handleStatusChange(newStatus) {
+    // คอมเมนต์: ฟังก์ชันจัดการเมื่อผู้ใช้เปลี่ยนสถานะหลักใน UI
+    AppState.recordCallForm.subStatus = null; // คอมเมนต์: รีเซ็ตสถานะย่อยทุกครั้งที่เปลี่ยนสถานะหลัก
+
+    if (!newStatus) {
+      AppState.currentSubStatusOptions.value = []; // คอมเมนต์: ล้างตัวเลือกถ้าไม่มีค่า
+      return;
+    }
+
+    // คอมเมนต์: ค้นหากลุ่ม Config จาก AppState ที่ตรงกับสถานะหลักที่เลือก
+    const config = AppState.callStatusConfig.value;
+    const group = config.find((g) => g.value === newStatus);
+
+    // คอมเมนต์: อัปเดตรายการตัวเลือกสถานะย่อยเพื่อแสดงใน Dropdown
+    AppState.currentSubStatusOptions.value = group ? group.sub : [];
+    console.log(`📡 LogApp: อัปเดตตัวเลือกสถานะย่อยสำหรับกลุ่ม ${newStatus}`); // คอมเมนต์: บันทึก Log การทำงาน
   },
 
   // ----------------------------------------------------
-  // 💾 ฟังก์ชันบันทึกลงฐานข้อมูลถาวร (เช่น IndexedDB ผ่าน Dexie)
+  // ⭐ handleSubStatusChange(): จัดการเมื่อเปลี่ยนสถานะย่อย
   // ----------------------------------------------------
-  saveLogs() {
-    // [dev] ภายหลังจะเพิ่มโค้ดบันทึกข้อมูล log ที่นี่
-    console.log("เรียกใช้ saveLogs()");
+  handleSubStatusChange(newSubStatus) {
+    // คอมเมนต์: ฟังก์ชันจัดการเมื่อเปลี่ยนสถานะย่อยเพื่อกำหนดฟิลด์ที่ต้องกรอก
+    if (!newSubStatus) {
+      AppState.currentInputRequirements.value = []; // คอมเมนต์: ล้างค่าถ้าไม่มีการเลือก
+      return;
+    }
+
+    // คอมเมนต์: หาค่า Config ของสถานะย่อยที่เลือกปัจจุบัน
+    const options = AppState.currentSubStatusOptions.value;
+    const selected = options.find((s) => s.value === newSubStatus);
+
+    // คอมเมนต์: กำหนดรายการ Input ที่ UI ต้องแสดงตามเงื่อนไขที่ตั้งไว้ใน ConfigData
+    AppState.currentInputRequirements.value =
+      selected && selected.inputs ? selected.inputs : [];
   },
 
   // ----------------------------------------------------
-  // 📂 ฟังก์ชันโหลดข้อมูลจากฐานข้อมูลถาวร (เช่น IndexedDB ผ่าน Dexie)
+  // 💾 saveCallResult(): ประมวลผลและบันทึกข้อมูลการโทร
   // ----------------------------------------------------
-  loadLogs() {
-    // [dev] ภายหลังจะเพิ่มโค้ดโหลดข้อมูล log ที่นี่
-    console.log("เรียกใช้ loadLogs()");
-  },
+  async saveCallResult() {
+    // คอมเมนต์: ฟังก์ชันบันทึกผลการติดต่อลงระบบ
+    const form = AppState.recordCallForm;
 
-  // ----------------------------------------------------
-  // 🔍 ฟังก์ชันค้นหา log ตามคำค้นหรือ leadId
-  // ----------------------------------------------------
-  searchLogs() {
-    // [dev] ภายหลังจะเพิ่มโค้ดค้นหาข้อมูลที่นี่
-    console.log("เรียกใช้ searchLogs()");
+    // คอมเมนต์: ตรวจสอบข้อมูลบังคับเบื้องต้น
+    if (!form.mainStatus || !form.subStatus) {
+      alert("⚠️ กรุณาระบุสถานะหลักและสถานะย่อยให้ครบถ้วน"); // คอมเมนต์: แจ้งเตือนผู้ใช้
+      return;
+    }
+
+    // [ชั่วคราว] เตรียมข้อมูลเพื่อบันทึกลงฐานข้อมูล Dexie ในอนาคต
+    const logData = {
+      ...JSON.parse(JSON.stringify(form)), // คอมเมนต์: คัดลอกข้อมูลฟอร์ม
+      timestamp: new Date().toISOString(), // คอมเมนต์: ประทับเวลาปัจจุบัน
+    };
+
+    console.log("💾 LogApp: บันทึกข้อมูล Log สำเร็จ:", logData); // คอมเมนต์: แสดงข้อมูลใน Console
+
+    // คอมเมนต์: เรียกใช้ระบบแจ้งเตือน Global
+    if (window.AppNotifications) {
+      AppNotifications.show("✅ บันทึกผลการติดต่อเรียบร้อยแล้ว");
+    }
+
+    // คอมเมนต์: สั่งปิด Modal ผ่าน AppGui
+    if (window.AppGui) {
+      AppGui.toggleMenu("isOpenModalRecordCallResult", false);
+      AppGui.resetRecordCallForm(); // คอมเมนต์: ล้างข้อมูลฟอร์มเพื่อเตรียมรับสายถัดไป
+    }
   },
 };
 
 // --------------------------------------------------------
-// ✅ export ออกไปให้ไฟล์อื่นสามารถเรียกใช้ได้
+// 🌍 Export ออกสู่ Global
 // --------------------------------------------------------
 window.LogApp = LogApp;

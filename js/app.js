@@ -8,11 +8,15 @@ const app = Vue.createApp({
     const { onMounted, onUnmounted, ref } = Vue;
     const searchBarRef = ref(null);
 
+    // คอมเมนต์: เมื่อ Component ถูกติดตั้ง
     onMounted(() => {
+      // คอมเมนต์: ลงทะเบียนเหตุการณ์กดคีย์บอร์ดสำหรับคีย์ลัด
       window.addEventListener("keydown", Hotkey.handleKeyDown);
+      // คอมเมนต์: ผูก Reference ช่องค้นหากับระบบ GUI
       window.AppGui.bindSearchRef(searchBarRef);
     });
 
+    // คอมเมนต์: เมื่อ Component ถูกทำลาย
     onUnmounted(() => {
       window.removeEventListener("keydown", Hotkey.handleKeyDown);
     });
@@ -21,6 +25,7 @@ const app = Vue.createApp({
     // ⭐ ฟังก์ชันช่วยเพิ่มตัวเลือก Dropdown (เรียกจาก index.html)
     // ------------------------------------------------------------------------
     const handleAddConfigItem = async (val, type) => {
+      // คอมเมนต์: ฟังก์ชันรับค่าจากช่อง Combobox เพื่อบันทึกเป็นตัวเลือกถาวร
       if (!val) return;
       const text = String(val).trim();
       if (!text) return;
@@ -29,7 +34,7 @@ const app = Vue.createApp({
       let configKey = "";
       let label = "";
 
-      // กำหนดค่าตาม type ที่ส่งมาจาก HTML
+      // คอมเมนต์: กำหนดค่าตามชนิดข้อมูลที่ส่งมาจาก HTML
       if (type === "occupation") {
         targetRef = AppState.occupationItems;
         configKey = "occupationItems";
@@ -39,10 +44,9 @@ const app = Vue.createApp({
         configKey = "sourceItems";
         label = "แหล่งที่มา";
       }
-      // สามารถเพิ่มเคสอื่นๆ ได้ที่นี่
 
       if (targetRef && configKey) {
-        // เรียกใช้ Utils เพื่อเพิ่มค่าและบันทึกลง Dexie
+        // คอมเมนต์: เรียกใช้ Utils เพื่อเพิ่มค่าและบันทึกลงฐานข้อมูล Dexie
         await Utils.handleConfigItemAdd(text, configKey, targetRef, label);
       }
     };
@@ -51,9 +55,9 @@ const app = Vue.createApp({
       // --- [สำคัญ] ส่งออก Utils และ AppState ให้ HTML เรียกใช้ได้โดยตรง ---
       Utils: window.Utils,
       AppState: window.AppState,
-      handleAddConfigItem, // ✅ เพิ่มฟังก์ชันนี้เพื่อให้ HTML เรียกใช้ได้
+      handleAddConfigItem,
 
-      // --- หมวด UI State ---
+      // --- หมวด UI State (Modal เปิด/ปิด) ---
       isMenuOpenFilterSearch: AppState.isMenuOpenFilterSearch,
       isOpenModalLead: AppState.isOpenModalLead,
       isOpenSubContractDialog: AppState.isOpenSubContractDialog,
@@ -64,14 +68,14 @@ const app = Vue.createApp({
       isOpenModalCarPriceSelector: AppState.isOpenModalCarPriceSelector,
       isOpenModalConfigSettings: AppState.isOpenModalConfigSettings,
 
-      // --- หมวด Tabs ---
+      // --- หมวด Tabs (การเปลี่ยนหน้าภายใน) ---
       leadTab: AppState.leadTab,
       callResultTab: AppState.callResultTab,
       carSettingTab: AppState.carSettingTab,
       configSettingTab: AppState.configSettingTab,
       Switch_newCustomer: AppState.Switch_newCustomer,
 
-      // --- หมวด Config Items (Dropdowns) ---
+      // --- หมวด Config Items (รายการตัวเลือกใน Dropdown) ---
       occupationItems: AppState.occupationItems,
       sourceItems: AppState.sourceItems,
       callStatusConfig: AppState.callStatusConfig,
@@ -83,9 +87,9 @@ const app = Vue.createApp({
       gearboxItems: AppState.gearboxItems,
       fuelItems: AppState.fuelItems,
       carBrandItems: AppState.carBrandItems,
-      campaignItems: AppState.campaignItems, // เพิ่มแคมเปญ
+      campaignItems: AppState.campaignItems,
 
-      // [เพิ่มเติม] รายการใหม่ที่ส่งออกไป
+      // --- หมวดข้อมูลเพิ่มเติม ---
       leadStatusItems: AppState.leadStatusItems,
       prospectStageItems: AppState.prospectStageItems,
       ratingItems: AppState.ratingItems,
@@ -99,48 +103,49 @@ const app = Vue.createApp({
       gradeItems: AppState.gradeItems,
       sortKeyItems: AppState.sortKeyItems,
 
-      // --- หมวด Form Data & Computed (Record Call) ---
+      // --- หมวด Form Data & Logic (การบันทึกผลการโทร) ---
       recordCallForm: AppState.recordCallForm,
       currentSubStatusOptions: AppState.currentSubStatusOptions,
       currentInputRequirements: AppState.currentInputRequirements,
-      saveRecordCallResult: () => AppGui.saveRecordCallResult(),
+      // ✅ เปลี่ยนไปเรียกใช้ผ่าน LogApp แทน GUI
+      saveRecordCallResult: () => window.LogApp.saveCallResult(),
       resetRecordCallForm: () => AppGui.resetRecordCallForm(),
 
-      // --- หมวด Search ---
+      // --- หมวดการค้นหาและแบ่งหน้า (Search & Pagination) ---
       searchRef: AppState.searchRef,
       searchQuery: AppState.searchQuery,
       searchBarRef,
-
-      // --- หมวด Pagination ---
       itemsPerPage: AppState.itemsPerPage,
       totalPages: AppState.totalPages,
       page: AppState.page,
       pagedLeads: AppState.pagedLeads,
 
-      // --- หมวด Data Store ---
+      // --- หมวดรายการข้อมูล (Data Store) ---
       leadItems: Store.data.leadItems,
       leadHeaders: Store.data.leadHeaders,
 
-      // --- หมวด Logic & Tools ---
+      // --- หมวด Modules & Logic (ตัวจัดการระบบ) ---
       leadForm: LeadApp.form,
       LeadApp: LeadApp,
       addLead: LeadApp.add,
       ContractApp: window.ContractApp,
+      LogApp: window.LogApp, // คอมเมนต์: ส่งออก LogApp ใหม่
       AssetApp: window.AssetApp,
-      AppApi,
-      AppGui,
+      AppApi: window.AppApi,
+      AppGui: window.AppGui,
       toggleMenu: AppGui.toggleMenu,
       closeAllMenus: AppGui.closeAllMenus,
-      FileSystem,
-      TestData,
-      notify: AppNotifications.show,
-      AppSetting,
-      CarApp,
-      CarLogic: CarApp,
+      FileSystem: window.FileSystem,
+      TestData: window.TestData,
+      notify: window.AppNotifications.show,
+      AppSetting: window.AppSetting,
+      CarApp: window.CarApp,
+      CarLogic: window.CarApp,
       AppBot: window.AppBot,
     };
   },
 });
 
+// คอมเมนต์: ลงทะเบียนส่วนประกอบและเริ่มต้นการทำงานของแอปพลิเคชัน
 window.SystemInit.registerComponents(app);
 window.SystemInit.mountApp(app);
