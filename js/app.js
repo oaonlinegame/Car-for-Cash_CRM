@@ -2,114 +2,145 @@
 // --------------------------------------------------------
 // 📘 Hub: ศูนย์กลางเชื่อมต่อ Module เข้ากับ Vue Template
 // --------------------------------------------------------
-// หน้าที่:
-// 1. สร้าง Vue Instance (App Root)
-// 2. รวบรวม State และ Function จากไฟล์ต่างๆ ส่งเข้า Template
-// 3. จัดการ Lifecycle หลัก (Mounted, Unmounted)
-// --------------------------------------------------------
 
 const app = Vue.createApp({
   setup() {
-    // ดึง Composition API จาก Vue Global
     const { onMounted, onUnmounted, ref } = Vue;
-
-    // สร้าง Ref สำหรับกล่องค้นหา (Search Input DOM)
     const searchBarRef = ref(null);
 
-    // ----------------------------------------------------
-    // ⭐ Lifecycle Hooks
-    // ----------------------------------------------------
     onMounted(() => {
-      // ผูก Event Listener สำหรับคีย์ลัด (Hotkeys)
       window.addEventListener("keydown", Hotkey.handleKeyDown);
-
-      // ส่ง Ref ของกล่องค้นหาไปให้ AppGui จัดการ (เช่น สั่ง Focus)
       window.AppGui.bindSearchRef(searchBarRef);
     });
 
     onUnmounted(() => {
-      // ลบ Event Listener เมื่อปิดแอป (Cleanup)
       window.removeEventListener("keydown", Hotkey.handleKeyDown);
     });
 
-    // ----------------------------------------------------
-    // ⭐ Return: ส่งตัวแปรและฟังก์ชันออกไปให้ HTML ใช้
-    // ----------------------------------------------------
+    // ------------------------------------------------------------------------
+    // ⭐ ฟังก์ชันช่วยเพิ่มตัวเลือก Dropdown (เรียกจาก index.html)
+    // ------------------------------------------------------------------------
+    const handleAddConfigItem = async (val, type) => {
+      if (!val) return;
+      const text = String(val).trim();
+      if (!text) return;
+
+      let targetRef = null;
+      let configKey = "";
+      let label = "";
+
+      // กำหนดค่าตาม type ที่ส่งมาจาก HTML
+      if (type === "occupation") {
+        targetRef = AppState.occupationItems;
+        configKey = "occupationItems";
+        label = "อาชีพ";
+      } else if (type === "source") {
+        targetRef = AppState.sourceItems;
+        configKey = "sourceItems";
+        label = "แหล่งที่มา";
+      }
+      // สามารถเพิ่มเคสอื่นๆ ได้ที่นี่
+
+      if (targetRef && configKey) {
+        // เรียกใช้ Utils เพื่อเพิ่มค่าและบันทึกลง Dexie
+        await Utils.handleConfigItemAdd(text, configKey, targetRef, label);
+      }
+    };
+
     return {
-      // --- หมวด UI State (ควบคุมการเปิด/ปิดเมนู) ---
-      isMenuOpenFilterSearch: AppState.isMenuOpenFilterSearch, // เมนูตัวกรอง
-      isOpenModalLead: AppState.isOpenModalLead, // โมดอลลูกค้า
-      isOpenSubContractDialog: AppState.isOpenSubContractDialog, // โมดอลสัญญาย่อย
-      isOpenModalLeadAutoFill: AppState.isOpenModalLeadAutoFill, // โมดอล AutoFill
-      isOpenModalLog: AppState.isOpenModalLog, // โมดอล Log
-      isOpenModalRecordCallResult: AppState.isOpenModalRecordCallResult, // โมดอลผลการโทร
-      isOpenModalCarSettings: AppState.isOpenModalCarSettings, // โมดอลตั้งค่ารถ
-      isOpenModalCarPriceSelector: AppState.isOpenModalCarPriceSelector, // โมดอลเลือกราคากลาง
+      // --- [สำคัญ] ส่งออก Utils และ AppState ให้ HTML เรียกใช้ได้โดยตรง ---
+      Utils: window.Utils,
+      AppState: window.AppState,
+      handleAddConfigItem, // ✅ เพิ่มฟังก์ชันนี้เพื่อให้ HTML เรียกใช้ได้
 
-      // --- หมวด Tabs & Switches (ตัวเลือกหน้าจอ) ---
-      leadTab: AppState.leadTab, // แท็บหลักในหน้าลูกค้า
-      callResultTab: AppState.callResultTab, // แท็บผลการติดตาม
-      carSettingTab: AppState.carSettingTab, // แท็บตั้งค่ารถ
-      Switch_newCustomer: AppState.Switch_newCustomer, // สวิตช์ลูกค้าใหม่
+      // --- หมวด UI State ---
+      isMenuOpenFilterSearch: AppState.isMenuOpenFilterSearch,
+      isOpenModalLead: AppState.isOpenModalLead,
+      isOpenSubContractDialog: AppState.isOpenSubContractDialog,
+      isOpenModalLeadAutoFill: AppState.isOpenModalLeadAutoFill,
+      isOpenModalLog: AppState.isOpenModalLog,
+      isOpenModalRecordCallResult: AppState.isOpenModalRecordCallResult,
+      isOpenModalCarSettings: AppState.isOpenModalCarSettings,
+      isOpenModalCarPriceSelector: AppState.isOpenModalCarPriceSelector,
+      isOpenModalConfigSettings: AppState.isOpenModalConfigSettings,
 
-      // --- หมวด Config Items (ตัวเลือก Dropdown) ---
-      occupationItems: AppState.occupationItems, // รายการอาชีพ
-      sourceItems: AppState.sourceItems, // รายการแหล่งที่มา
-      isOpenModalConfigSettings: AppState.isOpenModalConfigSettings, // โมดอลตั้งค่า Config
-      configSettingTab: AppState.configSettingTab, // แท็บในหน้า Config
+      // --- หมวด Tabs ---
+      leadTab: AppState.leadTab,
+      callResultTab: AppState.callResultTab,
+      carSettingTab: AppState.carSettingTab,
+      configSettingTab: AppState.configSettingTab,
+      Switch_newCustomer: AppState.Switch_newCustomer,
 
-      // --- หมวด Search (ระบบค้นหา) ---
-      searchRef: AppState.searchRef, // ตัวแปรค้นหา (Reactive)
-      searchQuery: AppState.searchQuery, // ข้อความค้นหา
-      searchBarRef, // DOM Reference ของช่องค้นหา
+      // --- หมวด Config Items (Dropdowns) ---
+      occupationItems: AppState.occupationItems,
+      sourceItems: AppState.sourceItems,
+      callStatusConfig: AppState.callStatusConfig,
+      rejectReasonItems: AppState.rejectReasonItems,
+      productItems: AppState.productItems,
+      crossSellItems: AppState.crossSellItems,
+      titleItems: AppState.titleItems,
+      carTypeItems: AppState.carTypeItems,
+      gearboxItems: AppState.gearboxItems,
+      fuelItems: AppState.fuelItems,
+      carBrandItems: AppState.carBrandItems,
+      campaignItems: AppState.campaignItems, // เพิ่มแคมเปญ
 
-      // --- หมวด Pagination (การแบ่งหน้า) ---
-      itemsPerPage: AppState.itemsPerPage, // จำนวนรายการต่อหน้า
-      totalPages: AppState.totalPages, // จำนวนหน้าทั้งหมด
-      page: AppState.page, // หน้าปัจจุบัน
-      pagedLeads: AppState.pagedLeads, // ข้อมูล Lead ในหน้านั้นๆ
+      // [เพิ่มเติม] รายการใหม่ที่ส่งออกไป
+      leadStatusItems: AppState.leadStatusItems,
+      prospectStageItems: AppState.prospectStageItems,
+      ratingItems: AppState.ratingItems,
+      loanTypeItems: AppState.loanTypeItems,
+      accountStatusFilterItems: AppState.accountStatusFilterItems,
+      contractStatusItems: AppState.contractStatusItems,
+      assetTypeItems: AppState.assetTypeItems,
+      insuranceTypeItems: AppState.insuranceTypeItems,
+      insuranceVehicleTypeItems: AppState.insuranceVehicleTypeItems,
+      contractTypeItems: AppState.contractTypeItems,
+      gradeItems: AppState.gradeItems,
+      sortKeyItems: AppState.sortKeyItems,
 
-      // --- หมวด Data Store (ข้อมูลดิบ) ---
-      leadItems: Store.data.leadItems, // รายการ Lead ทั้งหมด
-      leadHeaders: Store.data.leadHeaders, // หัวตาราง Lead
+      // --- หมวด Form Data & Computed (Record Call) ---
+      recordCallForm: AppState.recordCallForm,
+      currentSubStatusOptions: AppState.currentSubStatusOptions,
+      currentInputRequirements: AppState.currentInputRequirements,
+      saveRecordCallResult: () => AppGui.saveRecordCallResult(),
+      resetRecordCallForm: () => AppGui.resetRecordCallForm(),
 
-      // --- หมวด Lead Logic (จัดการลูกค้า) ---
-      leadForm: LeadApp.form, // ฟอร์มลูกค้า (Reactive)
-      LeadApp: LeadApp, // ส่ง LeadApp ไปทั้งก้อน (เผื่อใช้)
-      addLead: LeadApp.add, // ฟังก์ชันเพิ่มลูกค้า
-      updateLead: LeadApp.update, // ฟังก์ชันอัปเดต
-      deleteLead: LeadApp.delete, // ฟังก์ชันลบ
-      handleAddConfigItem: LeadApp.handleAddConfigItem, // ฟังก์ชันเพิ่มตัวเลือก Dropdown
+      // --- หมวด Search ---
+      searchRef: AppState.searchRef,
+      searchQuery: AppState.searchQuery,
+      searchBarRef,
 
-      // --- หมวด Contract Logic (จัดการสัญญา) ---
-      ContractApp: window.ContractApp, // ส่ง ContractApp
-      addEmptyContract: window.ContractApp.addEmptyContract, // ฟังก์ชันเพิ่มสัญญา
-      resetNewContractForm: window.ContractApp.resetNewContractForm, // ฟังก์ชันรีเซ็ตฟอร์มสัญญา
+      // --- หมวด Pagination ---
+      itemsPerPage: AppState.itemsPerPage,
+      totalPages: AppState.totalPages,
+      page: AppState.page,
+      pagedLeads: AppState.pagedLeads,
 
-      // --- หมวด Asset Logic (จัดการสินทรัพย์) ---
-      AssetApp: window.AssetApp, // ✅ ต้องเพิ่มบรรทัดนี้ เพื่อให้ HTML เรียก AssetApp.add() ได้
+      // --- หมวด Data Store ---
+      leadItems: Store.data.leadItems,
+      leadHeaders: Store.data.leadHeaders,
 
-      // --- หมวด GUI Actions (จัดการหน้าจอทั่วไป) ---
-      toggleMenu: AppGui.toggleMenu, // สลับเปิด/ปิดเมนู
-      closeAllMenus: AppGui.closeAllMenus, // ปิดเมนูทั้งหมด
-
-      // --- หมวด Modules & Helpers (เครื่องมือเสริม) ---
-      FileSystem, // ระบบจัดการไฟล์
-      TestData, // ข้อมูลทดสอบ
-      AppApi, // API เชื่อมต่อภายนอก
-      notify: AppNotifications.show, // ระบบแจ้งเตือน (Toast)
-      AppSetting, // การตั้งค่าระบบ
-
-      // --- หมวด Domain Logics อื่นๆ ---
-      CarApp, // ระบบจัดการรถ
-      CarLogic: CarApp, // (Alias ชื่อเดิม)
-      FinanceApp, // ระบบไฟแนนซ์
+      // --- หมวด Logic & Tools ---
+      leadForm: LeadApp.form,
+      LeadApp: LeadApp,
+      addLead: LeadApp.add,
+      ContractApp: window.ContractApp,
+      AssetApp: window.AssetApp,
+      AppApi,
+      AppGui,
+      toggleMenu: AppGui.toggleMenu,
+      closeAllMenus: AppGui.closeAllMenus,
+      FileSystem,
+      TestData,
+      notify: AppNotifications.show,
+      AppSetting,
+      CarApp,
+      CarLogic: CarApp,
+      AppBot: window.AppBot,
     };
   },
 });
 
-// --------------------------------------------------------
-// ⭐ System Init: ลงทะเบียนและเริ่มทำงาน
-// --------------------------------------------------------
-window.SystemInit.registerComponents(app); // ลงทะเบียน Component (ถ้ามี)
-window.SystemInit.mountApp(app); // Mount ลง index.html
+window.SystemInit.registerComponents(app);
+window.SystemInit.mountApp(app);

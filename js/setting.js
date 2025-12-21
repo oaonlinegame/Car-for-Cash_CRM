@@ -14,19 +14,106 @@ const AppSetting = {
       icon: "mdi-briefcase-account",
     },
     { label: "แหล่งที่มา", key: "sourceItems", icon: "mdi-web" },
+    { label: "ชื่อแคมเปญ", key: "campaignItems", icon: "mdi-bullhorn" },
+    { label: "ยี่ห้อรถ", key: "carBrandItems", icon: "mdi-car" },
+    { label: "ประเภทรถ", key: "carTypeItems", icon: "mdi-car-convertible" },
+    { label: "สีรถ", key: "carColorItems", icon: "mdi-palette" },
+    { label: "เชื้อเพลิง", key: "fuelItems", icon: "mdi-gas-station" },
+    { label: "ระบบเกียร์", key: "gearboxItems", icon: "mdi-car-shift-pattern" },
+    { label: "ไฟแนนซ์", key: "financeCompanyItems", icon: "mdi-bank" },
+    {
+      label: "เหตุผลปฏิเสธ",
+      key: "rejectReasonItems",
+      icon: "mdi-alert-circle",
+    },
+    { label: "สินค้าหลัก", key: "productItems", icon: "mdi-package-variant" },
+    { label: "สินค้าขายพ่วง", key: "crossSellItems", icon: "mdi-basket-plus" },
+    { label: "คำนำหน้าชื่อ", key: "titleItems", icon: "mdi-account-box" },
   ],
   newItemInput: Vue.ref(""),
   draggedIndex: Vue.ref(null),
 
   // ----------------------------------------------------
-  // ➕ addItem(key)
+  // ⚡ handleQuickAdd(val, type) [เพิ่มใหม่]
+  // รับหน้าที่ตัดสินใจว่า type ไหนคือ Config ตัวไหน (ย้าย Logic มาที่นี่)
+  // ----------------------------------------------------
+  // ----------------------------------------------------
+  // ⚡ handleQuickAdd(val, type) [อัปเดต: รองรับทุก Dropdown]
+  // ----------------------------------------------------
+  async handleQuickAdd(val, type) {
+    const text = String(val || "").trim();
+    if (!text) return;
+
+    let targetRef = null;
+    let configKey = "";
+    let label = "";
+
+    // --- 1. หมวดข้อมูลลูกค้า & ลีด ---
+    if (type === "occupation") {
+      targetRef = window.AppState.occupationItems;
+      configKey = "occupationItems";
+      label = "อาชีพ";
+    } else if (type === "source") {
+      targetRef = window.AppState.sourceItems;
+      configKey = "sourceItems";
+      label = "แหล่งที่มา";
+    } else if (type === "campaign") {
+      targetRef = window.AppState.campaignItems;
+      configKey = "campaignItems";
+      label = "แคมเปญ";
+    } else if (type === "product") {
+      targetRef = window.AppState.productItems;
+      configKey = "productItems";
+      label = "สินค้า";
+    } else if (type === "crossSell") {
+      targetRef = window.AppState.crossSellItems;
+      configKey = "crossSellItems";
+      label = "สินค้าขายพ่วง";
+    } else if (type === "title") {
+      targetRef = window.AppState.titleItems;
+      configKey = "titleItems";
+      label = "คำนำหน้าชื่อ";
+    }
+
+    // --- 2. หมวดยานพาหนะ (Asset / Car Settings) ---
+    else if (type === "carBrand") {
+      targetRef = window.AppState.carBrandItems;
+      configKey = "carBrandItems";
+      label = "ยี่ห้อรถ";
+    } else if (type === "carType") {
+      targetRef = window.AppState.carTypeItems;
+      configKey = "carTypeItems";
+      label = "ประเภทรถ";
+    } else if (type === "fuel") {
+      targetRef = window.AppState.fuelItems;
+      configKey = "fuelItems";
+      label = "เชื้อเพลิง";
+    } else if (type === "gearbox") {
+      targetRef = window.AppState.gearboxItems;
+      configKey = "gearboxItems";
+      label = "ระบบเกียร์";
+    }
+
+    // --- 3. หมวดบันทึกผล (Call Result) ---
+    else if (type === "rejectReason") {
+      targetRef = window.AppState.rejectReasonItems;
+      configKey = "rejectReasonItems";
+      label = "เหตุผลที่ปฏิเสธ";
+    }
+
+    // ถ้าจับคู่ได้ ให้ส่งต่อให้ Utils จัดการบันทึก
+    if (targetRef && configKey) {
+      await window.Utils.handleConfigItemAdd(text, configKey, targetRef, label);
+    }
+  },
+
+  // ----------------------------------------------------
+  // ➕ addItem(key) (สำหรับหน้าตั้งค่าหลัก)
   // ----------------------------------------------------
   async addItem(key) {
     const val = this.newItemInput.value;
     if (!val || !val.trim()) return;
 
-    // Utils.handleConfigItemAdd จะจัดการ push และ save ให้
-    // (push มักจะกระตุ้น UI ได้ดีกว่า แต่ถ้าอยากให้ชัวร์ที่สุดต้องแก้ Utils ด้วย แต่เบื้องต้นแค่นี้มักจะพอสำหรับ add)
     const success = await Utils.handleConfigItemAdd(
       val,
       key,
@@ -45,18 +132,10 @@ const AppSetting = {
   // 🗑️ deleteItem(key, index)
   // ----------------------------------------------------
   async deleteItem(key, index) {
-    // [แก้ไข] สร้าง Array ใหม่ (Clone) เพื่อกระตุ้น Reactivity
     const list = [...AppState[key].value];
-
-    // ลบออกจาก Array ใหม่
     list.splice(index, 1);
-
-    // อัปเดตกลับไปที่ AppState (เพื่อให้ UI รู้ว่าเปลี่ยนทั้งก้อน)
     AppState[key].value = list;
-
-    // บันทึกลง Dexie
     await AppConfig.save(key, list);
-
     if (window.AppNotifications) AppNotifications.show("ลบรายการเรียบร้อย");
   },
 
@@ -74,14 +153,8 @@ const AppSetting = {
     const defaults = window.AppConfigDefaults
       ? window.AppConfigDefaults[key]
       : [];
-
-    // [แก้ไข] สร้าง Array ใหม่แน่นอนจากการ parse/stringify
     const newList = JSON.parse(JSON.stringify(defaults));
-
-    // อัปเดต AppState
     AppState[key].value = newList;
-
-    // บันทึก
     await AppConfig.save(key, newList);
 
     if (window.AppNotifications)
@@ -107,30 +180,17 @@ const AppSetting = {
     event.dataTransfer.dropEffect = "move";
   },
 
-  // ----------------------------------------------------
-  // ⭐ onDrop(event, targetIndex, key) [แก้ไขสำคัญ]
-  // ----------------------------------------------------
   async onDrop(event, targetIndex, key) {
     event.preventDefault();
-
     const fromIndex = parseInt(event.dataTransfer.getData("text/plain"));
     const toIndex = targetIndex;
-
-    // [แก้ไข] ดึงค่ามา Clone เป็น Array ก้อนใหม่ทันที (...)
     const list = [...AppState[key].value];
 
     if (fromIndex !== toIndex) {
-      // สลับตำแหน่งใน Array ก้อนใหม่
       const [movedItem] = list.splice(fromIndex, 1);
       list.splice(toIndex, 0, movedItem);
-
-      // [สำคัญ] ยัด Array ก้อนใหม่กลับเข้าไปที่ AppState
-      // Vue จะเห็นว่า Reference เปลี่ยน และสั่ง Re-render หน้าจอทันที
       AppState[key].value = list;
-
-      // บันทึกลง Dexie
       await AppConfig.save(key, list);
-
       if (window.AppNotifications)
         AppNotifications.show("✅ จัดลำดับรายการเรียบร้อย");
     }

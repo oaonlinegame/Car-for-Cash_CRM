@@ -1,107 +1,125 @@
-// state.js
+// js/state.js
 // --------------------------------------------------------
 // 📘 ไฟล์นี้เก็บสถานะ (State) ทั้งหมดของระบบ
-// ใช้กับ Vue 3 Composition API (ref/reactive)
-// ไม่มีการใช้งาน LocalStorage อีกต่อไป
 // --------------------------------------------------------
 
-// สร้างอ็อบเจกต์ AppState เก็บสถานะ UI และค่าภายในระบบ
 const AppState = {
-  // ------------------------------------------------------
-  // 🧭 UI states: สถานะเปิด/ปิดเมนูและ modal ต่าง ๆ
-  // ------------------------------------------------------
-  isMenuOpenFilterSearch: Vue.ref(false), // เปิด/ปิดเมนูตัวกรองค้นหา
-  isOpenModalLead: Vue.ref(false), // เปิด/ปิด modal เพิ่ม Lead
-  isOpenSubContractDialog: Vue.ref(false), // เปิด/ปิด modal ย่อย สัญญา
-  isOpenModalLeadAutoFill: Vue.ref(false), // เปิด/ปิด modal autofill lead
-  isOpenModalLog: Vue.ref(false), // เปิด/ปิด modal บันทึกการโทร/ติดตาม
-  isOpenModalRecordCallResult: Vue.ref(false), // เปิด/ปิด modal บันทึกผลการโทร
-  isOpenModalCarSettings: Vue.ref(false), // เปิด/ปิด modal การตั้งค่าข้อมูลรถยนต์
-  callResultTab: Vue.ref("conversation"), // แท็บของ modal บันทึกผลการโทร (conversation/result)
-  carSettingTab: Vue.ref("price_list"), // แท็บของ modal การตั้งค่าข้อมูลรถยนต์ (price_list/other_settings)
-  isOpenModalCarPriceSelector: Vue.ref(false), // เปิด/ปิด modal เลือกราคากลางรถยนต์
-  occupationItems: Vue.ref([]), // รายการอาชีพที่ใช้ใน combobox (จะโหลดจาก Dexie ใน LeadApp.loadAll())
-  sourceItems: Vue.ref([]), //  รายการแหล่งที่มาที่ใช้ใน combobox (โหลดจาก Dexie)
+  // --- UI States ---
+  isMenuOpenFilterSearch: Vue.ref(false),
+  isOpenModalLead: Vue.ref(false),
+  isOpenSubContractDialog: Vue.ref(false),
+  isOpenModalLeadAutoFill: Vue.ref(false),
+  isOpenModalLog: Vue.ref(false),
+  isOpenModalRecordCallResult: Vue.ref(false),
+  isOpenModalCarSettings: Vue.ref(false),
+  isOpenModalCarPriceSelector: Vue.ref(false),
+  isOpenModalConfigSettings: Vue.ref(false),
 
-  // ------------------------------------------------------
-  // ⚙️ Config Settings Modal
-  // ------------------------------------------------------
-  isOpenModalConfigSettings: Vue.ref(false), // เปิด/ปิด modal การตั้งค่า config (อาชีพ/แหล่งที่มา)
-  configSettingTab: Vue.ref("occupationItems"), // แท็บที่เลือก (เริ่มที่อาชีพ)
-  // ------------------------------------------------------
-  // 🔍 Search
-  // ------------------------------------------------------
-  searchRef: Vue.ref(null), // อ้างอิงช่องค้นหา (ใช้เป็น activator)
-  searchQuery: Vue.ref(""), // คำค้นหาในช่อง Search หลัก
-  searchQueryDebounced: Vue.ref(""), // ค่าค้นหาที่ถูกหน่วงเวลา (Debounced)
-
-  // ------------------------------------------------------
-  // 🎹 Hotkey (คีย์ลัด)
-  // ------------------------------------------------------
-  hotkeysEnabled: Vue.ref(true), // เปิด/ปิดระบบปุ่มลัด
-  hotkeyMap: Vue.reactive({
-    // mapping ปุ่มลัด → action
-    openLead: "Alt+L", // เปิด modal lead
-    closeAll: "Alt+C", // ปิดทุกเมนู
-    openBot: "Alt+B", // เปิดระบบบอท
-  }),
-
-  // ------------------------------------------------------
-  // 📄 Pagination (ระบบแบ่งหน้า)
-  // ------------------------------------------------------
-  page: Vue.ref(1), // หน้าปัจจุบัน
-  itemsPerPage: Vue.ref(10), // จำนวนรายการต่อหน้า (5,10,20 หรือ All)
-  totalPages: Vue.ref(1), // จำนวนหน้าทั้งหมด
-  pagedLeads: Vue.ref([]), // รายการ lead เฉพาะหน้าปัจจุบัน
-
-  // ------------------------------------------------------
-  // 📌 filteredLeads (ค่าสำหรับเก็บข้อมูลหลังกรอง)
-  // หมายเหตุ: จะถูกตั้งค่าใน gui.js → setupComputed()
-  // ------------------------------------------------------
-  filteredLeads: Vue.ref([]), // รายการที่ผ่านการค้นหาแล้ว
-
-  // lead dialog
-  Switch_newCustomer: Vue.ref(false),
-  // ------------------------------------------------------
-  // 🆕 Contract Tabs (Browser-style TAB ระดับที่ 1)
-  // ------------------------------------------------------
-  contractTab: Vue.ref("new"), // แท็บของสัญญา (#1,#2,+) ค่าเริ่มต้น = new (แท็บ +)
-
-  // ------------------------------------------------------
-  // 🆕 Contract Inner Tabs (TAB ระดับที่ 2 → ALL/info/finance/...)
-  // ------------------------------------------------------
-  contractInnerTab: Vue.ref("all"), // ค่าเริ่มต้นอยู่ที่ ALL
-
-  // ------------------------------------------------------
-  // 🆕 Contract Expansion Panels (ใช้ใน TAB ALL)
-  // เปิดเป็นค่าเริ่มต้นทั้งหมด แต่ผู้ใช้พับได้
-  // ------------------------------------------------------
+  // --- Tabs ---
+  callResultTab: Vue.ref("status"),
+  carSettingTab: Vue.ref("price_list"),
+  configSettingTab: Vue.ref("occupationItems"),
+  leadTab: Vue.ref("leadInfo"),
+  contractTab: Vue.ref("new"),
+  contractInnerTab: Vue.ref("all"),
   contractPanels: Vue.ref([
-    "info", // ข้อมูลสัญญา
-    "finance", // การเงิน
-    "status", // สถานะบัญชี
-    "asset", // ทรัพย์สิน
-    "history", // ประวัติย้อนหลัง
-    "other", // อื่น ๆ
+    "info",
+    "finance",
+    "status",
+    "asset",
+    "history",
+    "other",
   ]),
 
-  // ------------------------------------------------------
-  // 🆕 ฟอร์มสัญญาใหม่ (ใช้ตอนกด TAB +)
-  // ------------------------------------------------------
-  newContractForm: Vue.reactive({}), // จะถูก reset ทุกครั้งเวลาเปิด TAB +
+  // --- Forms ---
+  recordCallForm: Vue.reactive({
+    mainStatus: null,
+    subStatus: null,
+    appointmentDate: "",
+    appointmentTime: "",
+    note: "",
+    location: "",
+    receiverName: "",
+    phoneBack: "",
+    rejectReason: null,
+    amount: null,
+    contractId: "",
+    product: null,
+    offerAmount: null,
+    interestRate: null,
+    responseLevel: 3,
+    crossSellProduct: null,
+    crossSellNote: "",
+    isCreateNewLead: false,
+  }),
 
-  // ------------------------------------------------------
-  // 🆕 ฟังก์ชัน reset UI สัญญาทั้งหมด
-  // เรียกใช้ทุกครั้งเมื่อเปิด modal lead
-  // ------------------------------------------------------
+  newContractForm: Vue.reactive({}),
+
+  // ========================================================
+  // ⭐ Config Holders (รอรับค่าจาก boot.js)
+  // ========================================================
+  // หมวดรถยนต์
+  carBrandItems: Vue.ref([]),
+  carTypeItems: Vue.ref([]),
+  gearboxItems: Vue.ref([]),
+  fuelItems: Vue.ref([]),
+
+  campaignItems: Vue.ref([]), // คอมเมนต์: รายการแคมเปญ
+  carColorItems: Vue.ref([]), // คอมเมนต์: รายการสีรถ
+  financeCompanyItems: Vue.ref([]), // คอมเมนต์: รายการไฟแนนซ์
+
+  // หมวดลูกค้า
+  titleItems: Vue.ref([]),
+  leadStatusItems: Vue.ref([]),
+  prospectStageItems: Vue.ref([]),
+  ratingItems: Vue.ref([]),
+  occupationItems: Vue.ref([]),
+  sourceItems: Vue.ref([]),
+
+  // หมวดสัญญาและการเงิน
+  loanTypeItems: Vue.ref([]),
+  contractTypeItems: Vue.ref([]),
+  contractStatusItems: Vue.ref([]),
+  accountStatusFilterItems: Vue.ref([]),
+  gradeItems: Vue.ref([]),
+  sortKeyItems: Vue.ref([]),
+
+  // หมวดสินทรัพย์
+  assetTypeItems: Vue.ref([]),
+  insuranceTypeItems: Vue.ref([]),
+  insuranceVehicleTypeItems: Vue.ref([]),
+
+  // หมวดผลิตภัณฑ์และการขาย
+  productItems: Vue.ref([]),
+  crossSellItems: Vue.ref([]),
+  rejectReasonItems: Vue.ref([]),
+  callStatusConfig: Vue.ref([]),
+
+  // --- Helper Computed ---
+  currentSubStatusOptions: Vue.ref([]),
+  currentInputRequirements: Vue.ref([]),
+
+  // --- Search & Pagination ---
+  searchRef: Vue.ref(null),
+  searchQuery: Vue.ref(""),
+  searchQueryDebounced: Vue.ref(""),
+  hotkeysEnabled: Vue.ref(true),
+  hotkeyMap: Vue.reactive({
+    openLead: "Alt+L",
+    closeAll: "Alt+C",
+    openBot: "Alt+B",
+  }),
+  page: Vue.ref(1),
+  itemsPerPage: Vue.ref(10),
+  totalPages: Vue.ref(1),
+  pagedLeads: Vue.ref([]),
+  filteredLeads: Vue.ref([]),
+  Switch_newCustomer: Vue.ref(false),
+
+  // --- Methods ---
   resetContractUI() {
-    // รีเซ็ตแท็บสัญญาให้เปิด TAB "+"
-    this.contractTab.value = this.contractTab.value = "new";
-
-    // รีเซ็ตแท็บย่อยให้ไปที่ ALL
+    this.contractTab.value = "new";
     this.contractInnerTab.value = "all";
-
-    // รีเซ็ต Expansion Panels ให้เปิดทุกอันเป็นค่าเริ่มต้น
     this.contractPanels.value = [
       "info",
       "finance",
@@ -110,29 +128,16 @@ const AppState = {
       "history",
       "other",
     ];
-
-    // ล้างฟอร์มสัญญาใหม่
     if (typeof LeadApp?.resetNewContractForm === "function") {
-      LeadApp.resetNewContractForm(); // เรียกจาก LeadApp (จะเพิ่มในไฟล์ lead.js)
+      LeadApp.resetNewContractForm();
     }
   },
-  // ⭐ แท็บของ Modal Lead (leadInfo / contracts)
-  leadTab: Vue.ref("leadInfo"), // ค่าเริ่มต้นอยู่ที่แท็บข้อมูลลูกค้า
-  // ⭐ แท็บของสัญญาใน Modal Lead (ใช้เก็บ contract.id) // [ใหม่] เก็บ ID ของสัญญาที่กำลังถูกเปิดอยู่
-  activeContractTab: Vue.ref(null), // [ใหม่] ค่าเริ่มต้นเป็น null หรือ ID ของสัญญาแรกเมื่อเปิด Modal
-  // ⭐ เมื่อเปิด modal lead ครั้งแรก → สร้างแท็บสัญญาเปล่าให้ 1 อัน
   onOpenLeadDialog() {
-    // ถ้ายังไม่มีสัญญาเลย → เพิ่ม tab เปล่า 1 อัน
     if (!LeadApp.form.contracts || LeadApp.form.contracts.length === 0) {
-      LeadApp.addEmptyContract(); // ← ใช้ฟังก์ชันที่มีอยู่แล้ว
+      LeadApp.addEmptyContract();
     }
-
-    // ให้ TAB ไปที่สัญญาแรกแทน leadInfo ถ้าต้องการ
     AppState.leadTab.value = "contract-0";
   },
 };
 
-// --------------------------------------------------------
-// 🌍 export สู่ global ให้ไฟล์อื่นใช้งานได้
-// --------------------------------------------------------
 window.AppState = AppState;

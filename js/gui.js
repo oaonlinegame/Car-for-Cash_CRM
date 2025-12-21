@@ -4,168 +4,253 @@
 // --------------------------------------------------------
 // ทำหน้าที่ควบคุม:
 // - toggleMenu (เปิด/ปิดเมนูหรือ modal)
-// - closeAllMenus (ปิดเมนูทั้งหมด)
-// - pagination / chunking (แบ่งหน้า / จัดกลุ่มข้อมูล)
-// - filteredLeads / pagedLeads (ข้อมูลหลังกรอง + เฉพาะหน้า)
+// - การคำนวณ Computed Properties ต่างๆ (Filter, Pagination)
+// - Logic ของหน้าบันทึกผลการโทร (Call Result) **[เพิ่มใหม่]**
 // --------------------------------------------------------
 
-// ดึง Composition API จาก Vue
-const { ref, reactive, watch, computed } = Vue; // ดึงเครื่องมือจาก Vue
+// ดึงเครื่องมือจาก Vue
+const { ref, reactive, watch, computed } = Vue;
 
-// --------------------------------------------------------
-// ⭐ อ็อบเจกต์ AppGui รวมฟังก์ชัน UI ทั้งหมด
-// --------------------------------------------------------
 const AppGui = {
   // ----------------------------------------------------
-  // 🧠 ตัวแปรภายในของ AppGui สำหรับ debounce การค้นหา
-  // ----------------------------------------------------\
-  searchDebounceTimer: null, // ใช้เก็บ timer ของ setTimeout สำหรับดีเลย์การค้นหา
+  // 🧠 ตัวแปรภายในของ AppGui
+  // ----------------------------------------------------
+  searchDebounceTimer: null,
 
   // ----------------------------------------------------
   // 🟢 toggleMenu(key, force)
-  // ฟังก์ชันเปิด/ปิด modal หรือเมนูโดยใช้ชื่อใน AppState
-  // ----------------------------------------------------\
+  // ฟังก์ชันเปิด/ปิดเมนู
+  // ----------------------------------------------------
   toggleMenu(key, force) {
-    // คอมเมนต์: ฟังก์ชันเปิด/ปิดเมนู
-    if (!AppState[key]) return; // คอมเมนต์: ถ้าไม่พบ key ใน state ให้หยุดทำงานทันที
+    if (!AppState[key]) return;
     AppState[key].value =
-      typeof force === "boolean"
-        ? force // คอมเมนต์: ถ้า force เป็น boolean → ใช้ค่าที่ส่งมา
-        : !AppState[key].value; // คอมเมนต์: ถ้าไม่ใช่ → สลับค่า (เปิดเป็นปิด / ปิดเป็นเปิด)
+      typeof force === "boolean" ? force : !AppState[key].value;
   },
 
   // ----------------------------------------------------
   // 🔴 closeAllMenus()
-  // ปิดทุกเมนูและทุก modal ที่เปิดอยู่
-  // ----------------------------------------------------\
+  // ปิดทุกเมนู
+  // ----------------------------------------------------
   closeAllMenus() {
-    // คอมเมนต์: ฟังก์ชันปิดทุกเมนู
     Object.keys(AppState).forEach((key) => {
-      // คอมเมนต์: วนลูป AppState
-      const val = AppState[key]; // คอมเมนต์: ดึงค่า state ของ key นั้น
+      const val = AppState[key];
       if (key.startsWith("is") && val?.value === true) {
-        // คอมเมนต์: ถ้า key ขึ้นต้นด้วย is และค่าเป็น true แสดงว่าเปิดอยู่
-        val.value = false; // คอมเมนต์: ให้ปิดเมนูหรือ modal นั้น
+        val.value = false;
       }
     });
   },
 
   // ----------------------------------------------------
-  // 🆕 bindSearchRef(refInstance)
-  // ผูก ref ช่องค้นหาจริงเข้ากับ AppState.searchRef (ใช้เป็น activator)
-  // ----------------------------------------------------\
+  // 🆕 bindSearchRef
+  // ผูก ref ช่องค้นหา
+  // ----------------------------------------------------
   bindSearchRef(refInstance) {
-    // คอมเมนต์: ฟังก์ชันผูก Ref ช่องค้นหา
-    // refInstance ที่ส่งมาคือ Vue Ref (เช่น searchBarRef)
-    if (!refInstance || !refInstance.value) return; // คอมเมนต์: ถ้า ref ไม่มีค่า (ยังไม่ mount) ให้หยุด
-
-    // คอมเมนต์: ผูก ref ช่องค้นหาจริงเข้า AppState.searchRef
+    if (!refInstance || !refInstance.value) return;
     if (window.AppState && AppState.searchRef) {
-      // คอมเมนต์: ตรวจสอบว่า AppState พร้อม
-      AppState.searchRef.value = refInstance.value; // คอมเมนต์: เซ็ตค่า ref (Element/Component Instance)
-      console.log("✅ GUI: Search Bar Ref Bound."); // คอมเมนต์: แสดง log
-    } // คอมเมนต์: จบ if
-  },
-
-  // ----------------------------------------------------
-  // ⭐ setupUIMainComputed()
-  // ฟังก์ชันตั้งค่า Computed หลักทั้งหมดของ UI (Filter, Page, Chunking)
-  // ----------------------------------------------------\
-  setupUIMainComputed() {
-    // คอมเมนต์: ฟังก์ชันตั้งค่า Computed หลักของ UI
-
-    // --------------------------------------------------
-    // 🔍 1) filteredLeads → ใช้ Utils.filterLeads กรองข้อมูล (เฝ้าดู Store.data.leadItems)
-    // --------------------------------------------------
-    AppState.filteredLeads = computed(() => {
-      // คอมเมนต์: Computed filteredLeads
-      const query =
-        AppState.searchQueryDebounced &&
-        AppState.searchQueryDebounced.value !== undefined
-          ? AppState.searchQueryDebounced.value // คอมเมนต์: ถ้ามีค่าค้นหาที่ผ่าน debounce แล้ว → ใช้ตัวนี้
-          : AppState.searchQuery.value; // คอมเมนต์: ถ้าไม่มี (กรณีสำรอง) → ใช้คำค้นหาปกติ
-      const list = Store.data.leadItems; // คอมเมนต์: ดึงรายการ lead ทั้งหมดจาก Store (จุดเฝ้าดูหลัก)
-      return Utils.filterLeads(list, query); // คอมเมนต์: คืนรายการที่ผ่านการกรองตามคำค้นหา
-    });
-
-    // --------------------------------------------------
-    // 📄 2) totalPages → จำนวนหน้าทั้งหมด
-    // --------------------------------------------------
-    AppState.totalPages = computed(() => {
-      // คอมเมนต์: Computed totalPages
-      const perPage = AppState.itemsPerPage.value; // คอมเมนต์: จำนวนต่อหน้าที่ผู้ใช้เลือก
-      const total = AppState.filteredLeads.value.length; // คอมเมนต์: จำนวนรายการที่ผ่านการกรองทั้งหมด
-
-      if (perPage === "All") return 1; // คอมเมนต์: ถ้าเลือก All → ให้มีหน้าเดียวเสมอ
-
-      const num = Number(perPage); // คอมเมนต์: แปลงค่าจำนวนต่อหน้าเป็นตัวเลข
-      // คอมเมนต์: ถ้าหน้าปัจจุบันเกินจำนวนหน้าทั้งหมด → ให้กลับไปหน้า 1
-      if (AppState.page.value > Math.max(1, Math.ceil(total / num))) {
-        AppState.page.value = 1;
-      }
-
-      return Math.max(1, Math.ceil(total / num)); // คอมเมนต์: คืนค่าจำนวนหน้าขั้นต่ำ 1 หน้าเสมอ
-    });
-
-    // --------------------------------------------------
-    // 📃 3) pagedLeads → ตัดข้อมูลเฉพาะหน้าปัจจุบัน / จัดกลุ่ม 2 คอลัมน์
-    // --------------------------------------------------
-    AppState.pagedLeads = computed(() => {
-      // คอมเมนต์: Computed pagedLeads
-      const page = AppState.page.value; // คอมเมนต์: หน้าปัจจุบัน
-      const perPage = AppState.itemsPerPage.value; // คอมเมนต์: จำนวนต่อหน้า (5,10,20 หรือ All)
-      const all = AppState.filteredLeads.value; // คอมเมนต์: รายการหลังกรองทั้งหมด
-
-      // ✅ กรณีเลือก All → จัดกลุ่มข้อมูลเป็นคู่ (Row ละ 2 items) เพื่อรองรับ 2 คอลัมน์ Grid Virtual Scroll
-      if (perPage === "All") {
-        if (typeof Utils.chunkArray === "function") {
-          return Utils.chunkArray(all, 2); // คอมเมนต์: แบ่งข้อมูลเป็นคู่ (Row ละ 2 items)
-        }
-        return all; // คอมเมนต์: กรณีสำรอง: ถ้าฟังก์ชัน chunkArray ยังไม่โหลด
-      }
-
-      const num = Number(perPage); // คอมเมนต์: จำนวนรายการต่อหน้าในรูปตัวเลข
-      const start = (page - 1) * num; // คอมเมนต์: index เริ่มต้นของหน้าปัจจุบัน
-      const end = start + num; // คอมเมนต์: index สุดท้าย (ไม่รวม) ของหน้าปัจจุบัน
-
-      return all.slice(start, end); // คอมเมนต์: คืนเฉพาะรายการที่อยู่ในช่วงของหน้านั้นเท่านั้น
-    });
-  },
-
-  // ----------------------------------------------------
-  // 🆕 openContractTabPlus()
-  // ฟังก์ชันเปิด TAB "+" ของสัญญา
-  // ----------------------------------------------------\
-  openContractTabPlus() {
-    // คอมเมนต์: ฟังก์ชันเปิด TAB สัญญาใหม่
-    // ย้ายไป TAB "new"
-    AppState.contractTab.value = "new"; // คอมเมนต์: ย้ายไป TAB "new"
-
-    // reset TAB ย่อยให้ไปหน้า ALL
-    AppState.contractInnerTab.value = "all"; // คอมเมนต์: reset TAB ย่อย
-
-    // reset Panels ให้เปิดหมด (ค่าเริ่มต้น)
-    AppState.contractPanels.value = [
-      "info",
-      "finance",
-      "status",
-      "asset",
-      "history",
-      "other",
-    ]; // คอมเมนต์: reset Panels
-
-    // สั่งให้ LeadApp เคลียร์ฟอร์มสัญญาใหม่
-    if (typeof LeadApp?.resetNewContractForm === "function") {
-      LeadApp.resetNewContractForm(); // คอมเมนต์: เคลียร์ฟอร์มสัญญาใหม่
+      AppState.searchRef.value = refInstance.value;
     }
   },
 
   // ----------------------------------------------------
-  // 🆕 resetContractPanels()
-  // ใช้เมื่อเปิด dialog ใหม่ เพื่อป้องกัน Vuetify จำสถานะ panel เก่า
-  // ----------------------------------------------------\
-  resetContractPanels() {
-    // คอมเมนต์: ฟังก์ชันรีเซ็ตสถานะ Panels
+  // ⭐ setupUIMainComputed()
+  // ตั้งค่า Computed หลัก (Search, Filter, Pagination)
+  // ----------------------------------------------------
+  setupUIMainComputed() {
+    // 1. Filtered Leads
+    AppState.filteredLeads = computed(() => {
+      const query =
+        AppState.searchQueryDebounced &&
+        AppState.searchQueryDebounced.value !== undefined
+          ? AppState.searchQueryDebounced.value
+          : AppState.searchQuery.value;
+      const list = Store.data.leadItems;
+      return Utils.filterLeads(list, query);
+    });
+
+    // 2. Total Pages
+    AppState.totalPages = computed(() => {
+      const perPage = AppState.itemsPerPage.value;
+      const total = AppState.filteredLeads.value.length;
+      if (perPage === "All") return 1;
+      const num = Number(perPage);
+      if (AppState.page.value > Math.max(1, Math.ceil(total / num))) {
+        AppState.page.value = 1;
+      }
+      return Math.max(1, Math.ceil(total / num));
+    });
+
+    // 3. Paged Leads
+    AppState.pagedLeads = computed(() => {
+      const page = AppState.page.value;
+      const perPage = AppState.itemsPerPage.value;
+      const all = AppState.filteredLeads.value;
+
+      if (perPage === "All") {
+        if (typeof Utils.chunkArray === "function") {
+          return Utils.chunkArray(all, 2);
+        }
+        return all;
+      }
+
+      const num = Number(perPage);
+      const start = (page - 1) * num;
+      const end = start + num;
+      return all.slice(start, end);
+    });
+  },
+
+  // ----------------------------------------------------
+  // ⭐ setupRecordCallComputed()
+  // [ใหม่] Logic สำหรับหน้าบันทึกผลการติดต่อ
+  // เชื่อม Main Status -> Sub Status -> Input Fields
+  // ----------------------------------------------------
+  setupRecordCallComputed() {
+    // 1. เฝ้าดู Main Status -> เพื่ออัปเดตตัวเลือก Sub Status
+    watch(
+      () => AppState.recordCallForm.mainStatus,
+      (newVal) => {
+        // เคลียร์ค่า Sub Status เดิมทิ้งก่อน
+        AppState.recordCallForm.subStatus = null;
+
+        if (!newVal) {
+          AppState.currentSubStatusOptions.value = [];
+          return;
+        }
+
+        // ค้นหากลุ่ม Config ที่ตรงกับ Main Status
+        const group = AppState.callStatusConfig.value.find(
+          (g) => g.value === newVal
+        );
+
+        // อัปเดตตัวเลือกสถานะย่อย
+        if (group && group.sub) {
+          AppState.currentSubStatusOptions.value = group.sub;
+        } else {
+          AppState.currentSubStatusOptions.value = [];
+        }
+        console.log(
+          "✅ GUI: อัปเดตสถานะย่อยเป็น",
+          AppState.currentSubStatusOptions.value
+        );
+      }
+    );
+
+    // 2. เฝ้าดู Sub Status -> เพื่ออัปเดต Input Requirements
+    watch(
+      () => AppState.recordCallForm.subStatus,
+      (newVal) => {
+        if (!newVal) {
+          AppState.currentInputRequirements.value = [];
+          return;
+        }
+
+        // ค้นหา Object ของ Sub Status ที่เลือก
+        const options = AppState.currentSubStatusOptions.value;
+        const selected = options.find((s) => s.value === newVal);
+
+        // อัปเดตรายการ Input ที่ต้องแสดง
+        if (selected && selected.inputs) {
+          AppState.currentInputRequirements.value = selected.inputs;
+        } else {
+          AppState.currentInputRequirements.value = [];
+        }
+      }
+    );
+    //3. เฝ้าดูเหตุผลย่อย (rejectReason) เพื่อเปลี่ยนช่องกรอกตามสาเหตุจริง
+    watch(
+      () => AppState.recordCallForm.rejectReason,
+      (newVal) => {
+        if (!newVal) return;
+
+        // ค้นหาข้อมูลเหตุผลจาก config
+        const subStatus = AppState.currentSubStatusOptions.value.find(
+          (s) => s.value === "incomplete"
+        );
+        if (subStatus && subStatus.reasons) {
+          const reasonObj = subStatus.reasons.find(
+            (r) => r.value === newVal || r.text === newVal
+          );
+          if (reasonObj) {
+            // สั่งให้ UI แสดงช่องข้อมูลตามที่กำหนดไว้ใน inputs ของแต่ละเหตุผล
+            AppState.currentInputRequirements.value = [
+              "rejectReason",
+              ...reasonObj.inputs,
+            ];
+
+            // เก็บสถานะปุ่มพิเศษ (เช่น ปุ่มเพิ่มสัญญาย่อย)
+            AppState.recordCallForm._extraAction =
+              reasonObj.extraAction || null;
+          }
+        }
+      }
+    );
+  },
+
+  // ----------------------------------------------------
+  // 💾 saveRecordCallResult()
+  // [ใหม่] ฟังก์ชันบันทึกผลการติดต่อ
+  // ----------------------------------------------------
+  saveRecordCallResult() {
+    const form = AppState.recordCallForm;
+
+    // Validation อย่างง่าย
+    if (!form.mainStatus || !form.subStatus) {
+      alert("กรุณาระบุสถานะหลักและสถานะย่อยให้ครบถ้วน");
+      return;
+    }
+
+    // จำลองการบันทึก (Log ลง Console)
+    const logData = {
+      ...form,
+      timestamp: new Date().toISOString(),
+    };
+    console.log("💾 บันทึก Log การติดต่อ:", logData);
+
+    // แจ้งเตือน
+    if (window.AppNotifications) {
+      AppNotifications.show("✅ บันทึกผลการติดต่อเรียบร้อยแล้ว");
+    }
+
+    // ปิด Modal
+    this.toggleMenu("isOpenModalRecordCallResult", false);
+
+    // รีเซ็ตฟอร์ม (ถ้าต้องการ)
+    this.resetRecordCallForm();
+  },
+
+  // ----------------------------------------------------
+  // 🔄 resetRecordCallForm()
+  // [ใหม่] ฟังก์ชันรีเซ็ตฟอร์มบันทึกผล
+  // ----------------------------------------------------
+  resetRecordCallForm() {
+    Object.assign(AppState.recordCallForm, {
+      mainStatus: null,
+      subStatus: null,
+      appointmentDate: "",
+      appointmentTime: "",
+      note: "",
+      location: "",
+      receiverName: "",
+      phoneBack: "",
+      rejectReason: null,
+      amount: null,
+      contractId: "",
+      product: null,
+      offerAmount: null,
+      interestRate: null,
+      responseLevel: 3,
+      crossSellProduct: null,
+      crossSellNote: "",
+      isCreateNewLead: false,
+    });
+  },
+
+  // ----------------------------------------------------
+  // 🔧 Contract Tab Utilities
+  // ----------------------------------------------------
+  openContractTabPlus() {
+    AppState.contractTab.value = "new";
+    AppState.contractInnerTab.value = "all";
     AppState.contractPanels.value = [
       "info",
       "finance",
@@ -173,74 +258,68 @@ const AppGui = {
       "asset",
       "history",
       "other",
-    ]; // คอมเมนต์: รีเซ็ตสถานะ Panels
+    ];
+    if (typeof LeadApp?.resetNewContractForm === "function") {
+      LeadApp.resetNewContractForm();
+    }
   },
 
-  // ----------------------------------------------------
-  // 🆕 resetContractScroll(el)
-  // รีเซ็ต scrollTop ของพื้นที่สัญญา
-  // ----------------------------------------------------\
+  resetContractPanels() {
+    AppState.contractPanels.value = [
+      "info",
+      "finance",
+      "status",
+      "asset",
+      "history",
+      "other",
+    ];
+  },
+
   resetContractScroll(el) {
-    // คอมเมนต์: ฟังก์ชันรีเซ็ต Scroll
-    if (!el) return; // คอมเมนต์: ถ้าไม่มี element → หยุด
+    if (!el) return;
     try {
-      el.scrollTop = 0; // คอมเมนต์: ตั้ง scroll ให้กลับไปบนสุด
+      el.scrollTop = 0;
     } catch (err) {
-      console.warn("resetContractScroll():", err); // คอมเมนต์: แสดง Warning
+      console.warn("resetContractScroll():", err);
     }
   },
 
   // ----------------------------------------------------
   // ⭐ setupWatchers()
-  // ฟังก์ชันเฝ้าดูค่าที่สำคัญ และจัดการรีเซ็ตหน้า / debounce
-  // ----------------------------------------------------\
+  // ตั้งค่า Watchers ทั่วไป (Pagination, Search)
+  // ----------------------------------------------------
   setupWatchers() {
-    // คอมเมนต์: ฟังก์ชันตั้งค่า Watchers
-    // 🔁 เมื่อผู้ใช้เปลี่ยนจำนวนรายการต่อหน้า → กลับไปหน้าแรก
+    // เมื่อเปลี่ยนจำนวนต่อหน้า -> กลับหน้า 1
     watch(AppState.itemsPerPage, () => {
-      // คอมเมนต์: Watch itemsPerPage
-      AppState.page.value = 1; // คอมเมนต์: รีเซ็ตหน้ากลับไป 1 ทุกครั้งที่เปลี่ยน per page
+      AppState.page.value = 1;
     });
 
-    // 🔍 เมื่อผู้ใช้พิมพ์ในช่องค้นหา → debounce ก่อนเซ็ตจริง
-    watch(
-      AppState.searchQuery, // คอมเมนต์: เฝ้าดูค่าค้นหาหลักที่ช่อง Search
-      (newVal) => {
-        AppState.page.value = 1; // คอมเมนต์: ทุกครั้งที่ค้นหาใหม่ ให้กลับไปหน้าแรกเสมอ
-
-        // ถ้ามี timer debounce ตัวเก่าอยู่ → เคลียร์ก่อนเพื่อไม่ให้ยิงซ้อน
-        if (this.searchDebounceTimer) {
-          clearTimeout(this.searchDebounceTimer); // คอมเมนต์: ล้าง timer เดิมออก
-        }
-
-        // ตั้ง timer ใหม่เพื่อหน่วงการอัปเดต searchQueryDebounced
-        this.searchDebounceTimer = setTimeout(() => {
-          if (AppState.searchQueryDebounced) {
-            AppState.searchQueryDebounced.value = newVal; // คอมเมนต์: เซ็ตค่าค้นหาที่ผ่าน debounce แล้ว
-          }
-        }, 250); // คอมเมนต์: ดีเลย์ 250ms
+    // Debounce Search
+    watch(AppState.searchQuery, (newVal) => {
+      AppState.page.value = 1;
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer);
       }
-    );
-
-    // 🧪 debug → แสดงใน console เมื่อมีการเปลี่ยนหน้า
-    watch(AppState.page, (p) => {
-      // คอมเมนต์: Watch page
-      console.log("📄 เปลี่ยนหน้าเป็น:", p); // คอมเมนต์: แสดงหน้าปัจจุบันใน console
+      this.searchDebounceTimer = setTimeout(() => {
+        if (AppState.searchQueryDebounced) {
+          AppState.searchQueryDebounced.value = newVal;
+        }
+      }, 250);
     });
   },
 
   // ----------------------------------------------------
   // ⭐ setupComputed()
-  // ฟังก์ชันรวมการตั้งค่า computed & watcher ไว้เรียกจาก app.js
-  // ----------------------------------------------------\
+  // ฟังก์ชันรวมที่ Boot.js จะเรียกใช้
+  // ----------------------------------------------------
   setupComputed() {
-    // คอมเมนต์: ฟังก์ชันรวมการตั้งค่าทั้งหมด
-    this.setupUIMainComputed(); // คอมเมนต์: ตั้งค่า Computed หลัก
-    this.setupWatchers(); // คอมเมนต์: ตั้ง watcher ให้ทำงานต่อเนื่องเวลาผู้ใช้เปลี่ยนค่า
+    this.setupUIMainComputed(); // ตั้งค่า Search/Filter
+    this.setupWatchers(); // ตั้งค่า Watcher
+    this.setupRecordCallComputed(); //  ตั้งค่า Logic ของ Record Call
   },
 };
 
 // --------------------------------------------------------
-// 🌍 export AppGui ไปที่ window ให้ไฟล์อื่นใช้งานได้
+// 🌍 Export
 // --------------------------------------------------------
-window.AppGui = AppGui; // คอมเมนต์: ผูก AppGui กับ window เพื่อให้ไฟล์อื่นและ template เรียกใช้ได้
+window.AppGui = AppGui;
