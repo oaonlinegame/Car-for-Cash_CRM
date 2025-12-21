@@ -1,113 +1,115 @@
 // js/app.js
 // --------------------------------------------------------
-// 📘 Hub รวม State + Logic → ให้ Template ใช้ (Pure Hub Version)
+// 📘 Hub: ศูนย์กลางเชื่อมต่อ Module เข้ากับ Vue Template
+// --------------------------------------------------------
+// หน้าที่:
+// 1. สร้าง Vue Instance (App Root)
+// 2. รวบรวม State และ Function จากไฟล์ต่างๆ ส่งเข้า Template
+// 3. จัดการ Lifecycle หลัก (Mounted, Unmounted)
 // --------------------------------------------------------
 
-// สร้าง Vue App หลัก
 const app = Vue.createApp({
-  // คอมเมนต์: ใช้ Vue.createApp เพื่อสร้างอินสแตนซ์ของแอป
   setup() {
-    // คอมเมนต์: ฟังก์ชัน setup ของ Composition API
+    // ดึง Composition API จาก Vue Global
+    const { onMounted, onUnmounted, ref } = Vue;
 
-    const { onMounted, onUnmounted, ref } = Vue; // คอมเมนต์: ดึง lifecycle hook และ ref จาก Vue
-    const searchBarRef = ref(null); // คอมเมนต์: Ref สำหรับอ้างอิงช่องค้นหาใน Template
+    // สร้าง Ref สำหรับกล่องค้นหา (Search Input DOM)
+    const searchBarRef = ref(null);
 
     // ----------------------------------------------------
-    // ⭐ Hotkey & Element Binding (ผูก Hotkey และเรียกฟังก์ชันผูก Ref)
+    // ⭐ Lifecycle Hooks
     // ----------------------------------------------------
     onMounted(() => {
-      // คอมเมนต์: ตอน component ถูก mount
-      window.addEventListener("keydown", Hotkey.handleKeyDown); // คอมเมนต์: ให้เริ่มฟัง event กดปุ่มคีย์บอร์ด
+      // ผูก Event Listener สำหรับคีย์ลัด (Hotkeys)
+      window.addEventListener("keydown", Hotkey.handleKeyDown);
 
-      // คอมเมนต์: เรียกฟังก์ชันภายนอก (AppGui) เพื่อจัดการผูก ref ช่องค้นหา
-      window.AppGui.bindSearchRef(searchBarRef); // คอมเมนต์: ส่ง ref ช่องค้นหาไปให้ AppGui จัดการผูกกับ AppState.searchRef
-    }); // คอมเมนต์: จบ onMounted
+      // ส่ง Ref ของกล่องค้นหาไปให้ AppGui จัดการ (เช่น สั่ง Focus)
+      window.AppGui.bindSearchRef(searchBarRef);
+    });
 
     onUnmounted(() => {
-      // คอมเมนต์: ตอน component ถูกทำลาย
-      window.removeEventListener("keydown", Hotkey.handleKeyDown); // คอมเมนต์: เอา event listener ออกเพื่อไม่ให้รั่ว
-    }); // คอมเมนต์: จบ onUnmounted
+      // ลบ Event Listener เมื่อปิดแอป (Cleanup)
+      window.removeEventListener("keydown", Hotkey.handleKeyDown);
+    });
 
     // ----------------------------------------------------
-    // ⭐ Return ให้ UI ใช้ (Pure Hub)
+    // ⭐ Return: ส่งตัวแปรและฟังก์ชันออกไปให้ HTML ใช้
     // ----------------------------------------------------
     return {
-      // คอมเมนต์: คืนค่าตัวแปรและฟังก์ชันให้ template ใช้
+      // --- หมวด UI State (ควบคุมการเปิด/ปิดเมนู) ---
+      isMenuOpenFilterSearch: AppState.isMenuOpenFilterSearch, // เมนูตัวกรอง
+      isOpenModalLead: AppState.isOpenModalLead, // โมดอลลูกค้า
+      isOpenSubContractDialog: AppState.isOpenSubContractDialog, // โมดอลสัญญาย่อย
+      isOpenModalLeadAutoFill: AppState.isOpenModalLeadAutoFill, // โมดอล AutoFill
+      isOpenModalLog: AppState.isOpenModalLog, // โมดอล Log
+      isOpenModalRecordCallResult: AppState.isOpenModalRecordCallResult, // โมดอลผลการโทร
+      isOpenModalCarSettings: AppState.isOpenModalCarSettings, // โมดอลตั้งค่ารถ
+      isOpenModalCarPriceSelector: AppState.isOpenModalCarPriceSelector, // โมดอลเลือกราคากลาง
 
-      // --- UI State ---
-      isMenuOpenFilterSearch: AppState.isMenuOpenFilterSearch, // คอมเมนต์: เมนูตัวกรอง
-      isOpenModalLead: AppState.isOpenModalLead, // คอมเมนต์: Modal เพิ่ม Lead
-      isOpenSubContractDialog: AppState.isOpenSubContractDialog, // คอมเมนต์: Dialog สัญญาย่อย
-      isOpenModalLeadAutoFill: AppState.isOpenModalLeadAutoFill, // คอมเมนต์: Modal Autofill
-      isOpenModalLog: AppState.isOpenModalLog, // คอมเมนต์: Modal Log
-      isOpenModalRecordCallResult: AppState.isOpenModalRecordCallResult, // คอมเมนต์: Modal Call Result
-      isOpenModalCarSettings: AppState.isOpenModalCarSettings, // คอมเมนต์: Modal Car Settings
-      isOpenModalCarPriceSelector: AppState.isOpenModalCarPriceSelector, // คอมเมนต์: Modal Car Price
+      // --- หมวด Tabs & Switches (ตัวเลือกหน้าจอ) ---
+      leadTab: AppState.leadTab, // แท็บหลักในหน้าลูกค้า
+      callResultTab: AppState.callResultTab, // แท็บผลการติดตาม
+      carSettingTab: AppState.carSettingTab, // แท็บตั้งค่ารถ
+      Switch_newCustomer: AppState.Switch_newCustomer, // สวิตช์ลูกค้าใหม่
 
-      // --- Tabs & Switches ---
-      leadTab: AppState.leadTab, // คอมเมนต์: แท็บใน Modal Lead
-      callResultTab: AppState.callResultTab, // คอมเมนต์: แท็บใน Call Result
-      carSettingTab: AppState.carSettingTab, // คอมเมนต์: แท็บใน Car Settings
-      Switch_newCustomer: AppState.Switch_newCustomer, // คอมเมนต์: Switch ลูกค้าใหม่
+      // --- หมวด Config Items (ตัวเลือก Dropdown) ---
+      occupationItems: AppState.occupationItems, // รายการอาชีพ
+      sourceItems: AppState.sourceItems, // รายการแหล่งที่มา
+      isOpenModalConfigSettings: AppState.isOpenModalConfigSettings, // โมดอลตั้งค่า Config
+      configSettingTab: AppState.configSettingTab, // แท็บในหน้า Config
 
-      // --- Config Items (สำหรับ Dropdown) ---
-      occupationItems: AppState.occupationItems, // คอมเมนต์: รายการอาชีพ
-      sourceItems: AppState.sourceItems, // คอมเมนต์: รายการแหล่งที่มา
-      isOpenModalConfigSettings: AppState.isOpenModalConfigSettings, // คอมเมนต์: Modal การตั้งค่า Config
-      configSettingTab: AppState.configSettingTab, // คอมเมนต์: แท็บการตั้งค่า Config
+      // --- หมวด Search (ระบบค้นหา) ---
+      searchRef: AppState.searchRef, // ตัวแปรค้นหา (Reactive)
+      searchQuery: AppState.searchQuery, // ข้อความค้นหา
+      searchBarRef, // DOM Reference ของช่องค้นหา
 
-      // --- Search ---
-      searchRef: AppState.searchRef, // คอมเมนต์: Ref ช่องค้นหา (Activator)
-      searchQuery: AppState.searchQuery, // คอมเมนต์: ข้อความค้นหา
-      searchBarRef, // คอมเมนต์: Ref ผูกกับ Element จริง
+      // --- หมวด Pagination (การแบ่งหน้า) ---
+      itemsPerPage: AppState.itemsPerPage, // จำนวนรายการต่อหน้า
+      totalPages: AppState.totalPages, // จำนวนหน้าทั้งหมด
+      page: AppState.page, // หน้าปัจจุบัน
+      pagedLeads: AppState.pagedLeads, // ข้อมูล Lead ในหน้านั้นๆ
 
-      // --- Pagination ---
-      itemsPerPage: AppState.itemsPerPage, // คอมเมนต์: จำนวนต่อหน้า
-      totalPages: AppState.totalPages, // คอมเมนต์: จำนวนหน้าทั้งหมด
-      page: AppState.page, // คอมเมนต์: หน้าปัจจุบัน
-      pagedLeads: AppState.pagedLeads, // คอมเมนต์: ข้อมูล Lead ที่แบ่งหน้าแล้ว
+      // --- หมวด Data Store (ข้อมูลดิบ) ---
+      leadItems: Store.data.leadItems, // รายการ Lead ทั้งหมด
+      leadHeaders: Store.data.leadHeaders, // หัวตาราง Lead
 
-      // --- Data from Store ---
-      leadItems: Store.data.leadItems, // คอมเมนต์: ข้อมูลดิบจาก Store
-      leadHeaders: Store.data.leadHeaders, // คอมเมนต์: หัวตาราง
+      // --- หมวด Lead Logic (จัดการลูกค้า) ---
+      leadForm: LeadApp.form, // ฟอร์มลูกค้า (Reactive)
+      LeadApp: LeadApp, // ส่ง LeadApp ไปทั้งก้อน (เผื่อใช้)
+      addLead: LeadApp.add, // ฟังก์ชันเพิ่มลูกค้า
+      updateLead: LeadApp.update, // ฟังก์ชันอัปเดต
+      deleteLead: LeadApp.delete, // ฟังก์ชันลบ
+      handleAddConfigItem: LeadApp.handleAddConfigItem, // ฟังก์ชันเพิ่มตัวเลือก Dropdown
 
-      // --- Lead Logic ---
-      leadForm: LeadApp.form, // คอมเมนต์: ฟอร์มข้อมูล
-      LeadApp: LeadApp, // คอมเมนต์: ส่ง Object หลักไปเผื่อเรียกฟังก์ชันย่อย
-      addLead: LeadApp.add, // คอมเมนต์: เรียกฟังก์ชัน add โดยตรง
-      updateLead: LeadApp.update, // คอมเมนต์: เรียกฟังก์ชัน update โดยตรง
-      deleteLead: LeadApp.delete, // คอมเมนต์: เรียกฟังก์ชัน delete โดยตรง
-      handleAddConfigItem: LeadApp.handleAddConfigItem, // คอมเมนต์: ฟังก์ชันเพิ่ม Config
+      // --- หมวด Contract Logic (จัดการสัญญา) ---
+      ContractApp: window.ContractApp, // ส่ง ContractApp
+      addEmptyContract: window.ContractApp.addEmptyContract, // ฟังก์ชันเพิ่มสัญญา
+      resetNewContractForm: window.ContractApp.resetNewContractForm, // ฟังก์ชันรีเซ็ตฟอร์มสัญญา
 
-      // --- Contract Actions ---
-      addEmptyContract: LeadApp.addEmptyContract, // คอมเมนต์: เพิ่มสัญญาเปล่า
-      resetNewContractForm: LeadApp.resetNewContractForm, // คอมเมนต์: รีเซ็ตฟอร์มสัญญา
+      // --- หมวด Asset Logic (จัดการสินทรัพย์) ---
+      AssetApp: window.AssetApp, // ✅ ต้องเพิ่มบรรทัดนี้ เพื่อให้ HTML เรียก AssetApp.add() ได้
 
-      // --- GUI Actions ---
-      toggleMenu: AppGui.toggleMenu, // คอมเมนต์: เปิด/ปิดเมนู
-      closeAllMenus: AppGui.closeAllMenus, // คอมเมนต์: ปิดทั้งหมด
+      // --- หมวด GUI Actions (จัดการหน้าจอทั่วไป) ---
+      toggleMenu: AppGui.toggleMenu, // สลับเปิด/ปิดเมนู
+      closeAllMenus: AppGui.closeAllMenus, // ปิดเมนูทั้งหมด
 
-      // --- Modules & Helpers ---
-      FileSystem, // คอมเมนต์: จัดการไฟล์
-      TestData, // คอมเมนต์: ข้อมูลทดสอบ
-      AppApi, // คอมเมนต์: API นำเข้า/ส่งออก
-      notify: AppNotifications.show, // คอมเมนต์: แจ้งเตือน
-      AppSetting, // คอมเมนต์: การตั้งค่า
+      // --- หมวด Modules & Helpers (เครื่องมือเสริม) ---
+      FileSystem, // ระบบจัดการไฟล์
+      TestData, // ข้อมูลทดสอบ
+      AppApi, // API เชื่อมต่อภายนอก
+      notify: AppNotifications.show, // ระบบแจ้งเตือน (Toast)
+      AppSetting, // การตั้งค่าระบบ
 
-      // --- Domain Logics ---
-      CarApp, // คอมเมนต์: Logic รถยนต์
-      CarLogic: CarApp, // คอมเมนต์: Alias เพื่อความเข้ากันได้
-      FinanceApp, // คอมเมนต์: Logic การเงิน
-    }; // คอมเมนต์: จบการคืนค่าจาก setup()
-  }, // คอมเมนต์: จบฟังก์ชัน setup
-}); // คอมเมนต์: จบการสร้างแอป Vue.createApp
+      // --- หมวด Domain Logics อื่นๆ ---
+      CarApp, // ระบบจัดการรถ
+      CarLogic: CarApp, // (Alias ชื่อเดิม)
+      FinanceApp, // ระบบไฟแนนซ์
+    };
+  },
+});
 
 // --------------------------------------------------------
-// ⭐ สั่งการโดย SystemInit
+// ⭐ System Init: ลงทะเบียนและเริ่มทำงาน
 // --------------------------------------------------------
-
-// คอมเมนต์: 1. ลงทะเบียน Component ภายนอก
-window.SystemInit.registerComponents(app);
-
-// คอมเมนต์: 2. สร้าง Vuetify และ Mount App โดยรอการโหลดข้อมูลเริ่มต้น
-window.SystemInit.mountApp(app);
+window.SystemInit.registerComponents(app); // ลงทะเบียน Component (ถ้ามี)
+window.SystemInit.mountApp(app); // Mount ลง index.html

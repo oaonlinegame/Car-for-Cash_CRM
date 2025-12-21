@@ -396,3 +396,30 @@ body {
 .drag-over {
   border-top: 2px solid #1565c0 !important;
 }
+
+/* -------------------------------------------------------
+   🟦 DIALOG UTILITIES
+------------------------------------------------------- */
+/* บังคับความสูง Dialog ให้เท่ากัน และจัดการ Scroll ภายใน */
+/* เพิ่มส่วนนี้เพื่อ fix ความสูง tab ใน dialog */
+.dialog-tabs-window {
+  flex-grow: 1 !important; /* ให้ยืดเต็มพื้นที่ */
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  min-height: 0 !important; /* ป้องกัน flex bug */
+}
+
+.dialog-tabs-window-item {
+  height: 100% !important; /* บังคับให้แต่ละ tab item สูงเท่ากัน */
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.dialog-tab-content {
+  flex-grow: 1 !important;
+  overflow-y: auto !important; /* Scroll เฉพาะ content ใน tab */
+  padding: 16px; /* เพิ่ม padding ถ้าต้องการ */
+  background: #fafafa; /* สีพื้นหลังให้เหมือนเดิม */
+}
