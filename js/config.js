@@ -1,8 +1,15 @@
 // js/config.js
+// --------------------------------------------------------
+// ⚙️ AppConfig: จัดการการตั้งค่าและตัวเลือกต่างๆ (Dropdowns)
+// --------------------------------------------------------
+// Architecture Note:
+// - ทำหน้าที่ Load/Save ค่า Config ผ่าน Repository
+// - ห้ามเรียก AppDexie โดยตรง ต้องผ่าน Repository.settings
+// --------------------------------------------------------
 
 const AppConfig = {
   // ----------------------------------------------------
-  // ⭐ Config Keys (เพิ่มให้ครบทุกตัวแปร)
+  // ⭐ Config Keys
   // ----------------------------------------------------
   Keys: {
     OCCUPATION: "occupationItems",
@@ -13,7 +20,7 @@ const AppConfig = {
     COLOR: "carColorItems",
     FINANCE: "financeCompanyItems",
 
-    // ✅ เพิ่มใหม่ให้ครบ
+    // ✅ ครบถ้วนตามที่คุณต้องการ
     PRODUCT: "productItems",
     CROSS_SELL: "crossSellItems",
     TITLE: "titleItems",
@@ -22,36 +29,59 @@ const AppConfig = {
     FUEL: "fuelItems",
   },
 
-  // ... (ฟังก์ชัน save และ load คงเดิม ไม่ต้องแก้) ...
+  // ----------------------------------------------------
+  // 💾 Save Config
+  // ----------------------------------------------------
   async save(key, list) {
     if (!key || !Array.isArray(list)) return;
+
+    // 🛡️ Guard Clause: ตรวจสอบว่า Repository พร้อมใช้งานหรือไม่
+    // (เปลี่ยนจากเช็ค AppDexie เป็น Repository เพื่อความถูกต้องตาม Architecture)
     if (
-      typeof AppDexie === "undefined" ||
-      typeof AppDexie.settings === "undefined"
-    )
+      typeof Repository === "undefined" ||
+      typeof Repository.settings === "undefined"
+    ) {
+      console.warn("⚠️ AppConfig: Repository not ready, cannot save config.");
       return;
+    }
+
     try {
       const plainList = JSON.parse(JSON.stringify(list));
-      await AppDexie.settings.set(key, plainList);
+
+      // ✅ FIX: เรียกใช้ Repository.settings.set แทน AppDexie โดยตรง
+      await Repository.settings.set(key, plainList);
+
       console.log(`💾 AppConfig: บันทึก "${key}" สำเร็จ`);
     } catch (error) {
       console.error(`❌ AppConfig: บันทึก "${key}" พลาด`, error);
     }
   },
 
+  // ----------------------------------------------------
+  // 📂 Load Config
+  // ----------------------------------------------------
   async load(key) {
+    // ตรวจสอบ Global State และ Repository
     if (!key || typeof AppState === "undefined") return [];
-    if (typeof AppDexie === "undefined") return [];
+    if (typeof Repository === "undefined") {
+      console.warn("⚠️ AppConfig: Repository not ready, cannot load config.");
+      return [];
+    }
+
     try {
-      const dbResult = await AppDexie.settings.get(key);
-      const dbList = Array.isArray(dbResult) ? dbResult : [];
+      // ✅ FIX: เรียกใช้ Repository.settings.get แทน AppDexie โดยตรง
+      // Repository จัดการเรื่อง .value ให้แล้ว เราจะได้ array กลับมาเลย หรือ null
+      const dbList = await Repository.settings.get(key);
+
       const defaultsObj = window.AppConfigDefaults || {};
       const defaultList = Array.isArray(defaultsObj[key])
         ? defaultsObj[key]
         : [];
 
       let finalList = [];
-      if (dbList.length > 0) {
+
+      // Merge Logic (คงเดิม)
+      if (Array.isArray(dbList) && dbList.length > 0) {
         finalList = [...dbList];
         const dbSet = new Set(dbList.map((item) => String(item).trim()));
         defaultList.forEach((defItem) => {
@@ -63,12 +93,16 @@ const AppConfig = {
         finalList = [...defaultList];
       }
 
+      // อัปเดต State
       if (AppState[key] && AppState[key].value !== undefined) {
         AppState[key].value = Array.from(finalList);
       }
-      if (finalList.length > dbList.length) {
+
+      // ถ้าข้อมูลใน DB น้อยกว่าที่ Merge ได้ (หรือไม่มีเลย) ให้บันทึกกลับลง DB
+      if (!Array.isArray(dbList) || finalList.length > dbList.length) {
         await this.save(key, finalList);
       }
+
       return finalList;
     } catch (error) {
       console.error(`❌ AppConfig: โหลด "${key}" พลาด`, error);
@@ -77,28 +111,20 @@ const AppConfig = {
   },
 
   // ----------------------------------------------------
-  // 📂 loadAllConfigs()
-  // ✅ แก้ไข: สั่งโหลดให้ครบทุกตัวแปร
+  // 🔄 Load All Configs
   // ----------------------------------------------------
   async loadAllConfigs() {
     console.log("📂 AppConfig: เริ่มโหลด Configs ทั้งหมด...");
 
-    // กลุ่มเดิม
-    await this.load(this.Keys.OCCUPATION);
-    await this.load(this.Keys.SOURCE);
-    await this.load(this.Keys.BRAND);
-    await this.load(this.Keys.CAMPAIGN);
-    await this.load(this.Keys.REJECT_REASON);
-    await this.load(this.Keys.COLOR);
-    await this.load(this.Keys.FINANCE);
+    // ใช้ Promise.all เพื่อโหลดพร้อมกัน (Performance Optimization)
+    // หรือจะ await ทีละตัวก็ได้ แต่ Promise.all เร็วกว่า
+    const keysToLoad = Object.values(this.Keys);
 
-    // ✅ กลุ่มใหม่ (ต้องสั่งโหลด ไม่งั้นมันจะไม่ดึงจาก DB)
-    await this.load(this.Keys.PRODUCT);
-    await this.load(this.Keys.CROSS_SELL);
-    await this.load(this.Keys.TITLE);
-    await this.load(this.Keys.CAR_TYPE);
-    await this.load(this.Keys.GEARBOX);
-    await this.load(this.Keys.FUEL);
+    for (const key of keysToLoad) {
+      await this.load(key);
+    }
+
+    console.log("✅ AppConfig: โหลด Configs ทั้งหมดเสร็จสิ้น");
   },
 };
 
