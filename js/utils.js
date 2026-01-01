@@ -1,117 +1,116 @@
-// utils.js
+// js/utils.js
 // --------------------------------------------------------
-// 📘 ไฟล์นี้เก็บฟังก์ชันที่ใช้ซ้ำหลายจุดภายในระบบ
-// --------------------------------------------------------
-// หมายเหตุสำคัญ:
-// - ไม่มีการใช้ localStorage แล้ว
-// - ใช้ Dexie เป็นตัวเก็บข้อมูลถาวร 100%
-// - ฟังก์ชันกรองข้อมูล filterLeads() ถูกปรับให้รองรับ Lead แบบสั้น
+// 📘 Utilities & Helper Functions
 // --------------------------------------------------------
 
-// --------------------------------------------------------
-// ⭐ อ็อบเจกต์ Utils รวมฟังก์ชันที่ใช้ซ้ำทั้งหมด
-// --------------------------------------------------------
 const Utils = {
   // ----------------------------------------------------
-  // 🔍 filterLeads(list, query)
-  // ฟังก์ชันกรองข้อมูล Lead แบบ Smart Search (โครงสร้างใหม่ B)
+  // 📦 Store Management
   // ----------------------------------------------------
+  storeSetItems(type, list) {
+    const key = `${type.toLowerCase()}Items`;
+    if (Store.data[key] === undefined) {
+      console.warn(`⚠️ Utils: ไม่พบ key ใน Store: ${key}`);
+      return;
+    }
+    if (!Array.isArray(list)) list = [];
+
+    // Freeze เพื่อ Performance แต่ต้องระวังหากต้องการแก้ค่าใน Array โดยตรง
+    const optimizedList = list.map((item) => Object.freeze(item));
+    Store.data[key] = optimizedList;
+  },
+
+  storeGetItems(type) {
+    const key = `${type.toLowerCase()}Items`;
+    return Store.data[key] || [];
+  },
+
+  // ----------------------------------------------------
+  // 🛠️ General Utilities
+  // ----------------------------------------------------
+
+  /**
+   * ✅ Optimized Search Logic
+   * แก้ไข: ตรวจสอบทีละ Field แทนการต่อ String (String Concatenation)
+   * ซึ่งช่วยลดการใช้ Memory และ CPU มหาศาลเมื่อข้อมูลเยอะ
+   */
   filterLeads(list, query) {
     if (!Array.isArray(list)) return [];
-    if (!query || query.trim() === "") return list;
+    if (!query || typeof query !== "string" || query.trim() === "") return list;
 
+    // เตรียมคำค้นหา: แยกคำ, ตัดช่องว่าง, ทำเป็นตัวเล็ก
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return list;
 
     return list.filter((lead) => {
-      const text = [
-        lead.firstName,
-        lead.nickName,
-        lead.phones,
-        lead.status,
-        lead.occupation,
-        lead.address,
-        lead.province,
-        lead.postalCode,
-        lead.prospectStage,
-        lead.rating,
-        lead.note,
-        lead.createDate,
-      ]
-        .join(" ")
-        .toLowerCase();
+      // Logic: ทุกคำค้นหา (AND) ต้องปรากฏอยู่ใน Field ใด Field หนึ่ง
+      return terms.every((term) => {
+        // เช็คเร็วที่สุด: เช็ค Field หลักก่อน
+        if (lead.firstName && lead.firstName.toLowerCase().includes(term))
+          return true;
+        if (lead.phones && lead.phones.includes(term)) return true;
 
-      return terms.every((t) => text.includes(t));
+        // เช็ค Field รอง
+        if (lead.nickName && lead.nickName.toLowerCase().includes(term))
+          return true;
+        if (lead.status && lead.status.toLowerCase().includes(term))
+          return true;
+        if (lead.province && lead.province.toLowerCase().includes(term))
+          return true;
+
+        // เช็ค Field ลึก (ถ้าจำเป็น)
+        if (lead.occupation && lead.occupation.toLowerCase().includes(term))
+          return true;
+        if (lead.note && lead.note.toLowerCase().includes(term)) return true;
+
+        return false; // ถ้าไม่เจอเลยในทุก Field
+      });
     });
   },
 
-  // ⚡ NEW FUNCTION: chunkArray(array, size)
-  // แบ่ง array ออกเป็นกลุ่มย่อยๆ (เช่น [1,2,3,4] → [[1,2], [3,4]])
   chunkArray(array, size) {
-    if (!Array.isArray(array) || size <= 0) return []; // ตรวจสอบว่าเป็น Array และ size > 0
-
-    const chunked = []; // Array สำหรับเก็บกลุ่มย่อย
+    if (!Array.isArray(array) || size <= 0) return [];
+    const chunked = [];
     for (let i = 0; i < array.length; i += size) {
-      // วนลูปตามขนาด size
-      // slice เพื่อตัด array ออกเป็นกลุ่มตาม size ที่กำหนด
-      chunked.push(array.slice(i, i + size)); // ตัด Array ย่อยและเพิ่มเข้า Array หลัก
+      chunked.push(array.slice(i, i + size));
     }
-    return chunked; // คืนค่า Array ที่ถูกแบ่งเป็นกลุ่มแล้ว
+    return chunked;
   },
 
-  // ----------------------------------------------------
-  // 🔢 sortData(list, key, order)
-  // ฟังก์ชันเรียงข้อมูล
-  // ----------------------------------------------------
   sortData(list, key, order = "asc") {
     if (!Array.isArray(list)) return [];
-
     const sorted = [...list];
-
     sorted.sort((a, b) => {
       const A = a[key];
       const B = b[key];
+      if (A === B) return 0;
 
-      // ถ้าเป็นตัวเลข → เรียงแบบตัวเลข
-      if (!isNaN(A) && !isNaN(B)) {
-        return order === "asc" ? A - B : B - A;
+      // Handle null/undefined safely
+      const valA = A ?? "";
+      const valB = B ?? "";
+
+      if (!isNaN(valA) && !isNaN(valB) && valA !== "" && valB !== "") {
+        return order === "asc" ? valA - valB : valB - valA;
       }
-
-      // ถ้าเป็น string → ใช้ localeCompare
-      const result = String(A).localeCompare(String(B));
-      return order === "asc" ? result : -result;
+      const strResult = String(valA).localeCompare(String(valB));
+      return order === "asc" ? strResult : -strResult;
     });
-
-    return sorted; // คืนค่าที่เรียงแล้ว
+    return sorted;
   },
 
-  // ----------------------------------------------------
-  // 🗓️ formatDate(dateString)
-  // แปลงวันที่ให้เป็นรูปแบบ DD/MM/YYYY
-  // ----------------------------------------------------
   formatDate(dateString) {
-    if (!dateString) return "-"; // ถ้าไม่มีค่า → แสดง "-"
-    const date = new Date(dateString); // แปลงเป็น Date Object
-    if (isNaN(date.getTime())) return "-"; // ถ้าค่าวันที่ผิด → แสดง "-"
-
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "-";
     const d = String(date.getDate()).padStart(2, "0");
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const y = date.getFullYear();
-
-    return `${d}/${m}/${y}`; // คืนค่าวันที่แบบไทยอ่านง่าย
+    return `${d}/${m}/${y}`;
   },
 
-  // ----------------------------------------------------
-  // 🧠 generateId(prefix)
-  // สร้างรหัสไม่ซ้ำ เช่น ID_1731653920000_123
-  // ----------------------------------------------------
   generateId(prefix = "ID") {
-    const time = Date.now(); // เวลาเป็นมิลลิวินาที
-    const rand = Math.floor(Math.random() * 1000); // เลขสุ่ม 0-999
-    return `${prefix}_${time}_${rand}`; // คืนค่ารหัสที่ไม่ซ้ำ
+    return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   },
 };
 
-// --------------------------------------------------------
-// 🌍 เผยแพร่ Utils ให้ไฟล์อื่นสามารถเรียกใช้ได้
-// --------------------------------------------------------
 window.Utils = Utils;

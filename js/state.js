@@ -1,131 +1,78 @@
-// state.js
+// js/state.js
 // --------------------------------------------------------
-// 📘 ไฟล์นี้เก็บสถานะ (State) ทั้งหมดของระบบ
-// ใช้กับ Vue 3 Composition API (ref/reactive)
-// ไม่มีการใช้งาน LocalStorage อีกต่อไป
+// 📘 UI State Container (ตัวแปรสถานะ UI เท่านั้น)
 // --------------------------------------------------------
 
-// สร้างอ็อบเจกต์ AppState เก็บสถานะ UI และค่าภายในระบบ
 const AppState = {
   // ------------------------------------------------------
-  // 🧭 UI states: สถานะเปิด/ปิดเมนูและ modal ต่าง ๆ
+  // 🧭 สถานะการแสดงผล (เปิด/ปิด Modals และ Menus)
   // ------------------------------------------------------
-  isMenuOpenFilterSearch: Vue.ref(false), // เปิด/ปิดเมนูตัวกรองค้นหา
-  isOpenModalLead: Vue.ref(false), // เปิด/ปิด modal เพิ่ม Lead
-  isOpenSubContractDialog: Vue.ref(false), // เปิด/ปิด modal ย่อย สัญญา
-  isOpenModalLeadAutoFill: Vue.ref(false), // เปิด/ปิด modal autofill lead
-  isOpenModalLog: Vue.ref(false), // เปิด/ปิด modal บันทึกการโทร/ติดตาม
-  isOpenModalRecordCallResult: Vue.ref(false), // เปิด/ปิด modal บันทึกผลการโทร
-  isOpenModalCarSettings: Vue.ref(false), // เปิด/ปิด modal การตั้งค่าข้อมูลรถยนต์
-  callResultTab: Vue.ref("conversation"), // แท็บของ modal บันทึกผลการโทร (conversation/result)
-  carSettingTab: Vue.ref("price_list"), // แท็บของ modal การตั้งค่าข้อมูลรถยนต์ (price_list/other_settings)
-  isOpenModalCarPriceSelector: Vue.ref(false), // เปิด/ปิด modal เลือกราคากลางรถยนต์
+  isMenuOpenFilterSearch: Vue.ref(false), // เมนูตัวกรองค้นหา
+  isOpenModalLead: Vue.ref(false), // หน้าต่างเพิ่ม/แก้ไข Lead
+  isOpenSubContractDialog: Vue.ref(false), // หน้าต่างสัญญาย่อย
+  isOpenModalLeadAutoFill: Vue.ref(false), // หน้าต่าง Autofill ข้อมูล
+  isOpenModalLog: Vue.ref(false), // หน้าต่างบันทึก Log
+  isOpenModalRecordCallResult: Vue.ref(false), // หน้าต่างบันทึกผลการโทร
+  isOpenModalCarSettings: Vue.ref(false), // หน้าต่างตั้งค่ารถยนต์
+  isOpenModalCarPriceSelector: Vue.ref(false), // หน้าต่างเลือกราคากลาง
 
   // ------------------------------------------------------
-  // 🔍 Search
+  // 📑 สถานะแท็บและการนำทาง (Tabs & Navigation)
   // ------------------------------------------------------
-  searchRef: Vue.ref(null), // อ้างอิงช่องค้นหา (ใช้เป็น activator)
-  searchQuery: Vue.ref(""), // คำค้นหาในช่อง Search หลัก
-  searchQueryDebounced: Vue.ref(""), // ค่าค้นหาที่ถูกหน่วงเวลา (Debounced)
+  leadTab: Vue.ref("leadInfo"), // แท็บหลักในหน้าต่าง Lead (ข้อมูลลูกค้า / สัญญา)
+  activeContractTab: Vue.ref(null), // ID ของสัญญาที่กำลังดูอยู่
+  callResultTab: Vue.ref("conversation"), // แท็บในหน้าบันทึกผลการโทร
+  carSettingTab: Vue.ref("price_list"), // แท็บในหน้าตั้งค่ารถยนต์
 
-  // ------------------------------------------------------
-  // 🎹 Hotkey (คีย์ลัด)
-  // ------------------------------------------------------
-  hotkeysEnabled: Vue.ref(true), // เปิด/ปิดระบบปุ่มลัด
-  hotkeyMap: Vue.reactive({
-    // mapping ปุ่มลัด → action
-    openLead: "Alt+L", // เปิด modal lead
-    closeAll: "Alt+C", // ปิดทุกเมนู
-    openBot: "Alt+B", // เปิดระบบบอท
-  }),
-
-  // ------------------------------------------------------
-  // 📄 Pagination (ระบบแบ่งหน้า)
-  // ------------------------------------------------------
-  page: Vue.ref(1), // หน้าปัจจุบัน
-  itemsPerPage: Vue.ref(10), // จำนวนรายการต่อหน้า (5,10,20 หรือ All)
-  totalPages: Vue.ref(1), // จำนวนหน้าทั้งหมด
-  pagedLeads: Vue.ref([]), // รายการ lead เฉพาะหน้าปัจจุบัน
-
-  // ------------------------------------------------------
-  // 📌 filteredLeads (ค่าสำหรับเก็บข้อมูลหลังกรอง)
-  // หมายเหตุ: จะถูกตั้งค่าใน gui.js → setupComputed()
-  // ------------------------------------------------------
-  filteredLeads: Vue.ref([]), // รายการที่ผ่านการค้นหาแล้ว
-
-  // lead dialog
-  Switch_newCustomer: Vue.ref(false),
-  // ------------------------------------------------------
-  // 🆕 Contract Tabs (Browser-style TAB ระดับที่ 1)
-  // ------------------------------------------------------
-  contractTab: Vue.ref("new"), // แท็บของสัญญา (#1,#2,+) ค่าเริ่มต้น = new (แท็บ +)
-
-  // ------------------------------------------------------
-  // 🆕 Contract Inner Tabs (TAB ระดับที่ 2 → ALL/info/finance/...)
-  // ------------------------------------------------------
-  contractInnerTab: Vue.ref("all"), // ค่าเริ่มต้นอยู่ที่ ALL
-
-  // ------------------------------------------------------
-  // 🆕 Contract Expansion Panels (ใช้ใน TAB ALL)
-  // เปิดเป็นค่าเริ่มต้นทั้งหมด แต่ผู้ใช้พับได้
-  // ------------------------------------------------------
+  // สถานะแท็บย่อยของสัญญา (Contract Inner Tabs)
+  contractTab: Vue.ref("new"), // แท็บสัญญา เช่น #1, #2, หรือ new (สร้างใหม่)
+  contractInnerTab: Vue.ref("all"), // แท็บย่อยภายในสัญญา เช่น info, finance
   contractPanels: Vue.ref([
-    "info", // ข้อมูลสัญญา
-    "finance", // การเงิน
-    "status", // สถานะบัญชี
-    "asset", // ทรัพย์สิน
-    "history", // ประวัติย้อนหลัง
-    "other", // อื่น ๆ
+    // รายชื่อ Panel ที่เปิดอยู่ (Expansion Panels)
+    "info",
+    "finance",
+    "status",
+    "asset",
+    "history",
+    "other",
   ]),
 
   // ------------------------------------------------------
-  // 🆕 ฟอร์มสัญญาใหม่ (ใช้ตอนกด TAB +)
+  // 📝 ฟอร์มชั่วคราว (Temporary Form State)
   // ------------------------------------------------------
-  newContractForm: Vue.reactive({}), // จะถูก reset ทุกครั้งเวลาเปิด TAB +
+  newContractForm: Vue.reactive({}), // เก็บข้อมูลฟอร์มสัญญาใหม่ (ชั่วคราว)
+  Switch_newCustomer: Vue.ref(false), // สวิตช์เลือกสถานะลูกค้าใหม่ใน Dialog
 
   // ------------------------------------------------------
-  // 🆕 ฟังก์ชัน reset UI สัญญาทั้งหมด
-  // เรียกใช้ทุกครั้งเมื่อเปิด modal lead
+  // 🔍 สถานะการค้นหา (Search State)
   // ------------------------------------------------------
-  resetContractUI() {
-    // รีเซ็ตแท็บสัญญาให้เปิด TAB "+"
-    this.contractTab.value = this.contractTab.value = "new";
+  searchRef: Vue.ref(null), // อ้างอิง Element ช่องค้นหา
+  searchQuery: Vue.ref(""), // คำค้นหาปัจจุบัน
+  searchQueryDebounced: Vue.ref(""), // คำค้นหาที่ผ่านการหน่วงเวลา (Debounce) แล้ว
 
-    // รีเซ็ตแท็บย่อยให้ไปที่ ALL
-    this.contractInnerTab.value = "all";
+  // ------------------------------------------------------
+  // 📄 สถานะการแบ่งหน้า (Pagination) [ปรับปรุงใหม่]
+  // ------------------------------------------------------
+  page: Vue.ref(1), // หน้าปัจจุบัน
+  itemsPerPage: Vue.ref(10), // จำนวนรายการต่อหน้า
+  totalPages: Vue.ref(1), // จำนวนหน้าทั้งหมด
+  totalItems: Vue.ref(0), // ✅ [เพิ่มใหม่] เก็บจำนวนรายการทั้งหมดใน DB (เพื่อนับหน้า)
 
-    // รีเซ็ต Expansion Panels ให้เปิดทุกอันเป็นค่าเริ่มต้น
-    this.contractPanels.value = [
-      "info",
-      "finance",
-      "status",
-      "asset",
-      "history",
-      "other",
-    ];
+  // ข้อมูลผลลัพธ์ที่คำนวณแล้ว (ถูกจัดการโดย gui.js)
+  pagedLeads: Vue.ref([]), // รายการ Lead ในหน้าปัจจุบัน
+  filteredLeads: Vue.ref([]), // รายการ Lead ทั้งหมดที่ผ่านการกรอง (อาจไม่ได้ใช้แล้ว แต่เก็บไว้กัน Error)
 
-    // ล้างฟอร์มสัญญาใหม่
-    if (typeof LeadApp?.resetNewContractForm === "function") {
-      LeadApp.resetNewContractForm(); // เรียกจาก LeadApp (จะเพิ่มในไฟล์ lead.js)
-    }
-  },
-  // ⭐ แท็บของ Modal Lead (leadInfo / contracts)
-  leadTab: Vue.ref("leadInfo"), // ค่าเริ่มต้นอยู่ที่แท็บข้อมูลลูกค้า
-  // ⭐ แท็บของสัญญาใน Modal Lead (ใช้เก็บ contract.id) // [ใหม่] เก็บ ID ของสัญญาที่กำลังถูกเปิดอยู่
-  activeContractTab: Vue.ref(null), // [ใหม่] ค่าเริ่มต้นเป็น null หรือ ID ของสัญญาแรกเมื่อเปิด Modal
-  // ⭐ เมื่อเปิด modal lead ครั้งแรก → สร้างแท็บสัญญาเปล่าให้ 1 อัน
-  onOpenLeadDialog() {
-    // ถ้ายังไม่มีสัญญาเลย → เพิ่ม tab เปล่า 1 อัน
-    if (!LeadApp.form.contracts || LeadApp.form.contracts.length === 0) {
-      LeadApp.addEmptyContract(); // ← ใช้ฟังก์ชันที่มีอยู่แล้ว
-    }
-
-    // ให้ TAB ไปที่สัญญาแรกแทน leadInfo ถ้าต้องการ
-    AppState.leadTab.value = "contract-0";
-  },
+  // ------------------------------------------------------
+  // 🎹 สถานะระบบ (System State)
+  // ------------------------------------------------------
+  hotkeysEnabled: Vue.ref(true), // เปิด/ปิด การใช้งานคีย์ลัด
+  hotkeyMap: Vue.reactive({
+    // การจับคู่ปุ่มคีย์ลัด
+    openLead: "Alt+L",
+    closeAll: "Alt+C",
+    openBot: "Alt+B",
+  }),
 };
 
-// --------------------------------------------------------
-// 🌍 export สู่ global ให้ไฟล์อื่นใช้งานได้
-// --------------------------------------------------------
+// ส่งออกให้ไฟล์อื่นเรียกใช้ได้ผ่าน window
 window.AppState = AppState;

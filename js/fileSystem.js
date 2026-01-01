@@ -1,48 +1,70 @@
-// fileSystem.js
+// js/fileSystem.js
 // --------------------------------------------------------
-// 📘 โมดูลช่วยจัดการไฟล์ (ดาวน์โหลด / เปิดไฟล์)
-// --------------------------------------------------------
-// หมายเหตุ:
-// - ใช้เพื่อ export CSV/VCF/ZIP ออกจาก browser
-// - ทำงานผ่าน Blob + <a download>
-// - ไม่มี LocalStorage
-// - ไม่มีการบันทึกถาวรในระบบ
+// 💾 File System Driver (จัดการระดับ Browser)
 // --------------------------------------------------------
 
-const FileSystem = {
-  // ----------------------------------------------------
-  // 🔽 downloadBlob(content, filename, mime)
-  // ฟังก์ชันดาวน์โหลดข้อมูลเป็นไฟล์
-  // ----------------------------------------------------
-  downloadBlob(content, filename, mime = "text/plain") {
-    const blob = new Blob([content], { type: mime }); // สร้าง Blob จากข้อมูล
-    const link = document.createElement("a"); // สร้างแท็ก <a> ชั่วคราว
-    link.href = URL.createObjectURL(blob); // สร้าง URL ให้ Blob
-    link.download = filename; // ตั้งชื่อไฟล์ดาวน์โหลด
-    document.body.appendChild(link); // เพิ่มลง DOM
-    link.click(); // สั่งดาวน์โหลด
-    document.body.removeChild(link); // เอาลิงก์ออก
-  },
+(function (global) {
+  "use strict";
 
-  // ----------------------------------------------------
-  // 📂 openFile()
-  // เปิดไฟล์จากเครื่องของผู้ใช้
-  // ----------------------------------------------------
-  async openFile() {
-    if (!window.showOpenFilePicker) {
-      // ถ้า browser ไม่รองรับ
-      alert("⚠️ เบราว์เซอร์นี้ไม่รองรับไฟล์ Picker");
-      return "";
-    }
+  const FileSystem = {
+    // ----------------------------------------------------
+    // ⭐ Download Logic
+    // ----------------------------------------------------
+    download(filename, content, mimeType) {
+      // 1. สร้าง Blob
+      const blob =
+        content instanceof Blob
+          ? content
+          : new Blob([content], { type: mimeType });
 
-    const [handle] = await window.showOpenFilePicker(); // ให้ผู้ใช้เลือกไฟล์
-    const file = await handle.getFile(); // อ่านไฟล์
-    const text = await file.text(); // แปลงเป็นข้อความ
-    return text; // คืนค่าข้อความ
-  },
-};
+      // 2. สร้าง URL
+      const url = URL.createObjectURL(blob);
 
-// --------------------------------------------------------
-// 🌍 export ออกสู่ global
-// --------------------------------------------------------
-window.FileSystem = FileSystem;
+      // 3. สร้าง Link ชั่วคราวแล้วกด
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+
+      // 4. Cleanup
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    },
+
+    // ----------------------------------------------------
+    // ⭐ Upload Logic (File Picker)
+    // ----------------------------------------------------
+    openFilePicker(accept, callback) {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = accept;
+      input.style.display = "none";
+
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        callback(file);
+      };
+
+      document.body.appendChild(input);
+      input.click();
+      document.body.removeChild(input);
+    },
+
+    // ----------------------------------------------------
+    // ⭐ File Reader Helper
+    // ----------------------------------------------------
+    readAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file);
+      });
+    },
+  };
+
+  global.FileSystem = FileSystem;
+})(window);

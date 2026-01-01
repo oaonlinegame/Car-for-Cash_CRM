@@ -2860,20 +2860,38 @@
  🧠 ลำดับการโหลดไฟล์ JavaScript 
  สำคัญมาก! แกนของระบบทำงานตาม Flow นี้เท่านั้น
 -------------------------------------------------------- -->
-    <!-- 1️⃣ โหลด State ก่อนสุด (ตัวแปร ref / reactive ของ Vue ทั้งหมด) -->
+    <!--โหลด State ก่อนสุด (ตัวแปร ref / reactive ของ Vue ทั้งหมด) -->
     <script src="./js/state.js"></script>
 
-    <!-- 2️⃣ โหลด Dexie (ฐานข้อมูล IndexedDB ของระบบ ต้องมาก่อน Store เสมอ) -->
+    <!-- โหลด Dexie (ฐานข้อมูล IndexedDB ของระบบ ต้องมาก่อน Store เสมอ) -->
     <script src="./js/dexie.js"></script>
 
-    <!-- 3️⃣ โหลด Store (ชั้น UI Memory สำหรับเก็บข้อมูลที่แสดงบนหน้าจอ) -->
+    <!--โหลด Repository (ฟังก์ชันติดต่อฐานข้อมูล Dexie) -->
+    <script src="./js/repository.js"></script>
+
+    <!--โหลด Store (ชั้น UI Memory สำหรับเก็บข้อมูลที่แสดงบนหน้าจอ) -->
     <script src="./js/store.js"></script>
 
-    <!-- 4️⃣ โหลด Utils (ฟังก์ชันช่วย เช่น ค้นหา / เรียงข้อมูล / จัดรูปแบบ) -->
+    <!--โหลด Utils (ฟังก์ชันช่วย เช่น ค้นหา / เรียงข้อมูล / จัดรูปแบบ) -->
     <script src="./js/utils.js"></script>
 
-    <!-- 5️⃣ โหลด GUI Logic (ฟังก์ชันเกี่ยวกับ UI: toggle, pagination, search) -->
+    <!--โหลด Data Specification (โครงสร้างข้อมูล Lead, Car, Log, Setting) -->
+    <script src="./js/dataSpec.js"></script>
+
+    <!--โหลด GUI Logic (ฟังก์ชันเกี่ยวกับ UI: toggle, pagination, search) -->
     <script src="./js/gui.js"></script>
+
+    <!-- โหลด Contract Logic (จัดการข้อมูลสัญญา) -->
+    <script src="./js/contract.js"></script>
+
+    <!-- โหลด Asset Logic (จัดการข้อมูลสินทรัพย์) -->
+    <script src="./js/asset.js"></script>
+
+    <!-- โหลด Finance Logic (ฟังก์ชันคำนวณสินเชื่อทั้งหมด) -->
+    <script src="./js/finance.js"></script>
+
+    <!-- โหลด Log Logic (จัดการข้อมูล Log) -->
+    <script src="./js/log.js"></script>
 
     <!-- 6️⃣ โหลด Lead Logic (เพิ่ม/ลบ/อัปเดต Lead สำหรับ Dexie + UI) -->
     <script src="./js/lead.js"></script>
@@ -2902,11 +2920,17 @@
     <!-- 14️⃣ โหลด FileSystem (ระบบดาวน์โหลดไฟล์ CSV/ZIP/VCF ผ่าน Blob) -->
     <script src="./js/fileSystem.js"></script>
 
-    <!-- ⭐ โหลด API (นำเข้า/ส่งออก CSV, ZIP, VCF → ต้องมาก่อน app.js) -->
+    <!-- โหลด API ตัวกลางส่งข้อมูล ไปยัง โปรแกรมภายนอก -->
     <script src="./js/api.js"></script>
+
+    <!-- โหลด Data Exchange (ระบบนำเข้า/ส่งออก ข้อมูลแบบต่างๆ) -->
+    <script src="./js/dataExchange.js"></script>
 
     <!-- ทดสอบค่าต่างๆ -->
     <script src="./js/testData.js"></script>
+
+    <!-- โหลดการตั้งค่าต่างๆ ของระบบ -->
+    <script src="./js/setting.js"></script>
 
     <!-- 15️⃣ โหลด App.js (ไฟล์ Hub หลัก รวมทุกโมดูล + Mount Vue) -->
     <script src="./js/app.js"></script>

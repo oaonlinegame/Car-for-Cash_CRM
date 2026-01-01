@@ -1,175 +1,70 @@
-// shortcutKey.js
+// js/shortcutKey.js
+// --------------------------------------------------------
+// ⌨️ Shortcut Key Manager
+// --------------------------------------------------------
+// ✅ Refactored: ตัด Engine ที่ซับซ้อนทิ้ง ใช้การเช็ค Key แบบตรงไปตรงมา
+// --------------------------------------------------------
 
-// ต้องพึ่งพา AppState และ AppGui จากภายนอก
-// สมมติว่าไฟล์นี้จะถูกโหลดหลังจาก state.js
-// และ AppGui/AppActions ถูกกำหนดไว้ใน gui.js หรือในโค้ดส่วนอื่น
+(function (global) {
+  "use strict";
 
-// ----------------------------------------------------
-// 💡 MAPPING: ชื่อแอ็กชัน -> ฟังก์ชันจริง (ต้องผูกกับ AppGui/Logic)
-// ----------------------------------------------------
-const AppActions = {
-  openLead() {
-    // ต้องเรียกใช้ AppGui.toggleMenu() ซึ่งอยู่ใน gui.js
-    window.AppGui.toggleMenu("isOpenModalLead", true);
-  },
-  openBot() {
-    // ต้องเรียกใช้ AppGui.toggleMenu() ซึ่งอยู่ใน gui.js (ถ้ามี modal)
-    // window.AppGui.toggleMenu("isOpenModalBot", true);
-    console.warn("[openBot] ยังไม่ได้ผูก modal จริง");
-  },
-  closeAll() {
-    // ต้องเรียกใช้ AppGui.closeAllMenus() ซึ่งอยู่ใน gui.js
-    window.AppGui.closeAllMenus();
-  },
-  // ตัวอย่างเพิ่ม:
-  // saveForm() { /* ... */ },
-};
+  const AppShortcut = {
+    // เก็บ Handler ไว้
+    _handler: null,
 
-// ----------------------------------------------------
-// 🎹 HOTKEY ENGINE (ลอจิกในการตรวจจับและประมวลผล)
-// ----------------------------------------------------
-const Hotkey = (() => {
-  // อนุญาตชื่อปุ่มพิเศษ
-  const SPECIAL_KEYS = new Set([
-    "Escape",
-    "Enter",
-    "Tab",
-    "Backspace",
-    "Delete",
-    "Space",
-    "ArrowUp",
-    "ArrowDown",
-    "ArrowLeft",
-    "ArrowRight",
-    "Home",
-    "End",
-    "PageUp",
-    "PageDown",
-    "Insert",
-  ]);
+    init() {
+      if (this._handler) return; // ป้องกัน Init ซ้ำ
 
-  // สร้างรายการ F1..F24
-  for (let i = 1; i <= 24; i++) SPECIAL_KEYS.add("F" + i);
+      this._handler = (e) => {
+        // 1. เช็คว่าระบบ Hotkey เปิดอยู่ไหม
+        if (global.AppState && global.AppState.hotkeysEnabled.value === false)
+          return;
 
-  /** แปลงสตริงคีย์ลัดเป็นโครงสร้างมาตรฐาน */
-  function parseHotkeyString(str) {
-    if (!str || typeof str !== "string") return null;
+        // 2. ถ้ากำลังพิมพ์ใน Input/Textarea ไม่ควรทำงาน (ยกเว้นบางปุ่ม)
+        const tag = e.target.tagName.toLowerCase();
+        if (tag === "input" || tag === "textarea") return;
 
-    const parts = str
-      .split("+")
-      .map((s) => s.trim())
-      .filter(Boolean);
+        // 3. Mapping ปุ่ม (Logic แบบบ้านๆ แต่อ่านง่ายและเร็ว)
+        // Alt + L -> เปิด Modal Lead
+        if (e.altKey && (e.key === "l" || e.key === "L")) {
+          e.preventDefault();
+          // เรียกผ่าน State โดยตรง
+          if (global.AppState) global.AppState.isOpenModalLead.value = true;
+          return;
+        }
 
-    let ctrl = false,
-      alt = false,
-      shift = false,
-      meta = false,
-      key = "";
+        // Alt + C -> ปิดเมนูทั้งหมด
+        if (e.altKey && (e.key === "c" || e.key === "C")) {
+          e.preventDefault();
+          if (global.AppGui) global.AppGui.closeAllMenus();
+          return;
+        }
 
-    for (const p of parts) {
-      const t = p.toLowerCase();
-      if (t === "ctrl" || t === "control") ctrl = true;
-      else if (t === "alt") alt = true;
-      else if (t === "shift") shift = true;
-      else if (t === "meta" || t === "cmd" || t === "command" || t === "win")
-        meta = true;
-      else {
-        // ปุ่มหลัก
-        key = SPECIAL_KEYS.has(p) ? p : p.toLowerCase();
+        // Alt + B -> เปิด Bot (ถ้ามี)
+        if (e.altKey && (e.key === "b" || e.key === "B")) {
+          e.preventDefault();
+          if (global.AppBot) global.AppBot.autoFill();
+          return;
+        }
+
+        // F1 -> Help (ตัวอย่าง)
+        if (e.key === "F1") {
+          e.preventDefault();
+          console.log("Help Triggered");
+        }
+      };
+
+      window.addEventListener("keydown", this._handler);
+      console.log("⌨️ AppShortcut: Initialized (Simple Mode)");
+    },
+
+    cleanup() {
+      if (this._handler) {
+        window.removeEventListener("keydown", this._handler);
+        this._handler = null;
       }
-    }
-
-    if (!key) return null;
-
-    return { ctrl, alt, shift, meta, key };
-  }
-
-  /** แปลง KeyboardEvent -> โครงสร้างมาตรฐาน */
-  function eventToStruct(e) {
-    const ctrl = !!e.ctrlKey;
-    const alt = !!e.altKey;
-    const shift = !!e.shiftKey;
-    const meta = !!e.metaKey;
-
-    let key = e.key;
-    if (SPECIAL_KEYS.has(key)) {
-      // คงไว้
-    } else {
-      // เป็นตัวอักษร/ตัวเลข: ใช้ lower-case
-      key = key.toLowerCase();
-      if (key === " ") key = "Space"; // กรณี Spacebar
-    }
-
-    return { ctrl, alt, shift, meta, key };
-  }
-
-  /** ทำ reverse map: โครงสร้าง -> ชื่อแอ็กชัน */
-  function buildReverseMap() {
-    const map = new Map(); // signature -> action
-    Object.entries(window.AppState.hotkeyMap).forEach(([action, combo]) => {
-      const st = parseHotkeyString(combo);
-      if (!st) return;
-      const signature = JSON.stringify(st);
-      map.set(signature, action);
-    });
-    return map;
-  }
-
-  /** ฟังก์ชันหลักสำหรับรับเหตุการณ์คีย์บอร์ด */
-  function handleKeyDown(e) {
-    if (!window.AppState.hotkeysEnabled.value) return;
-
-    // if (e.repeat) return; // ถ้าต้องการกัน key repeat
-
-    const rev = buildReverseMap();
-    const now = eventToStruct(e);
-    const signature = JSON.stringify(now);
-
-    const action = rev.get(signature);
-    if (!action) return;
-
-    // มีแมตช์ → กัน default และเรียก executor
-    e.preventDefault();
-    e.stopPropagation();
-
-    const fn = AppActions[action];
-    if (typeof fn === "function") {
-      fn();
-    } else {
-      console.warn(`[Hotkey] ไม่พบบริการของแอ็กชัน "${action}" ใน AppActions`);
-    }
-  }
-
-  // (*** ฟังก์ชัน setHotkey, removeHotkey, structToLabel ถูกย่อไว้ ***)
-  // ... เพื่อความกระชับ แต่โครงสร้างยังคงเดิม
-
-  // แปลงโครงสร้างกลับเป็นข้อความไว้แสดงผล
-  function structToLabel(st) {
-    const mods = [];
-    if (st.ctrl) mods.push("Ctrl");
-    if (st.alt) mods.push("Alt");
-    if (st.shift) mods.push("Shift");
-    if (st.meta) mods.push("Meta");
-    mods.push(st.key.length === 1 ? st.key.toUpperCase() : st.key);
-    return mods.join("+");
-  }
-
-  // ... (ฟังก์ชัน setHotkey และ removeHotkey ก็ยังคงอยู่)
-
-  return {
-    handleKeyDown,
-    setHotkey(action, combo) {
-      // โค้ด setHotkey เดิม
     },
-    removeHotkey(action) {
-      // โค้ด removeHotkey เดิม
-    },
-    parseHotkeyString,
-    eventToStruct,
-    structToLabel,
   };
-})();
 
-// เผยแพร่สู่ Global เพื่อให้ gui.js, app.js เรียกใช้ได้
-window.AppActions = AppActions;
-window.Hotkey = Hotkey;
+  global.AppShortcut = AppShortcut;
+})(window);

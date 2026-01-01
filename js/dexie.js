@@ -1,70 +1,26 @@
-// dexie.js
+// js/dexie.js
 // --------------------------------------------------------
-// 📘 Dexie Storage Layer (ทำหน้าที่จัดการ IndexedDB เท่านั้น)
+// 🗄️ Database Configuration (ตั้งค่าฐานข้อมูล)
 // --------------------------------------------------------
-// ❗ ไม่เรียก Store
-// ❗ ไม่มี logic เกี่ยวกับ Lead
-// ❗ ไม่ sync UI
+// หน้าที่: สร้าง Connection และกำหนด Schema เท่านั้น
+// ❌ ห้ามใส่ Logic การเพิ่ม/ลบ/แก้ไข ข้อมูลที่นี่
 // --------------------------------------------------------
 
-const AppDexie = (() => {
-  // ------------------------------------------------------
-  // ⭐ สร้างฐานข้อมูล Dexie
-  // ------------------------------------------------------
-  const db = new Dexie("LeadManagerDB"); // ชื่อฐานข้อมูล
+(function (global) {
+  "use strict";
 
-  // ------------------------------------------------------
-  // ⭐ กำหนด Schema (Lead แบบ B ครบฟิลด์)
-  // ------------------------------------------------------
-  db.version(1).stores({
+  // 1. สร้าง Instance
+  const db = new Dexie("LeadManagerDB");
+
+  // 2. กำหนด Schema (Table Structure)
+  // หมายเหตุ: ++id คือ Auto Increment
+  db.version(3111).stores({
     leads: "++id, firstName, phones, status, province, postalCode, createDate",
+    logs: "++id, leadId, action, timestamp", // เพิ่มเผื่อไว้สำหรับ log.js
   });
 
-  // ------------------------------------------------------
-  // ⭐ อ้างอิงตารางใช้ CRUD
-  // ------------------------------------------------------
-  const leadTable = db.leads;
+  // 3. Export ตัว DB Instance ออกไปให้ Repository ใช้
+  global.AppDexie = db;
 
-  // ------------------------------------------------------
-  // ⭐ Storage API (ไม่ปน UI)
-  // ------------------------------------------------------
-  const lead = {
-    // ➕ เพิ่ม Lead
-    async add(data) {
-      return await leadTable.add(data); // คืนค่า id ใหม่
-    },
-
-    // ✏️ อัปเดต Lead
-    async update(id, patch) {
-      return await leadTable.update(id, patch);
-    },
-
-    // 🗑️ ลบ Lead
-    async delete(id) {
-      return await leadTable.delete(id);
-    },
-
-    // 📄 ดึงทั้งหมด
-    async getAll() {
-      return await leadTable.toArray();
-    },
-
-    // 🧹 ล้างทั้งหมด
-    async clear() {
-      return await leadTable.clear();
-    },
-  };
-
-  // ------------------------------------------------------
-  // ⭐ คืนค่า API
-  // ------------------------------------------------------
-  return {
-    lead, // CRUD Lead
-    db, // ให้ debug ได้
-  };
-})();
-
-// --------------------------------------------------------
-// 📌 Export
-// --------------------------------------------------------
-window.AppDexie = AppDexie;
+  console.log("🗄️ AppDexie: Database Initialized");
+})(window);

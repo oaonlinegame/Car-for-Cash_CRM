@@ -1,96 +1,36 @@
 // js/store.js
 // --------------------------------------------------------
-// 📘 Store กลางของระบบ (UI Memory Layer)
+// 📘 Data Store (คลังข้อมูลในหน่วยความจำ)
 // --------------------------------------------------------
-// ✅ Optimized Version: รองรับข้อมูล 10,000+ รายการ // [ถาวร] โครงสร้างที่ปรับปรุงแล้วเพื่อรองรับข้อมูลขนาดใหญ่
-// ✅ ใช้ shallowReactive + Object.freeze เพื่อประสิทธิภาพสูงสุด // [ถาวร] เทคนิคที่ใช้ลดภาระ Vue ในการเฝ้าดูข้อมูล
+// ✅ State Only: เก็บเฉพาะตัวแปร ไม่เก็บ Logic/Function
 // --------------------------------------------------------
 
 const Store = {
-  // ประกาศอ็อบเจกต์หลักชื่อ Store สำหรับจัดการข้อมูลในหน่วยความจำ (UI Memory)
   // ----------------------------------------------------
-  // ⭐ data: ใช้ shallowReactive แทน reactive ปกติ // [ถาวร] ส่วนสำหรับเก็บข้อมูลสถานะของ UI
-  // เพื่อบอก Vue ว่า "ไม่ต้องเฝ้าดูไส้ใน Array" (ลด Lag ได้ 90%) // [ถาวร] การใช้ shallowReactive จะช่วยลดการหน่วงของระบบ
+  // ⭐ ตัวเก็บข้อมูล (ใช้ shallowReactive เพื่อความเร็วสูงสุด)
   // ----------------------------------------------------
   data: Vue.shallowReactive({
-    // ใช้ Vue.shallowReactive เพื่อสร้างสถานะที่ Vue จะเฝ้าดูแค่ระดับผิวเผิน
-    // 🔹 ข้อมูล Lead (รองรับข้อมูลเยอะ)
-    leadItems: [], // เก็บรายการ Lead ทั้งหมดที่ดึงมาจาก Dexie เพื่อแสดงผลใน UI
+    // ข้อมูลหลักของระบบ (Domain Entities)
+    leadItems: [], // รายการลูกค้า (Leads)
+    carItems: [], // รายการรถยนต์
+    financeItems: [], // รายการข้อมูลการเงิน
+    logItems: [], // รายการประวัติการทำงาน (Logs)
 
-    // 🔹 ข้อมูลส่วนอื่น ๆ
-    carItems: [], // เตรียมช่องสำหรับข้อมูลรถยนต์ในอนาคต
-    financeItems: [], // เตรียมช่องสำหรับข้อมูลสินเชื่อในอนาคต
-    logItems: [], // เตรียมช่องสำหรับข้อมูลบันทึกกิจกรรมในอนาคต
-    reportItems: [], // เตรียมช่องสำหรับข้อมูลรายงานในอนาคต
-    settingsItems: [], // เตรียมช่องสำหรับข้อมูลการตั้งค่าในอนาคต
+    // ข้อมูลการตั้งค่าและรายงาน
+    reportItems: [],
+    settingsItems: [],
 
-    // 🔹 หัวตาราง (ข้อมูลน้อย ใช้แบบเดิมได้)
+    // หัวตารางสำหรับแสดงผล (Table Headers)
     leadHeaders: [
-      // กำหนดหัวตารางสำหรับแสดงผลรายการ Lead
-      { title: "ID", key: "id", align: "start" }, // คอลัมน์ ID
-      { title: "ชื่อลูกค้า", key: "customerName", align: "start" }, // คอลัมน์ชื่อลูกค้า
-      { title: "สถานะ", key: "status", align: "start" }, // คอลัมน์สถานะ
-      { title: "เบอร์", key: "contactNo", align: "start" }, // คอลัมน์เบอร์
-      { title: "รถ", key: "vehicle", align: "start" }, // คอลัมน์รถ
-      { title: "วันที่สร้าง", key: "dateCreated", align: "start" }, // คอลัมน์วันที่สร้าง
-    ], // จบส่วน leadHeaders
-  }), // จบอ็อบเจกต์ data
+      { title: "ID", key: "id", align: "start" },
+      { title: "ชื่อลูกค้า", key: "customerName", align: "start" },
+      { title: "สถานะ", key: "status", align: "start" },
+      { title: "เบอร์", key: "contactNo", align: "start" },
+      { title: "รถ", key: "vehicle", align: "start" },
+      { title: "วันที่สร้าง", key: "dateCreated", align: "start" },
+    ],
+  }),
+};
 
-  // ----------------------------------------------------
-  // ⭐ setItems(type, list): ฟังก์ชันอัปเดตข้อมูลแบบ Fast Mode // [ถาวร] ฟังก์ชันสำหรับอัปเดตข้อมูลจาก Dexie มายัง Store
-  // ----------------------------------------------------
-  setItems(type, list) {
-    // ฟังก์ชันสำหรับใส่ข้อมูลลงใน Store
-    const key = `${type.toLowerCase()}Items`; // แปลงชื่อ type ให้เป็นชื่อ key ใน data (เช่น 'Lead' → 'leadItems')
-
-    // ตรวจสอบความถูกต้อง
-    if (this.data[key] === undefined) {
-      // ตรวจสอบว่า key ที่ต้องการใส่มีอยู่ใน Store.data หรือไม่
-      console.warn(`⚠️ ไม่พบ key ใน Store: ${key}`); // แจ้งเตือนถ้าไม่พบ key
-      return; // หยุดการทำงาน
-    } // จบเงื่อนไขตรวจสอบ key
-    if (!Array.isArray(list)) {
-      // ตรวจสอบว่า list ที่ส่งมาเป็น Array หรือไม่
-      console.warn(`⚠️ setItems(${type}) ข้อมูลไม่ใช่ Array`); // แจ้งเตือนถ้าไม่ใช่ Array
-      list = []; // กำหนดให้ list เป็น Array ว่างเพื่อป้องกัน Error
-    } // จบเงื่อนไขตรวจสอบ Array
-
-    // ⚡ Optimization 1: Freeze ข้อมูลเพื่อลด memory overhead
-    // ทำให้ object เป็น read-only ซึ่งเร็วมากในการอ่าน
-    const optimizedList = list.map((item) => Object.freeze(item)); // สร้าง Array ใหม่ที่ทุก Object ถูกแช่แข็ง (Object.freeze) เพื่อเพิ่มประสิทธิภาพการอ่าน
-
-    // ⚡ Optimization 2: Replace Reference (เปลี่ยนทั้งก้อน)
-    // ห้ามใช้ push/splice กับข้อมูลหลักหมื่น เพราะจะกระตุ้น UI update ถี่เกินไป
-    this.data[key] = optimizedList; // กำหนดค่า Array ใหม่ทับ Array เดิมทันที (เร็วที่สุดสำหรับ shallowReactive)
-
-    console.log(
-      `📦 Store.setItems(${type}) → อัปเดต ${list.length} รายการ (Fast Mode)`
-    ); // แสดง Log ว่าอัปเดตข้อมูลสำเร็จและจำนวนรายการ
-  }, // จบฟังก์ชัน setItems
-
-  // ----------------------------------------------------
-  // ⭐ getItems(type): ดึงข้อมูล // [ถาวร] ฟังก์ชันสำหรับดึงข้อมูลออกจาก Store
-  // ----------------------------------------------------
-  getItems(type) {
-    // ฟังก์ชันสำหรับดึงข้อมูลออกจาก Store
-    const key = `${type.toLowerCase()}Items`; // แปลง type เป็นชื่อ key
-    return this.data[key] || []; // คืนค่า Array ของข้อมูล หรือ Array ว่างถ้าไม่พบ
-  }, // จบฟังก์ชัน getItems
-
-  // ----------------------------------------------------
-  // ⭐ clear(type): ล้างข้อมูล // [ถาวร] ฟังก์ชันสำหรับล้างข้อมูลใน Store
-  // ----------------------------------------------------
-  clear(type) {
-    // ฟังก์ชันสำหรับล้างข้อมูลใน Store
-    const key = `${type.toLowerCase()}Items`; // แปลง type เป็นชื่อ key
-    if (this.data[key] === undefined) return; // ถ้าไม่พบ key ให้หยุดทำงาน
-
-    this.data[key] = []; // ล้างข้อมูลโดยการกำหนดให้เป็น Array ว่างทันที (Replace Reference)
-    console.log(`🧹 ล้างข้อมูล Store: ${type}`); // แสดง Log ว่าล้างข้อมูลสำเร็จ
-  }, // จบฟังก์ชัน clear
-}; // จบอ็อบเจกต์ Store
-
-// --------------------------------------------------------
-// 🌍 Export
-// --------------------------------------------------------
-window.Store = Store; // ผูกอ็อบเจกต์ Store เข้ากับ window เพื่อให้ไฟล์อื่นเข้าถึงได้
+// ส่งออก Store
+window.Store = Store;
