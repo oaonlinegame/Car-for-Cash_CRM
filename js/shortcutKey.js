@@ -2,34 +2,28 @@
 // --------------------------------------------------------
 // ⌨️ Shortcut Key Manager
 // --------------------------------------------------------
-// ✅ Refactored: ตัด Engine ที่ซับซ้อนทิ้ง ใช้การเช็ค Key แบบตรงไปตรงมา
-// --------------------------------------------------------
 
 (function (global) {
   "use strict";
 
   const AppShortcut = {
-    // เก็บ Handler ไว้
     _handler: null,
 
     init() {
-      if (this._handler) return; // ป้องกัน Init ซ้ำ
+      if (this._handler) return;
 
       this._handler = (e) => {
-        // 1. เช็คว่าระบบ Hotkey เปิดอยู่ไหม
         if (global.AppState && global.AppState.hotkeysEnabled.value === false)
           return;
 
-        // 2. ถ้ากำลังพิมพ์ใน Input/Textarea ไม่ควรทำงาน (ยกเว้นบางปุ่ม)
         const tag = e.target.tagName.toLowerCase();
         if (tag === "input" || tag === "textarea") return;
 
-        // 3. Mapping ปุ่ม (Logic แบบบ้านๆ แต่อ่านง่ายและเร็ว)
         // Alt + L -> เปิด Modal Lead
         if (e.altKey && (e.key === "l" || e.key === "L")) {
           e.preventDefault();
-          // เรียกผ่าน State โดยตรง
-          if (global.AppState) global.AppState.isOpenModalLead.value = true;
+          // ✅ Correct Architecture
+          if (global.AppGui) global.AppGui.openLeadModal();
           return;
         }
 
@@ -40,14 +34,14 @@
           return;
         }
 
-        // Alt + B -> เปิด Bot (ถ้ามี)
+        // Alt + B -> เปิด Bot
         if (e.altKey && (e.key === "b" || e.key === "B")) {
           e.preventDefault();
-          if (global.AppBot) global.AppBot.autoFill();
+          // ✅ Correct Architecture
+          if (global.AppGui) global.AppGui.openBotModal();
           return;
         }
 
-        // F1 -> Help (ตัวอย่าง)
         if (e.key === "F1") {
           e.preventDefault();
           console.log("Help Triggered");
@@ -55,7 +49,7 @@
       };
 
       window.addEventListener("keydown", this._handler);
-      console.log("⌨️ AppShortcut: Initialized (Simple Mode)");
+      console.log("⌨️ AppShortcut: Initialized (Architecture Fixed)");
     },
 
     cleanup() {
