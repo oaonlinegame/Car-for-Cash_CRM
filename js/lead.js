@@ -30,11 +30,22 @@
 
     // --- Core Actions (CRUD) ---
 
-    // 📥 Load: ดึงข้อมูลทั้งหมดจาก DB ลง Store (ใช้เฉพาะตอนเปิดแอพ หรือ Refresh)
+    // 📥 Load: ดึงข้อมูลทั้งหมด (แก้ไข)
     async loadAll() {
       try {
         const items = await global.Repository.leads.getAll();
-        // ใช้ Utils ช่วยจัดการ Store (Freeze Object เพื่อ Performance)
+
+        // ✅ [PERFORMANCE FIX] Hydration Loop
+        // เติม _searchIndex ให้ข้อมูลทุกตัวใน Memory ทันทีที่โหลดเสร็จ
+        // ทำให้ข้อมูลเก่าใน DB ที่ยังไม่มีฟิลด์นี้ สามารถค้นหาได้เร็วทันที
+        if (global.Utils && global.Utils.generateSearchIndex) {
+          items.forEach((lead) => {
+            if (!lead._searchIndex) {
+              lead._searchIndex = global.Utils.generateSearchIndex(lead);
+            }
+          });
+        }
+
         if (global.Utils?.storeSetItems) {
           global.Utils.storeSetItems("Lead", items);
         }
@@ -44,29 +55,30 @@
       }
     },
 
-    // ➕ Add: เพิ่มข้อมูลใหม่ (Incremental Update)
+    // ➕ Add: เพิ่มข้อมูลใหม่ (แก้ไข)
     async add(formData) {
       try {
         const src = formData || LeadApp.form;
-        // สร้าง Data Object พร้อมวันที่
         const dataToSave = {
           ...src,
-          createDate: new Date().toLocaleDateString("th-TH"), // ใช้วันที่แบบไทยให้เหมือน DataSpec
+          createDate: new Date().toLocaleDateString("th-TH"), // (เดี๋ยวค่อยแก้เรื่อง Date ในหัวข้อถัดไป)
         };
 
-        // 1. บันทึกลง DB และรอรับ ID กลับมา (สำคัญมาก)
+        // ✅ สร้าง Search Index ก่อนบันทึกลง DB
+        if (global.Utils?.generateSearchIndex) {
+          dataToSave._searchIndex =
+            global.Utils.generateSearchIndex(dataToSave);
+        }
+
         const newId = await global.Repository.leads.create(dataToSave);
 
-        // 2. อัปเดต Store ทันที (ไม่ต้องโหลดใหม่)
-        // ต้องใส่ ID ที่ได้จาก DB กลับเข้าไปใน Object ก่อนโชว์
+        // อัปเดต Store (ต้องมี _searchIndex ด้วย)
         const itemForStore = { ...dataToSave, id: newId };
 
-        // Push ใส่ Store (ต้อง Freeze ตามมาตรฐาน Utils)
         if (global.Store && global.Store.data.leadItems) {
           global.Store.data.leadItems.push(Object.freeze(itemForStore));
         }
 
-        // 3. Reset ฟอร์มและแจ้งเตือน
         LeadApp.resetLeadForm();
         global.AppNotifications?.show("✅ บันทึกข้อมูลเรียบร้อย");
       } catch (err) {
@@ -75,24 +87,26 @@
       }
     },
 
-    // 📝 Update: แก้ไขข้อมูล (Incremental Update)
+    // 📝 Update: แก้ไขข้อมูล (แก้ไข)
     async update() {
       try {
         if (!LeadApp.form.id) return;
 
-        // Clone ข้อมูลจาก Form
         const updatedData = { ...LeadApp.form };
 
-        // 1. สั่ง DB อัปเดต
+        // ✅ คำนวณ Search Index ใหม่ เพราะข้อมูล (เช่น ชื่อ/สถานะ) อาจเปลี่ยนไป
+        if (global.Utils?.generateSearchIndex) {
+          updatedData._searchIndex =
+            global.Utils.generateSearchIndex(updatedData);
+        }
+
         await global.Repository.leads.update(LeadApp.form.id, updatedData);
 
-        // 2. อัปเดต Store ทันที (In-place Replacement)
+        // อัปเดต Store
         if (global.Store && global.Store.data.leadItems) {
           const list = global.Store.data.leadItems;
           const index = list.findIndex((item) => item.id === updatedData.id);
-
           if (index !== -1) {
-            // เปลี่ยน Object ใหม่ลงไปในตำแหน่งเดิม (Freeze ด้วย)
             list[index] = Object.freeze(updatedData);
           }
         }

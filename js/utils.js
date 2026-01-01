@@ -29,42 +29,56 @@ const Utils = {
   // 🛠️ General Utilities
   // ----------------------------------------------------
 
+  // ----------------------------------------------------
+  // 🛠️ Search Optimization Helpers (เพิ่มใหม่)
+  // ----------------------------------------------------
+
   /**
-   * ✅ Optimized Search Logic
-   * แก้ไข: ตรวจสอบทีละ Field แทนการต่อ String (String Concatenation)
-   * ซึ่งช่วยลดการใช้ Memory และ CPU มหาศาลเมื่อข้อมูลเยอะ
+   * ✅ สร้าง Search String ก้อนเดียว (Computed Field)
+   * รวมทุกฟิลด์เป็น Text ยาวๆ ตัวพิมพ์เล็ก เก็บไว้ใน Memory/DB
+   */
+  generateSearchIndex(lead) {
+    if (!lead) return "";
+
+    // รวมฟิลด์ที่ต้องการค้นหา (สามารถเพิ่มลดได้ที่นี่จุดเดียว)
+    const searchableFields = [
+      lead.firstName,
+      lead.nickName,
+      lead.phones,
+      lead.status,
+      lead.province,
+      lead.postalCode,
+      lead.occupation,
+      lead.note,
+      // รวมชื่อสัญญา (ถ้ามี)
+      (lead.contracts || []).map((c) => c.contractId).join(" "),
+    ];
+
+    // รวมเป็นก้อนเดียว + แปลงเป็นตัวเล็กทันที
+    return searchableFields.join(" ").toLowerCase();
+  },
+  /**
+   * ✅ Optimized Search Logic (แก้ไขใหม่)
+   * ลดความซับซ้อนจาก O(N*M*F) เหลือ O(N*M)
+   * โดยการเช็คแค่ lead._searchIndex ตัวเดียว
    */
   filterLeads(list, query) {
     if (!Array.isArray(list)) return [];
-    if (!query || typeof query !== "string" || query.trim() === "") return list;
+    if (!query || typeof query !== "string" || !query.trim()) return list;
 
-    // เตรียมคำค้นหา: แยกคำ, ตัดช่องว่าง, ทำเป็นตัวเล็ก
+    // 1. เตรียมคำค้นหา (ทำแค่ครั้งเดียวต่อการกดค้นหา)
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     if (terms.length === 0) return list;
 
     return list.filter((lead) => {
-      // Logic: ทุกคำค้นหา (AND) ต้องปรากฏอยู่ใน Field ใด Field หนึ่ง
-      return terms.every((term) => {
-        // เช็คเร็วที่สุด: เช็ค Field หลักก่อน
-        if (lead.firstName && lead.firstName.toLowerCase().includes(term))
-          return true;
-        if (lead.phones && lead.phones.includes(term)) return true;
+      // 2. ดึง Search Index ออกมา
+      // ⚠️ Fallback: ถ้าข้อมูลเก่าไม่มี _searchIndex ให้สร้างสด (กันระบบพัง)
+      // แต่ประสิทธิภาพสูงสุดจะเกิดเมื่อ _searchIndex ถูกสร้างมาจาก lead.js แล้ว
+      const searchTarget = lead._searchIndex || this.generateSearchIndex(lead);
 
-        // เช็ค Field รอง
-        if (lead.nickName && lead.nickName.toLowerCase().includes(term))
-          return true;
-        if (lead.status && lead.status.toLowerCase().includes(term))
-          return true;
-        if (lead.province && lead.province.toLowerCase().includes(term))
-          return true;
-
-        // เช็ค Field ลึก (ถ้าจำเป็น)
-        if (lead.occupation && lead.occupation.toLowerCase().includes(term))
-          return true;
-        if (lead.note && lead.note.toLowerCase().includes(term)) return true;
-
-        return false; // ถ้าไม่เจอเลยในทุก Field
-      });
+      // 3. เช็คว่า "ทุกคำค้นหา" ปรากฏอยู่ใน "searchTarget" หรือไม่
+      // เร็วขึ้นมากเพราะไม่ต้อง .toLowerCase() หลายรอบ
+      return terms.every((term) => searchTarget.includes(term));
     });
   },
 
