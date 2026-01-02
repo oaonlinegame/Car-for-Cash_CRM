@@ -18,15 +18,8 @@ const CarApp = {
   // 💰 selectPrice
   selectPrice(price) {
     console.log("💰 CarApp: เลือกราคา", price);
-
-    if (window.AppNotifications) {
-      AppNotifications.show(`✅ เลือกราคา ${price} เรียบร้อย`);
-    }
-
-    // ✅ Correct Architecture: เรียกผ่าน AppGui Action
-    if (window.AppGui) {
-      AppGui.closeCarPriceSelector();
-    }
+    // อาจจะมีการบันทึกลงตัวแปร form หรือคำนวณต่อที่นี่
+    // แต่ "ห้าม" สั่งปิดหน้าจอที่นี่
   },
 
   add() {

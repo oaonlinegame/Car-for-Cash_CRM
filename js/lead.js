@@ -164,16 +164,15 @@
     },
 
     // ✏️ Open Edit: เปิดหน้าแก้ไข
-    openEdit(lead) {
+    prepareEdit(lead) {
       if (!lead) return;
+
+      // 1. Copy ข้อมูลเข้า Form
       Object.assign(LeadApp.form, lead);
 
+      // 2. Validate โครงสร้างข้อมูล (Data Logic)
       if (!Array.isArray(LeadApp.form.contracts)) {
         LeadApp.form.contracts = [];
-      }
-
-      if (global.AppGui) {
-        global.AppGui.openLeadModal();
       }
     },
 
