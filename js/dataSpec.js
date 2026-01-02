@@ -1,80 +1,77 @@
 // js/dataSpec.js
-// --------------------------------------------------------
-// 📘 Data Specifications (แม่พิมพ์ข้อมูล)
-// --------------------------------------------------------
-// หน้าที่: เก็บโครงสร้างข้อมูลเริ่มต้น (Schema/Model)
-// เพื่อให้ Service ต่างๆ (Lead, Contract) เรียกไปใช้
-// --------------------------------------------------------
+(function (global) {
+  "use strict";
 
-const DataSpec = {
-  // ----------------------------------------------------
-  // 👤 Lead Model (โครงสร้างข้อมูลลูกค้า)
-  // ----------------------------------------------------
-  Lead: {
-    createDefault() {
-      return {
-        id: null,
-        firstName: "",
-        nickName: "",
-        phones: "",
-        address: "",
-        province: "",
-        postalCode: "",
-        occupation: "",
-        status: "ลูกค้าใหม่",
-        isProspect: true,
-        prospectStage: "สนใจ",
-        rating: 3,
-        note: "",
-        createDate: new Date().toLocaleDateString("th-TH"),
-        contracts: [], // เก็บสัญญาเป็น Array
-      };
+  const DataSpec = {
+    // ----------------------------------------------------
+    // 👤 Lead Model (ข้อมูลลูกค้า)
+    // ----------------------------------------------------
+    Lead: {
+      createDefault() {
+        // ✅ เตรียมสินทรัพย์เริ่มต้น 1 รายการ (เพื่อให้กรอกได้เลย)
+        let defaultAssets = [];
+
+        // ตรวจสอบเพื่อความปลอดภัย (เรียกฟังก์ชัน Asset.createDefault)
+        if (global.DataSpec && global.DataSpec.Asset) {
+          defaultAssets.push(global.DataSpec.Asset.createDefault());
+        }
+
+        return {
+          id: null,
+          firstName: "",
+          nickName: "",
+          phones: "",
+          birthDate: "",
+          address: "",
+          province: "",
+          postalCode: "",
+          occupation: "",
+          status: "ลูกค้าใหม่",
+          isProspect: true,
+          prospectStage: "สนใจ",
+          rating: 3,
+          note: "",
+          createDate: new Date().toLocaleDateString("th-TH"),
+
+          contracts: [],
+          assets: defaultAssets, // ✅ เริ่มต้นด้วย 1 รายการเสมอ
+        };
+      },
     },
-  },
 
-  // ----------------------------------------------------
-  // 📄 Contract Model (โครงสร้างข้อมูลสัญญา)
-  // ----------------------------------------------------
-  Contract: {
-    createEmpty() {
-      return {
-        contractId: "",
-        leadId: "",
-        type: "",
-        carid: "",
-        carbrandid: "",
-        statusAccount: "ปกติ",
-        statusOverdue: 0,
-        contractDate: new Date().toISOString().substr(0, 10),
-        expireDate: "",
-        grade: "",
-        campaign: "",
-        loanAmount: 0,
-        approvedAmount: 0,
-        interestRate: 0,
-        interestType: "",
-        term: 0,
-        installmentAmount: 0,
-        installmentVAT: 0,
-        paymentDay: 1,
-        paidInstallments: 0,
-        remainingInstallments: 0,
-        OVD: 0,
-        last3Payments: [],
-        lastUpdate: "",
-        outstanding: 0,
-        unrealized: 0,
-        closeAmount: 0,
-        closeDate: "",
-        financeName: "",
-        remark: "",
-        isSubContract: false,
-        assets: [],
-        subContracts: [],
-      };
+    // ----------------------------------------------------
+    // 🏠 Asset Model (ข้อมูลสินทรัพย์)
+    // ----------------------------------------------------
+    Asset: {
+      createDefault() {
+        return {
+          type: "รถยนต์",
+          details: "",
+          value: "",
+          owner: "ชื่อลูกค้า",
+        };
+      },
     },
-  },
-};
 
-// Export
-window.DataSpec = DataSpec;
+    // ----------------------------------------------------
+    // 📝 Contract Model (ข้อมูลสัญญา)
+    // ----------------------------------------------------
+    Contract: {
+      createDefault() {
+        return {
+          contractId: "",
+          financeType: "จำนำเล่ม",
+          principal: 0,
+          interestRate: 0,
+          totalInstallment: 0,
+          terms: 12,
+          installmentPerMonth: 0,
+          startDate: new Date().toISOString().substr(0, 10),
+          status: "รออนุมัติ",
+        };
+      },
+    },
+  };
+
+  global.DataSpec = DataSpec;
+})(window);

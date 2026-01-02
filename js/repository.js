@@ -101,9 +101,23 @@
           .toArray();
       },
     },
-
-    // สามารถเพิ่ม contracts: { ... } ได้ในอนาคต
+    // ====================================================
+    // ⚙️ SETTINGS / MASTER DATA REPOSITORY
+    // ====================================================
+    //  ส่วนจัดการ Settings / Master Data
+    settings: {
+      async get(key) {
+        // คืนค่าเป็น Object { key: "...", value: [...] }
+        return await global.AppDexie.settings.get(key);
+      },
+      async set(key, value) {
+        // บันทึกทับ (Upsert)
+        return await global.AppDexie.settings.put({ key, value });
+      },
+    },
   };
+
+  // สามารถเพิ่ม contracts: { ... } ได้ในอนาคต
 
   // Export ให้ Service เรียกใช้
   global.Repository = Repository;

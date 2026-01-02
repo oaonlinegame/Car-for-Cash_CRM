@@ -30,6 +30,14 @@ const Store = {
       "ข้าราชการ/รัฐวิสาหกิจ",
     ],
 
+    assetTypeOptions: [
+      "รถยนต์",
+      "มอเตอร์ไซค์",
+      "รถบรรทุก",
+      "บ้าน/ที่ดิน",
+      "ทองคำ/ของมีค่า",
+    ],
+
     // หัวตารางสำหรับแสดงผล (Table Headers)
     leadHeaders: [
       { title: "ID", key: "id", align: "start" },

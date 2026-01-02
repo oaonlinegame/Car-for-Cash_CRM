@@ -15,6 +15,7 @@ const AppState = {
   isOpenModalRecordCallResult: Vue.ref(false), // หน้าต่างบันทึกผลการโทร
   isOpenModalCarSettings: Vue.ref(false), // หน้าต่างตั้งค่ารถยนต์
   isOpenModalCarPriceSelector: Vue.ref(false), // หน้าต่างเลือกราคากลาง
+  manageDropdownDialog: false, // ตัวแปรชั่วคราวสำหรับจัดการ Dropdown Dialog
 
   // ------------------------------------------------------
   // 📑 สถานะแท็บและการนำทาง (Tabs & Navigation)

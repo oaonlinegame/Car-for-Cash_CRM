@@ -7,6 +7,7 @@ const app = Vue.createApp({
     // Initial Data Loading
     LeadApp.loadAll();
     AppGui.setupComputed();
+    AppSetting.load();
 
     onMounted(() => {
       // Setup Keyboard Shortcuts
@@ -50,6 +51,7 @@ const app = Vue.createApp({
       CarApp,
       FinanceApp,
       LeadApp,
+      AssetApp,
       AppGui,
       Utils,
 

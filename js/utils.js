@@ -26,11 +26,7 @@ const Utils = {
   },
 
   // ----------------------------------------------------
-  // 🛠️ General Utilities
-  // ----------------------------------------------------
-
-  // ----------------------------------------------------
-  // 🛠️ Search Optimization Helpers (เพิ่มใหม่)
+  // 🛠️ Search Optimization Helpers
   // ----------------------------------------------------
 
   /**
@@ -57,8 +53,9 @@ const Utils = {
     // รวมเป็นก้อนเดียว + แปลงเป็นตัวเล็กทันที
     return searchableFields.join(" ").toLowerCase();
   },
+
   /**
-   * ✅ Optimized Search Logic (แก้ไขใหม่)
+   * ✅ Optimized Search Logic
    * ลดความซับซ้อนจาก O(N*M*F) เหลือ O(N*M)
    * โดยการเช็คแค่ lead._searchIndex ตัวเดียว
    */
@@ -73,14 +70,16 @@ const Utils = {
     return list.filter((lead) => {
       // 2. ดึง Search Index ออกมา
       // ⚠️ Fallback: ถ้าข้อมูลเก่าไม่มี _searchIndex ให้สร้างสด (กันระบบพัง)
-      // แต่ประสิทธิภาพสูงสุดจะเกิดเมื่อ _searchIndex ถูกสร้างมาจาก lead.js แล้ว
       const searchTarget = lead._searchIndex || this.generateSearchIndex(lead);
 
       // 3. เช็คว่า "ทุกคำค้นหา" ปรากฏอยู่ใน "searchTarget" หรือไม่
-      // เร็วขึ้นมากเพราะไม่ต้อง .toLowerCase() หลายรอบ
       return terms.every((term) => searchTarget.includes(term));
     });
   },
+
+  // ----------------------------------------------------
+  // 🛠️ General Utilities
+  // ----------------------------------------------------
 
   chunkArray(array, size) {
     if (!Array.isArray(array) || size <= 0) return [];
