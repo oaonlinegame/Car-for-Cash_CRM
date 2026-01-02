@@ -20,6 +20,16 @@ const Store = {
     reportItems: [],
     settingsItems: [],
 
+    // รายชื่ออาชีพเริ่มต้น (Master Data)
+    occupationOptions: [
+      "พนักงานบริษัท",
+      "ธุรกิจส่วนตัว",
+      "ค้าขาย",
+      "รับจ้างทั่วไป",
+      "เกษตรกร",
+      "ข้าราชการ/รัฐวิสาหกิจ",
+    ],
+
     // หัวตารางสำหรับแสดงผล (Table Headers)
     leadHeaders: [
       { title: "ID", key: "id", align: "start" },

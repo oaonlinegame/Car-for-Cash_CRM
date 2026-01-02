@@ -24,6 +24,14 @@
       if (global.ContractApp) global.ContractApp.addEmpty(LeadApp.form);
     },
 
+    // ✅ [แก้ไข] เรียกใช้ฟังก์ชันกลางจาก Utils แทน
+    handleOccupationChange(val) {
+      // เรียกใช้ Utils.addOption โดยระบุชื่อ Key ใน Store ที่ต้องการเพิ่มข้อมูล
+      if (global.Utils && typeof global.Utils.addOption === "function") {
+        global.Utils.addOption("occupationOptions", val);
+      }
+    },
+
     // --- Core Actions (CRUD) ---
 
     // 📥 Load: ดึงข้อมูลทั้งหมด (แก้ไข: Deferred Self-Healing แบบ Safe Patch)

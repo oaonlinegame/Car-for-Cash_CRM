@@ -784,12 +784,26 @@
                                                                 prepend-inner-icon="mdi-cake-variant-outline"
                                                                 hide-details="auto"></v-text-field>
                                                         </v-col>
+                                                        <v-row dense class="form-row">
+                                                            <v-col cols="12" md="6">
+                                                                <v-combobox label="อาชีพ"
+                                                                    v-model="LeadApp.form.occupation"
+                                                                    :items="Store.data.occupationOptions"
+                                                                    density="comfortable" variant="outlined"
+                                                                    prepend-inner-icon="mdi-briefcase-account-outline"
+                                                                    hide-details="auto"
+                                                                    placeholder="เลือกหรือพิมพ์เพื่อเพิ่มใหม่..."
+                                                                    @change="LeadApp.handleOccupationChange(LeadApp.form.occupation)"
+                                                                    @keyup.enter="LeadApp.handleOccupationChange(LeadApp.form.occupation)"
+                                                                    return-object="false"></v-combobox>
+                                                            </v-col>
+                                                        </v-row>
 
-                                                        <v-col cols="12" md="6" class="d-flex align-center">
-                                                            <v-switch color="primary" inset label="ลูกค้าใหม่"
-                                                                v-model="leadForm.isProspect" hide-details></v-switch>
-                                                        </v-col>
                                                     </v-row>
+                                                    <v-col cols="12" md="6" class="d-flex align-center">
+                                                        <v-switch color="primary" inset label="ลูกค้าใหม่"
+                                                            v-model="leadForm.isProspect" hide-details></v-switch>
+                                                    </v-col>
                                                 </v-card-text>
                                             </v-card>
 
@@ -2872,13 +2886,15 @@
     <script src="./js/store.js"></script>
 
     <!--โหลด Utils (ฟังก์ชันช่วย เช่น ค้นหา / เรียงข้อมูล / จัดรูปแบบ) -->
-    <script src="./js/utils.js"></script>
+    <!--  <script src="./js/utils.js"></script> -->
+    <script src="./js/utils.js?v=2"></script>
 
     <!--โหลด Data Specification (โครงสร้างข้อมูล Lead, Car, Log, Setting) -->
     <script src="./js/dataSpec.js"></script>
 
     <!--โหลด GUI Logic (ฟังก์ชันเกี่ยวกับ UI: toggle, pagination, search) -->
-    <script src="./js/gui.js"></script>
+    <!-- <script src="./js/gui.js"></script> -->
+    <script src="./js/gui.js?v=2"></script>
 
     <!-- โหลด Contract Logic (จัดการข้อมูลสัญญา) -->
     <script src="./js/contract.js"></script>

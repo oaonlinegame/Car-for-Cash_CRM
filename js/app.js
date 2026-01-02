@@ -46,11 +46,12 @@ const app = Vue.createApp({
       // Modules
       FileSystem,
       TestData,
-      AppApi,
+      Store,
       CarApp,
       FinanceApp,
       LeadApp,
       AppGui,
+      Utils,
 
       // Refs
       searchBarRef,
