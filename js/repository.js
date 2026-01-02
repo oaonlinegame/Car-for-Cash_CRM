@@ -64,6 +64,18 @@
         return await global.AppDexie.leads.update(id, data);
       },
 
+      // ✅ [เพิ่มใหม่] Bulk Update สำหรับ Self-Healing (Performance Optimized)
+      // ใช้ bulkPut เพื่อบันทึกทับข้อมูลเดิมทีละหลายรายการ (Idempotent)
+      async bulkUpdate(items) {
+        if (!Array.isArray(items) || items.length === 0) return;
+        try {
+          return await global.AppDexie.leads.bulkPut(items);
+        } catch (err) {
+          console.error("🏭 Repository: Bulk Update Failed", err);
+          // ไม่ throw error ต่อ เพื่อไม่ให้กระทบ UI flow หลัก
+        }
+      },
+
       // ลบข้อมูล
       async delete(id) {
         return await global.AppDexie.leads.delete(id);

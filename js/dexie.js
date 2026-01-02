@@ -14,7 +14,7 @@
 
   // 2. กำหนด Schema (Table Structure)
   // หมายเหตุ: ++id คือ Auto Increment
-  db.version(3111).stores({
+  db.version(3112).stores({
     leads: "++id, firstName, phones, status, province, postalCode, createDate",
     logs: "++id, leadId, action, timestamp", // เพิ่มเผื่อไว้สำหรับ log.js
   });
