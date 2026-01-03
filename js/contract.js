@@ -1,49 +1,87 @@
 // js/contract.js
+// --------------------------------------------------------
+// 📜 CONTRACT MANAGEMENT MODULE
+// --------------------------------------------------------
+// โมดูลจัดการตรรกะของสัญญา (Contract Business Logic)
+// ควบคุมวงจรชีวิตของฟอร์มสัญญา, การเพิ่มสัญญาใหม่,
+// และการรีเซ็ตค่าสถานะเมื่อ UI มีการเปลี่ยนแปลง
+// --------------------------------------------------------
+
 (function (global) {
   "use strict";
 
   const ContractApp = {
-    // ----------------------------------------------------
-    // ✅ เพิ่มสัญญาเปล่าลงใน Lead
-    // ----------------------------------------------------
+    // ========================================================================
+    // 1. INITIALIZATION & LIFECYCLE (การเริ่มต้นและวงจรชีวิต)
+    // ========================================================================
+
+    /**
+     * เริ่มต้นโมดูลและตั้งค่า Event Listener
+     * @param {Object} state - Global AppState
+     * * การทำงาน:
+     * - ตรวจสอบสถานะของ Dialog สร้างสัญญา (isOpenSubContractDialog)
+     * - เมื่อ Dialog ถูกปิด (isOpen == false) จะสั่งรีเซ็ตฟอร์มทันที
+     * - ป้องกันข้อมูลค้าง (Stale State) เมื่อเปิด Dialog ครั้งถัดไป
+     */
+    init(state) {
+      if (state && state.isOpenSubContractDialog) {
+        Vue.watch(state.isOpenSubContractDialog, (isOpen) => {
+          if (!isOpen) {
+            console.log("📄 ContractApp: Dialog closed. Cleaning up...");
+            this.resetNewForm();
+          }
+        });
+      }
+    },
+
+    // ========================================================================
+    // 2. DATA MANIPULATION (การจัดการข้อมูลสัญญา)
+    // ========================================================================
+
+    /**
+     * เพิ่มสัญญาเปล่าลงในฟอร์ม Lead (Nested Data Structure)
+     * @param {Object} targetLeadForm - Object ของ Lead ที่ต้องการเพิ่มสัญญา
+     * * การทำงาน:
+     * 1. ตรวจสอบว่ามี Array contracts หรือไม่ หากไม่มีให้สร้างใหม่
+     * 2. สร้าง Default Contract Object จาก DataSpec
+     * 3. เพิ่มลงใน Array เพื่อให้ UI แสดงรายการสัญญาใหม่
+     */
     addEmpty(targetLeadForm) {
-      if (!targetLeadForm) return -1;
+      if (!targetLeadForm) return;
+
+      // Ensure data integrity
       if (!Array.isArray(targetLeadForm.contracts)) {
         targetLeadForm.contracts = [];
       }
 
-      // ⚠️ แก้ไข: เรียกใช้ createDefault() ให้ตรงกับ DataSpec
-      if (global.DataSpec && global.DataSpec.Contract) {
-        const empty = global.DataSpec.Contract.createDefault();
-        targetLeadForm.contracts.push(empty);
-      } else {
-        console.error("❌ DataSpec.Contract not found");
-        return -1;
-      }
-
-      // คำนวณ Index ใหม่
-      const newIndex = targetLeadForm.contracts.length - 1;
-
-      if (global.AppNotifications) {
-        global.AppNotifications.show("เพิ่มสัญญาใหม่เรียบร้อย");
-      }
-
-      return newIndex;
+      targetLeadForm.contracts.push(global.DataSpec.Contract.createDefault());
     },
 
-    // ----------------------------------------------------
-    // ✅ รีเซ็ตฟอร์มสัญญาใหม่ (ถ้ามีใช้)
-    // ----------------------------------------------------
+    // ========================================================================
+    // 3. FORM STATE MANAGEMENT (การจัดการสถานะฟอร์ม)
+    // ========================================================================
+
+    /**
+     * รีเซ็ตฟอร์มสร้างสัญญาใหม่ (New Contract Form) ให้กลับสู่ค่าเริ่มต้น
+     * * เทคนิค:
+     * - ใช้ `Utils.resetForm` แทนการ Assign ค่าตรงๆ
+     * - เพื่อทำการ Deep Clean และจัดการ Reactive Properties ได้อย่างสมบูรณ์
+     * - ป้องกันปัญหาฟิลด์ค้างหรือสถานะไม่ถูกต้อง
+     */
     resetNewForm() {
+      // ตรวจสอบความพร้อมของ State และ Dependencies
       if (!global.AppState || !global.AppState.newContractForm) return;
 
-      // ⚠️ แก้ไข: เรียกใช้ createDefault()
-      if (global.DataSpec && global.DataSpec.Contract) {
-        const empty = global.DataSpec.Contract.createDefault();
-        Object.assign(global.AppState.newContractForm, empty);
+      if (global.DataSpec && global.DataSpec.Contract && global.Utils) {
+        // เรียกใช้ Utility กลางเพื่อรีเซ็ตข้อมูลตาม Schema มาตรฐาน
+        global.Utils.resetForm(
+          global.AppState.newContractForm,
+          global.DataSpec.Contract.createDefault()
+        );
       }
     },
   };
 
+  // ส่งออก ContractApp เป็น Global Object
   global.ContractApp = ContractApp;
 })(window);

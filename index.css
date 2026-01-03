@@ -1,5 +1,7 @@
+/* index.css - จัดระเบียบใหม่และแก้ไขส่วนหัว Sticky */
+
 /* -------------------------------------------------------
-   GLOBAL
+   1. GLOBAL & RESET
 ------------------------------------------------------- */
 body {
   font-family: system-ui, sans-serif;
@@ -16,13 +18,7 @@ body {
   border-radius: 16px;
 }
 
-/* -------------------------------------------------------
-   SEARCH BAR + LAYOUT UTILITY
-------------------------------------------------------- */
-.search-container {
-  width: 100%;
-}
-
+.search-container,
 .search-field {
   width: 100%;
 }
@@ -38,23 +34,16 @@ body {
   backdrop-filter: blur(8px);
 }
 
-/* ขยับ icon ปฏิทินให้ไปด้านขวา */
-.v-field input[type="date"]::-webkit-calendar-picker-indicator {
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-}
-
 /* -------------------------------------------------------
-   CARD LAYOUT / SPACING
+   2. CARD SYSTEM & SPACING
 ------------------------------------------------------- */
 .section-card {
   margin-bottom: 18px;
   border-radius: 16px;
   padding-top: 4px;
   padding-bottom: 8px;
+  /* กำหนดระยะเผื่อเพื่อให้ browser รู้จุดหยุดเมื่อเลื่อนมาหา ID */
+  scroll-margin-top: 100px;
 }
 
 .section-card .v-card-text {
@@ -67,281 +56,171 @@ body {
   padding-bottom: 8px !important;
 }
 
-/* ระยะห่างระหว่างช่องใน row */
 .form-row > .v-col {
   margin-bottom: 8px;
 }
 
-/* ระหว่างกลุ่ม row */
 .form-row + .form-row {
   margin-top: 10px;
 }
 
 /* -------------------------------------------------------
-   CARD COLORS (SECTION BY SECTION)
+   3. STICKY HEADER SYSTEM (ส่วนหัวที่ตรึงค้างไว้)
 ------------------------------------------------------- */
+/* บังคับให้ Window Item ยอมให้มีวัตถุค้าง (Sticky) ได้ */
+.v-window-item--active {
+  overflow: visible !important;
+}
 
-/* ข้อมูลสัญญา */
+.sticky-profile-area {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0; /* ตรึงที่ขอบบนสุดของพื้นที่ Scroll */
+  z-index: 100 !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100%;
+}
+
+.sticky-profile-area .v-container {
+  max-width: none !important;
+}
+
+.sticky-profile-area .v-chip {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.sticky-profile-area .v-chip--variant-outlined {
+  background: white !important;
+  border-width: 1px !important;
+}
+
+/* -------------------------------------------------------
+   4. CARD COLORS (แยกตามประเภทข้อมูล)
+------------------------------------------------------- */
 .section-card--contract {
   background-color: #e8eaf6;
   border: 1px solid #3949ab;
 }
-
-/* รายละเอียดการผ่อนชำระ */
 .section-card--installment {
   background-color: #ede7f6;
   border: 1px solid #44b73a;
 }
-
-/* การเงิน & ยอดคงเหลือ */
 .section-card--finance {
   background-color: #e0f2f1;
   border: 1px solid #009688;
 }
-
-/* หลักทรัพย์ค้ำประกัน */
 .section-card--asset {
   background-color: rgba(255, 255, 255, 0.275);
   border: 1px solid #fb8c00;
 }
-
-/* สัญญาย่อย */
 .section-card--subcontract {
   background-color: #f3e5f5;
   border: 1px solid #8e24aa;
 }
-
-/* ข้อมูลพื้นฐานลูกค้า */
 .section-card--lead-main {
   background-color: #ffffff;
   border: 1px solid #1e88e5;
 }
-
-/* ช่องทางการติดต่อ */
 .section-card--lead-contact {
   background-color: #ffffff;
   border: 1px solid #00acc1;
 }
-
-/* --- [แก้ไขล่าสุด] แหล่งที่มา / ข้อมูลสินเชื่อ Input (เปลี่ยนจากแดงเป็นม่วงเข้ม) --- */
 .section-card--lead-prospect {
   background-color: #ffffff;
-  border: 1px solid #5e35b1; /* Deep Purple */
+  border: 1px solid #5e35b1;
 }
-
-/* สินทรัพย์ของลูกค้า */
 .section-card--lead-asset {
   background-color: #f1f8e9;
   border: 1px solid #7cb342;
 }
-
-/* หมายเหตุ */
 .section-card--lead-note {
   background-color: #eceff1;
   border: 1px solid #607d8b;
 }
 
 /* -------------------------------------------------------
-   INPUT FOCUS EFFECT (GLOBAL DEFAULT)
-   - ใช้สีฟ้า (#1e88e5) เป็นค่าเริ่มต้นสำหรับ Input ที่ไม่ได้อยู่ใต้ Card ที่กำหนด
+   5. INPUT FOCUS EFFECTS (GLOBAL & OVERRIDES)
 ------------------------------------------------------- */
-
-/* 1) เปลี่ยนสีเส้น outline ตอนโฟกัส (ฟ้า) */
 .v-field.v-field--variant-outlined.v-field--focused .v-field__outline__start,
 .v-field.v-field--variant-outlined.v-field--focused
   .v-field__outline__notch::before,
 .v-field.v-field--variant-outlined.v-field--focused
   .v-field__outline__notch::after,
 .v-field.v-field--variant-outlined.v-field--focused .v-field__outline__end {
-  color: #1e88e5 !important; /* สีเส้นตอนโฟกัส (สีฟ้า Global Default) */
+  color: #1e88e5 !important;
 }
 
-/* 2) เส้น border หนาขึ้นตอน focus */
-.v-field.v-field--variant-outlined.v-field--focused .v-field__outline {
-  --v-field-border-width: 2px !important; /* เส้นหนาขึ้น */
-  --v-field-border-opacity: 1 !important; /* ให้ชัดเต็ม */
-}
-
-/* 3) Glow effect รอบช่องตอนโฟกัส */
 .v-field.v-field--variant-outlined.v-field--focused {
+  --v-field-border-width: 2px !important;
+  --v-field-border-opacity: 1 !important;
   box-shadow: 0 0 0 5px rgba(30, 136, 229, 0.18);
   border-radius: 8px;
 }
 
-/* -------------------------------------------------------
-   INPUT FOCUS EFFECT - SECTION-SPECIFIC OVERRIDES
-   - Override สี Focus ตาม Card Class เพื่อให้มีสีเฉพาะ
-------------------------------------------------------- */
-
-/* --- ข้อมูลสัญญา (.section-card--contract) --- */
-.section-card--contract
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__start,
-.section-card--contract
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::before,
-.section-card--contract
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::after,
-.section-card--contract
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__end {
-  color: #3949ab !important; /* สี Border ของ Card: Deep Indigo */
-}
-.section-card--contract .v-field.v-field--variant-outlined.v-field--focused {
-  box-shadow: 0 0 0 5px rgba(57, 73, 171, 0.18); /* Glow Effect */
+/* Overrides Focus colors based on card type */
+.section-card--contract .v-field--focused .v-field__outline__start,
+.section-card--contract .v-field--focused .v-field__outline__notch::before,
+.section-card--contract .v-field--focused .v-field__outline__notch::after,
+.section-card--contract .v-field--focused .v-field__outline__end {
+  color: #3949ab !important;
 }
 
-/* --- รายละเอียดการผ่อนชำระ (.section-card--installment) --- */
-.section-card--installment
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__start,
-.section-card--installment
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::before,
-.section-card--installment
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::after,
-.section-card--installment
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__end {
-  color: #44b73a !important; /* สี Border ของ Card: Green */
-}
-.section-card--installment .v-field.v-field--variant-outlined.v-field--focused {
-  box-shadow: 0 0 0 5px rgba(68, 183, 58, 0.18); /* Glow Effect */
+.section-card--installment .v-field--focused .v-field__outline__start,
+.section-card--installment .v-field--focused .v-field__outline__notch::before,
+.section-card--installment .v-field--focused .v-field__outline__notch::after,
+.section-card--installment .v-field--focused .v-field__outline__end {
+  color: #44b73a !important;
 }
 
-/* --- การเงิน & ยอดคงเหลือ (.section-card--finance) --- */
-.section-card--finance
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__start,
-.section-card--finance
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::before,
-.section-card--finance
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::after,
-.section-card--finance
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__end {
-  color: #009688 !important; /* สี Border ของ Card: Teal */
-}
-.section-card--finance .v-field.v-field--variant-outlined.v-field--focused {
-  box-shadow: 0 0 0 5px rgba(0, 150, 136, 0.18); /* Glow Effect */
+.section-card--finance .v-field--focused .v-field__outline__start,
+.section-card--finance .v-field--focused .v-field__outline__notch::before,
+.section-card--finance .v-field--focused .v-field__outline__notch::after,
+.section-card--finance .v-field--focused .v-field__outline__end {
+  color: #009688 !important;
 }
 
-/* --- หลักทรัพย์ค้ำประกัน (.section-card--asset) --- */
-.section-card--asset
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__start,
-.section-card--asset
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::before,
-.section-card--asset
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::after,
-.section-card--asset
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__end {
-  color: #fb8c00 !important; /* สี Border ของ Card: Orange */
-}
-.section-card--asset .v-field.v-field--variant-outlined.v-field--focused {
-  box-shadow: 0 0 0 5px rgba(251, 140, 0, 0.18); /* Glow Effect */
+.section-card--asset .v-field--focused .v-field__outline__start,
+.section-card--asset .v-field--focused .v-field__outline__notch::before,
+.section-card--asset .v-field--focused .v-field__outline__notch::after,
+.section-card--asset .v-field--focused .v-field__outline__end {
+  color: #fb8c00 !important;
 }
 
-/* --- สัญญาย่อย (.section-card--subcontract) --- */
-.section-card--subcontract
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__start,
-.section-card--subcontract
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::before,
-.section-card--subcontract
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::after,
-.section-card--subcontract
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__end {
-  color: #8e24aa !important; /* สี Border ของ Card: Purple */
-}
-.section-card--subcontract .v-field.v-field--variant-outlined.v-field--focused {
-  box-shadow: 0 0 0 5px rgba(142, 36, 170, 0.18); /* Glow Effect */
+.section-card--subcontract .v-field--focused .v-field__outline__start,
+.section-card--subcontract .v-field--focused .v-field__outline__notch::before,
+.section-card--subcontract .v-field--focused .v-field__outline__notch::after,
+.section-card--subcontract .v-field--focused .v-field__outline__end {
+  color: #8e24aa !important;
 }
 
-/* --- ช่องทางการติดต่อ (.section-card--lead-contact) --- */
-.section-card--lead-contact
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__start,
-.section-card--lead-contact
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::before,
-.section-card--lead-contact
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::after,
-.section-card--lead-contact
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__end {
-  color: #00acc1 !important; /* สี Border ของ Card: Cyan */
-}
-.section-card--lead-contact
-  .v-field.v-field--variant-outlined.v-field--focused {
-  box-shadow: 0 0 0 5px rgba(0, 172, 193, 0.18); /* Glow Effect */
+.section-card--lead-contact .v-field--focused .v-field__outline__start,
+.section-card--lead-contact .v-field--focused .v-field__outline__notch::before,
+.section-card--lead-contact .v-field--focused .v-field__outline__notch::after,
+.section-card--lead-contact .v-field--focused .v-field__outline__end {
+  color: #00acc1 !important;
 }
 
-/* --- [แก้ไขล่าสุด] แหล่งที่มา / ข้อมูลสินเชื่อ (.section-card--lead-prospect) --- */
-.section-card--lead-prospect
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__start,
-.section-card--lead-prospect
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::before,
-.section-card--lead-prospect
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::after,
-.section-card--lead-prospect
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__end {
-  color: #5e35b1 !important; /* เปลี่ยนจากแดงเป็นม่วงเข้ม */
-}
-.section-card--lead-prospect
-  .v-field.v-field--variant-outlined.v-field--focused {
-  box-shadow: 0 0 0 5px rgba(94, 53, 177, 0.18); /* Glow Effect สีม่วง */
+.section-card--lead-prospect .v-field--focused .v-field__outline__start,
+.section-card--lead-prospect .v-field--focused .v-field__outline__notch::before,
+.section-card--lead-prospect .v-field--focused .v-field__outline__notch::after,
+.section-card--lead-prospect .v-field--focused .v-field__outline__end {
+  color: #5e35b1 !important;
 }
 
-/* --- สินทรัพย์ของลูกค้า (.section-card--lead-asset) --- */
-.section-card--lead-asset
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__start,
-.section-card--lead-asset
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::before,
-.section-card--lead-asset
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::after,
-.section-card--lead-asset
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__end {
-  color: #7cb342 !important; /* สี Border ของ Card: Light Green */
-}
-.section-card--lead-asset .v-field.v-field--variant-outlined.v-field--focused {
-  box-shadow: 0 0 0 5px rgba(124, 179, 66, 0.18); /* Glow Effect */
+.section-card--lead-asset .v-field--focused .v-field__outline__start,
+.section-card--lead-asset .v-field--focused .v-field__outline__notch::before,
+.section-card--lead-asset .v-field--focused .v-field__outline__notch::after,
+.section-card--lead-asset .v-field--focused .v-field__outline__end {
+  color: #7cb342 !important;
 }
 
-/* --- หมายเหตุ (.section-card--lead-note) --- */
-.section-card--lead-note
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__start,
-.section-card--lead-note
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::before,
-.section-card--lead-note
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__notch::after,
-.section-card--lead-note
-  .v-field.v-field--variant-outlined.v-field--focused
-  .v-field__outline__end {
-  color: #607d8b !important; /* สี Border ของ Card: Blue Grey */
-}
-.section-card--lead-note .v-field.v-field--variant-outlined.v-field--focused {
-  box-shadow: 0 0 0 5px rgba(96, 125, 139, 0.18); /* Glow Effect */
+.section-card--lead-note .v-field--focused .v-field__outline__start,
+.section-card--lead-note .v-field--focused .v-field__outline__notch::before,
+.section-card--lead-note .v-field--focused .v-field__outline__notch::after,
+.section-card--lead-note .v-field--focused .v-field__outline__end {
+  color: #607d8b !important;
 }

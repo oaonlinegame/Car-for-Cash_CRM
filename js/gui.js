@@ -1,216 +1,314 @@
-// gui.js
+// js/gui.js
 // --------------------------------------------------------
-// 📘 โมดูลจัดการ UI (User Interface Logic)
+// 🖥️ GUI LOGIC MODULE
 // --------------------------------------------------------
-// ทำหน้าที่ควบคุม:
-// - toggleMenu (เปิด/ปิดเมนูหรือ modal)
-// - closeAllMenus (ปิดเมนูทั้งหมด)
-// - pagination / chunking (แบ่งหน้า / จัดกลุ่มข้อมูล)
-// - filteredLeads / pagedLeads (ข้อมูลหลังกรอง + เฉพาะหน้า)
+// โมดูลจัดการตรรกะการแสดงผล (Presentation Logic) และสถานะ UI ที่ซับซ้อน
+// ทำหน้าที่ควบคุมการคำนวณข้อมูลเพื่อแสดงผล (Computed Properties),
+// การตอบสนองต่อการเปลี่ยนแปลงข้อมูล (Watchers), และการจัดการสถานะการนำทาง (Navigation)
 // --------------------------------------------------------
 
-// ดึง Composition API จาก Vue
-const { ref, reactive, watch, computed } = Vue; // ดึงเครื่องมือจาก Vue
+(function (global) {
+  "use strict";
 
-// --------------------------------------------------------
-// ⭐ อ็อบเจกต์ AppGui รวมฟังก์ชัน UI ทั้งหมด
-// --------------------------------------------------------
-const AppGui = {
-  // ----------------------------------------------------
-  // 🧠 ตัวแปรภายในของ AppGui สำหรับ debounce การค้นหา
-  // ----------------------------------------------------
-  searchDebounceTimer: null, // ใช้เก็บ timer ของ setTimeout สำหรับดีเลย์การค้นหา
+  // ดึงฟังก์ชันที่จำเป็นจาก Vue (ซึ่งเป็น Global Object)
+  const { ref, reactive, watch, computed } = global.Vue;
 
-  // ----------------------------------------------------
-  // 🟢 toggleMenu(key, force)
-  // ฟังก์ชันเปิด/ปิด modal หรือเมนูโดยใช้ชื่อใน AppState
-  // ----------------------------------------------------
-  toggleMenu(key, force) {
-    if (!AppState[key]) return; // ถ้าไม่พบ key ใน state ให้หยุดทำงานทันที
-    AppState[key].value =
-      typeof force === "boolean"
-        ? force // ถ้า force เป็น boolean → ใช้ค่าที่ส่งมา
-        : !AppState[key].value; // ถ้าไม่ใช่ → สลับค่า (เปิดเป็นปิด / ปิดเป็นเปิด)
-  },
+  const AppGui = {
+    // ตัวแปรเก็บ Timer สำหรับการหน่วงเวลาค้นหา (Debounce)
+    searchDebounceTimer: null,
 
-  // ----------------------------------------------------
-  // 🔴 closeAllMenus()
-  // ปิดทุกเมนูและทุก modal ที่เปิดอยู่
-  // ----------------------------------------------------
-  closeAllMenus() {
-    Object.keys(AppState).forEach((key) => {
-      const val = AppState[key]; // ดึงค่า state ของ key นั้น
-      if (key.startsWith("is") && val?.value === true) {
-        // ถ้า key ขึ้นต้นด้วย is และค่าเป็น true แสดงว่าเปิดอยู่
-        val.value = false; // ให้ปิดเมนูหรือ modal นั้น
-      }
-    });
-  },
+    // ========================================================================
+    // 1. STATE MUTATION & NAVIGATION (การจัดการสถานะเมนูและการนำทาง)
+    // ========================================================================
 
-  // ----------------------------------------------------
-  // ⭐ setupUIMainComputed()
-  // ฟังก์ชันตั้งค่า Computed หลักทั้งหมดของ UI (Filter, Page, Chunking)
-  // ----------------------------------------------------
-  setupUIMainComputed() {
-    // --------------------------------------------------
-    // 🔍 1) filteredLeads → ใช้ Utils.filterLeads กรองข้อมูล (เฝ้าดู Store.data.leadItems)
-    // --------------------------------------------------
-    AppState.filteredLeads = computed(() => {
-      const query =
-        AppState.searchQueryDebounced &&
-        AppState.searchQueryDebounced.value !== undefined
-          ? AppState.searchQueryDebounced.value // ถ้ามีค่าค้นหาที่ผ่าน debounce แล้ว → ใช้ตัวนี้
-          : AppState.searchQuery.value; // ถ้าไม่มี (กรณีสำรอง) → ใช้คำค้นหาปกติ
-      const list = Store.data.leadItems; // ดึงรายการ lead ทั้งหมดจาก Store (จุดเฝ้าดูหลัก)
-      return Utils.filterLeads(list, query); // คืนรายการที่ผ่านการกรองตามคำค้นหา
-    });
+    /**
+     * สลับสถานะการแสดงผลของเมนูหรือ Modal (Toggle Visibility)
+     * @param {string} key - ชื่อ Key ใน AppState ที่ต้องการเปลี่ยนค่า (ต้องเป็น Boolean Ref)
+     * @param {boolean} [force] - ค่าบังคับ (Optional) หากระบุจะใช้ค่านี้นำแทนการสลับ
+     * ทำหน้าที่แก้ไขค่าใน AppState โดยตรงเพื่อเปิด/ปิดส่วนติดต่อผู้ใช้
+     */
+    toggleMenu(key, force) {
+      if (!global.AppState[key]) return;
+      global.AppState[key].value =
+        typeof force === "boolean" ? force : !global.AppState[key].value;
+    },
 
-    // --------------------------------------------------
-    // 📄 2) totalPages → จำนวนหน้าทั้งหมด
-    // --------------------------------------------------
-    AppState.totalPages = computed(() => {
-      const perPage = AppState.itemsPerPage.value; // จำนวนต่อหน้าที่ผู้ใช้เลือก
-      const total = AppState.filteredLeads.value.length; // จำนวนรายการที่ผ่านการกรองทั้งหมด
-
-      if (perPage === "All") return 1; // ถ้าเลือก All → ให้มีหน้าเดียวเสมอ
-
-      const num = Number(perPage); // แปลงค่าจำนวนต่อหน้าเป็นตัวเลข
-      // ถ้าหน้าปัจจุบันเกินจำนวนหน้าทั้งหมด → ให้กลับไปหน้า 1
-      if (AppState.page.value > Math.max(1, Math.ceil(total / num))) {
-        AppState.page.value = 1;
-      }
-
-      return Math.max(1, Math.ceil(total / num)); // คืนค่าจำนวนหน้าขั้นต่ำ 1 หน้าเสมอ
-    });
-
-    // --------------------------------------------------
-    // 📃 3) pagedLeads → ตัดข้อมูลเฉพาะหน้าปัจจุบัน / จัดกลุ่ม 2 คอลัมน์
-    // --------------------------------------------------
-    AppState.pagedLeads = computed(() => {
-      const page = AppState.page.value; // หน้าปัจจุบัน
-      const perPage = AppState.itemsPerPage.value; // จำนวนต่อหน้า (5,10,20 หรือ All)
-      const all = AppState.filteredLeads.value; // รายการหลังกรองทั้งหมด
-
-      // ✅ กรณีเลือก All → จัดกลุ่มข้อมูลเป็นคู่ (Row ละ 2 items) เพื่อรองรับ 2 คอลัมน์ Grid Virtual Scroll
-      if (perPage === "All") {
-        if (typeof Utils.chunkArray === "function") {
-          return Utils.chunkArray(all, 2); // แบ่งข้อมูลเป็นคู่ (Row ละ 2 items)
+    /**
+     * ปิดเมนูและ Modal ทั้งหมดที่มีในระบบ
+     * วนลูปตรวจสอบ AppState และตั้งค่าตัวแปรที่ขึ้นต้นด้วย "is" ให้เป็น false
+     * ใช้สำหรับกรณีต้องการ Reset หน้าจอหรือเมื่อกดปุ่ม ESC
+     */
+    closeAllMenus() {
+      if (!global.AppState) return;
+      Object.keys(global.AppState).forEach((key) => {
+        const val = global.AppState[key];
+        // ตรวจสอบว่าเป็น Ref และเป็นค่า Boolean หรือไม่
+        if (key.startsWith("is") && val?.value === true) {
+          val.value = false;
         }
-        return all; // กรณีสำรอง: ถ้าฟังก์ชัน chunkArray ยังไม่โหลด
+      });
+    },
+
+    // ========================================================================
+    // 2. COMPLEX UI LOGIC (ตรรกะการจัดการ UI เฉพาะทาง)
+    // ========================================================================
+
+    /**
+     * เปิดแท็บสำหรับสร้างสัญญาใหม่และรีเซ็ตค่าที่เกี่ยวข้อง
+     * ตั้งค่าตัวแปรสถานะใน AppState เพื่อเตรียมหน้าจอให้พร้อมสำหรับการเพิ่มข้อมูล
+     */
+    openContractTabPlus() {
+      if (!global.AppState) return;
+
+      // กำหนดให้แสดงแท็บ 'new' (สัญญาใหม่)
+      global.AppState.contractTab.value = "new";
+      global.AppState.contractInnerTab.value = "all";
+
+      // รีเซ็ต Panel การแสดงผลให้เป็นค่าเริ่มต้นตาม Config
+      if (
+        global.AppConstants &&
+        global.AppConstants.UI_CONFIG &&
+        global.AppConstants.UI_CONFIG.DEFAULT_CONTRACT_PANELS
+      ) {
+        // ใช้ Array.from เพื่อสร้าง Array ใหม่ ป้องกันการแก้ไข Reference ต้นฉบับ
+        global.AppState.contractPanels.value = Array.from(
+          global.AppConstants.UI_CONFIG.DEFAULT_CONTRACT_PANELS
+        );
       }
 
-      const num = Number(perPage); // จำนวนรายการต่อหน้าในรูปตัวเลข
-      const start = (page - 1) * num; // index เริ่มต้นของหน้าปัจจุบัน
-      const end = start + num; // index สุดท้าย (ไม่รวม) ของหน้าปัจจุบัน
+      // เรียกใช้ LeadApp เพื่อรีเซ็ตฟอร์มสัญญาภายใน
+      if (
+        global.LeadApp &&
+        typeof global.LeadApp.resetNewContractForm === "function"
+      ) {
+        global.LeadApp.resetNewContractForm();
+      }
+    },
 
-      return all.slice(start, end); // คืนเฉพาะรายการที่อยู่ในช่วงของหน้านั้นเท่านั้น
-    });
-  },
+    /**
+     * รีเซ็ตรายการ Panel ของสัญญาให้กลับสู่ค่าเริ่มต้น
+     * ใช้เมื่อมีการเปลี่ยนสัญญาหรือต้องการคืนค่าการแสดงผล
+     */
+    resetContractPanels() {
+      if (
+        global.AppConstants &&
+        global.AppConstants.UI_CONFIG &&
+        global.AppConstants.UI_CONFIG.DEFAULT_CONTRACT_PANELS
+      ) {
+        global.AppState.contractPanels.value = Array.from(
+          global.AppConstants.UI_CONFIG.DEFAULT_CONTRACT_PANELS
+        );
+      }
+    },
 
-  // ----------------------------------------------------
-  // 🆕 openContractTabPlus()
-  // ฟังก์ชันเปิด TAB "+" ของสัญญา
-  // เรียกทุกครั้งที่ต้องเพิ่มสัญญาใหม่
-  // ----------------------------------------------------
-  openContractTabPlus() {
-    // ย้ายไป TAB "new"
-    AppState.contractTab.value = "new";
+    /**
+     * รีเซ็ตตำแหน่ง Scroll ของ Element ที่กำหนดให้กลับไปด้านบนสุด
+     * @param {HTMLElement} el - Element ที่ต้องการรีเซ็ต Scroll
+     * ใช้ป้องกันข้อผิดพลาดกรณี Element ถูกทำลายไปแล้ว
+     */
+    resetContractScroll(el) {
+      if (!el) return;
+      try {
+        el.scrollTop = 0;
+      } catch (err) {
+        console.warn("resetContractScroll error:", err);
+      }
+    },
 
-    // reset TAB ย่อยให้ไปหน้า ALL
-    AppState.contractInnerTab.value = "all";
+    // ========================================================================
+    // 3. COMPUTED LOGIC SETUP (การตั้งค่าการคำนวณข้อมูล)
+    // ========================================================================
 
-    // reset Panels ให้เปิดหมด (ค่าเริ่มต้น)
-    AppState.contractPanels.value = [
-      "info",
-      "finance",
-      "status",
-      "asset",
-      "history",
-      "other",
-    ];
+    /**
+     * สร้าง Computed Properties สำหรับระบบหลัก (Main UI)
+     * รับผิดชอบการกรองข้อมูล (Filtering) และการแบ่งหน้า (Pagination)
+     * โดยผลลัพธ์จะถูกผูกกลับเข้าไปใน AppState เพื่อให้ View เรียกใช้
+     */
+    setupUIMainComputed() {
+      if (!global.AppState || !global.Store) return;
 
-    // สั่งให้ LeadApp เคลียร์ฟอร์มสัญญาใหม่
-    if (typeof LeadApp?.resetNewContractForm === "function") {
-      LeadApp.resetNewContractForm();
-    }
-  },
+      // 3.1 Filtered Leads: กรองข้อมูล Lead ตามคำค้นหา
+      global.AppState.filteredLeads = computed(() => {
+        // เลือกใช้คำค้นหาที่ผ่านการ Debounce แล้ว หรือคำค้นหาปัจจุบัน
+        const query =
+          global.AppState.searchQueryDebounced?.value !== undefined
+            ? global.AppState.searchQueryDebounced.value
+            : global.AppState.searchQuery.value;
 
-  // ----------------------------------------------------
-  // 🆕 resetContractPanels()
-  // ใช้เมื่อเปิด dialog ใหม่ เพื่อป้องกัน Vuetify จำสถานะ panel เก่า
-  // ----------------------------------------------------
-  resetContractPanels() {
-    AppState.contractPanels.value = [
-      "info",
-      "finance",
-      "status",
-      "asset",
-      "history",
-      "other",
-    ];
-  },
+        const list = global.Store.data.leadItems;
 
-  // ----------------------------------------------------
-  // 🆕 resetContractScroll(el)
-  // รีเซ็ต scrollTop ของพื้นที่สัญญา
-  // ต้องเรียกหลัง nextTick เพื่อให้ DOM ขึ้นก่อน
-  // ----------------------------------------------------
-  resetContractScroll(el) {
-    if (!el) return; // ถ้าไม่มี element → หยุด
-    try {
-      el.scrollTop = 0; // ตั้ง scroll ให้กลับไปบนสุด
-    } catch (err) {
-      console.warn("resetContractScroll():", err);
-    }
-  },
+        // ใช้ Utility searchItems ในการค้นหา (ถ้ามี)
+        if (global.Utils && typeof global.Utils.searchItems === "function") {
+          return global.Utils.searchItems(list, query);
+        }
+        return list || []; // คืนค่า Array ว่างหากไม่มีข้อมูล
+      });
 
-  // ----------------------------------------------------
-  // ⭐ setupWatchers()
-  // ฟังก์ชันเฝ้าดูค่าที่สำคัญ และจัดการรีเซ็ตหน้า / debounce
-  // ----------------------------------------------------
-  setupWatchers() {
-    // 🔁 เมื่อผู้ใช้เปลี่ยนจำนวนรายการต่อหน้า → กลับไปหน้าแรก
-    watch(AppState.itemsPerPage, () => {
-      AppState.page.value = 1; // รีเซ็ตหน้ากลับไป 1 ทุกครั้งที่เปลี่ยน per page
-    });
+      // 3.2 Total Pages: คำนวณจำนวนหน้าทั้งหมด
+      global.AppState.totalPages = computed(() => {
+        const perPage = global.AppState.itemsPerPage.value;
+        const total = global.AppState.filteredLeads.value.length;
 
-    // 🔍 เมื่อผู้ใช้พิมพ์ในช่องค้นหา → debounce ก่อนเซ็ตจริง
-    watch(
-      AppState.searchQuery, // เฝ้าดูค่าค้นหาหลักที่ช่อง Search
-      (newVal) => {
-        AppState.page.value = 1; // ทุกครั้งที่ค้นหาใหม่ ให้กลับไปหน้าแรกเสมอ
+        // กรณีเลือกแสดงทั้งหมด ให้มี 1 หน้า
+        if (perPage === "All") return 1;
 
-        // ถ้ามี timer debounce ตัวเก่าอยู่ → เคลียร์ก่อนเพื่อไม่ให้ยิงซ้อน
+        const num = Number(perPage);
+
+        // ตรวจสอบและปรับเลขหน้าปัจจุบันหากเกินจำนวนหน้าที่มีจริง (Bound Check)
+        if (global.AppState.page.value > Math.max(1, Math.ceil(total / num))) {
+          global.AppState.page.value = 1;
+        }
+        return Math.max(1, Math.ceil(total / num));
+      });
+
+      // 3.3 Paged Leads: ตัดข้อมูล Lead เพื่อแสดงผลเฉพาะหน้าปัจจุบัน
+      global.AppState.pagedLeads = computed(() => {
+        const page = global.AppState.page.value;
+        const perPage = global.AppState.itemsPerPage.value;
+        const all = global.AppState.filteredLeads.value;
+
+        // กรณีเลือกแสดงทั้งหมด อาจต้องแบ่ง Chunk เพื่อประสิทธิภาพการ Render (Virtual Scroll)
+        if (perPage === "All") {
+          return global.Utils && typeof global.Utils.chunkArray === "function"
+            ? global.Utils.chunkArray(all, 2)
+            : all;
+        }
+
+        // คำนวณ Index เริ่มต้นและสิ้นสุดสำหรับการ Slice Array
+        const num = Number(perPage);
+        const start = (page - 1) * num;
+        const end = start + num;
+        return all.slice(start, end);
+      });
+    },
+
+    // ========================================================================
+    // 4. REACTIVE WATCHERS (การดักจับการเปลี่ยนแปลงและ Side Effects)
+    // ========================================================================
+
+    /**
+     * ตั้งค่า Watchers เพื่อตอบสนองต่อการเปลี่ยนแปลงของ State
+     * จัดการ Logic ที่ไม่สามารถทำใน Computed ได้ เช่น การตั้งเวลา (Timer) หรือการเรียก Method ภายนอก
+     */
+    setupWatchers() {
+      if (!global.AppState) return;
+
+      // 4.1 Pagination Watcher: รีเซ็ตไปหน้า 1 เมื่อจำนวนรายการต่อหน้าเปลี่ยน
+      watch(global.AppState.itemsPerPage, () => {
+        global.AppState.page.value = 1;
+      });
+
+      // 4.2 Search Debounce Watcher: หน่วงเวลาการค้นหาเพื่อลดภาระการประมวลผล
+      watch(global.AppState.searchQuery, (newVal) => {
+        // รีเซ็ตหน้าเมื่อเริ่มพิมพ์ค้นหา
+        global.AppState.page.value = 1;
+
+        // ล้าง Timer เดิม (ถ้ามี) และเริ่มนับใหม่
         if (this.searchDebounceTimer) {
-          clearTimeout(this.searchDebounceTimer); // ล้าง timer เดิมออก
+          clearTimeout(this.searchDebounceTimer);
         }
-
-        // ตั้ง timer ใหม่เพื่อหน่วงการอัปเดต searchQueryDebounced
         this.searchDebounceTimer = setTimeout(() => {
-          if (AppState.searchQueryDebounced) {
-            AppState.searchQueryDebounced.value = newVal; // เซ็ตค่าค้นหาที่ผ่าน debounce แล้ว
+          if (global.AppState.searchQueryDebounced) {
+            global.AppState.searchQueryDebounced.value = newVal;
           }
-        }, 250); // ดีเลย์ 250ms เพื่อลดการกรองบ่อยเกินไป (ทุก key ที่พิมพ์)
+        }, 250); // หน่วงเวลา 250ms
+      });
+
+      // --------------------------------------------------
+      // 🧹 Auto-Reset Logic (ตรรกะการรีเซ็ตอัตโนมัติตาม Config)
+      // --------------------------------------------------
+      // ใช้กฎจาก AppConstants เพื่อลด Code Duplication ในการ Watch Modal แต่ละตัว
+      const rules =
+        global.AppConstants && global.AppConstants.UI_CONFIG
+          ? global.AppConstants.UI_CONFIG.AUTO_RESET_RULES
+          : null;
+
+      if (rules) {
+        rules.forEach((rule) => {
+          const state = global.AppState[rule.stateKey];
+
+          // ตรวจสอบว่า State ที่อ้างถึงมีอยู่จริง
+          if (!state) {
+            console.warn(`⚠️ AppGui: State '${rule.stateKey}' not found.`);
+            return;
+          }
+
+          // Watch การเปลี่ยนแปลงของ State
+          watch(state, (isOpen) => {
+            // ทำงานเมื่อ Modal ถูกปิด (isOpen = false)
+            if (!isOpen) {
+              console.log(`🧹 Auto Reset: ${rule.label}`);
+
+              // เรียกใช้ Method ของ Module ตามที่ระบุใน Config
+              const targetModule = global[rule.module];
+              if (
+                targetModule &&
+                typeof targetModule[rule.method] === "function"
+              ) {
+                targetModule[rule.method]();
+              } else {
+                console.warn(
+                  `⚠️ Warning: Method ${rule.module}.${rule.method} not found`
+                );
+              }
+            }
+          });
+        });
       }
-    );
+    },
 
-    // 🧪 debug → แสดงใน console เมื่อมีการเปลี่ยนหน้า
-    watch(AppState.page, (p) => {
-      console.log("📄 เปลี่ยนหน้าเป็น:", p); // แสดงหน้าปัจจุบันใน console
-    });
-  },
+    // ========================================================================
+    // 5. INITIALIZATION (การเริ่มต้นระบบ GUI)
+    // ========================================================================
 
-  // ----------------------------------------------------
-  // ⭐ setupComputed()
-  // ฟังก์ชันรวมการตั้งค่า computed & watcher ไว้เรียกจาก app.js
-  // ----------------------------------------------------
-  setupComputed() {
-    this.setupUIMainComputed(); // <--- เปลี่ยนการเรียก PagesComputed() เป็น setupUIMainComputed()
-    this.setupWatchers(); // ตั้ง watcher ให้ทำงานต่อเนื่องเวลาผู้ใช้เปลี่ยนค่า
-  },
-};
+    /**
+     * ฟังก์ชันหลักสำหรับเรียกใช้งานการตั้งค่าทั้งหมด
+     * ควรถูกเรียกจาก App.js หรือจุด Entry Point
+     */
+    setupComputed() {
+      this.setupUIMainComputed();
+      this.setupWatchers();
+    },
 
-// --------------------------------------------------------
-// 🌍 export AppGui ไปที่ window ให้ไฟล์อื่นใช้งานได้
-// --------------------------------------------------------
-window.AppGui = AppGui; // ผูก AppGui กับ window เพื่อให้ไฟล์อื่นและ template เรียกใช้ได้
+    /**
+     * ฟังก์ชันสำหรับเลื่อนไปยัง Element ที่กำหนดภายในพื้นที่ Scroll ของ Modal
+     * @param {string} targetSelector - ID หรือ Class ของเป้าหมาย
+     * @param {string} containerSelector - พื้นที่ที่เป็น Scroll Container (ในที่นี้คือพื้นที่ใน Modal)
+     */
+    // js/gui.js
+    scrollToElement(targetSelector) {
+      const target = document.querySelector(targetSelector);
+      // หาพื้นที่สำหรับ Scroll ของ Modal (v-card-text)
+      const container = target ? target.closest(".v-card-text") : null;
+
+      if (target && container) {
+        // 1. หาความสูงจริงของส่วนหัวที่ตรึงไว้ (Sticky Header)
+        const profileHeader = document.querySelector(".sticky-profile-area");
+        const headerHeight = profileHeader ? profileHeader.offsetHeight : 0;
+
+        // 2. คำนวณตำแหน่ง: (ตำแหน่งเป้าหมายเทียบกับขอบบนสุดของเอกสาร)
+        // ลบด้วย (ตำแหน่งขอบบนสุดของพื้นที่ Scroll)
+        // แล้วลบด้วยความสูงของส่วนหัว และระยะเผื่อ (Buffer)
+        const buffer = -80;
+        const targetRect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        // คำนวณระยะที่ต้องเลื่อน (Scroll Top ใหม่)
+        const scrollPosition =
+          targetRect.top -
+          containerRect.top +
+          container.scrollTop -
+          headerHeight -
+          buffer;
+
+        container.scrollTo({
+          top: scrollPosition,
+          behavior: "smooth",
+        });
+      }
+    },
+  };
+
+  // ส่งออกเป็น Global Object (Pattern: Module Export)
+  global.AppGui = AppGui;
+})(window);

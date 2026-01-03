@@ -21,6 +21,15 @@
       }, 0);
     },
 
+    // ✅ ฟังก์ชันบันทึกยี่ห้อรถใหม่ (Auto Save Brand)
+    handleBrandChange(newValue) {
+      if (!newValue) return;
+      // เรียกใช้ MasterData เพื่อบันทึกลงฐานข้อมูลและ Memory
+      if (global.MasterData && global.MasterData.addOption) {
+        global.MasterData.addOption("carBrandOptions", newValue);
+      }
+    },
+
     // ----------------------------------------------------
     // ⭐ ตรวจสอบความครบถ้วนของข้อมูลหลักทรัพย์
     // ----------------------------------------------------

@@ -1,10 +1,10 @@
 // js/lead.js
 // --------------------------------------------------------
-// 👤 Lead App (Business Logic สำหรับจัดการข้อมูลลูกค้า)
+// 👤 LEAD MANAGEMENT MODULE
 // --------------------------------------------------------
-// โมดูลนี้ทำหน้าที่เป็น Controller หลักสำหรับการจัดการ Lead
-// รวบรวมฟังก์ชันด้าน CRUD, การจัดการ State ของฟอร์ม,
-// และการซิงค์ข้อมูลระหว่าง Database (Repository) และ UI (Store)
+// โมดูลหลักสำหรับจัดการ Business Logic ของข้อมูลลูกค้า (Leads)
+// ทำหน้าที่ควบคุม State ของฟอร์ม, การรับส่งข้อมูลกับ Repository,
+// และการซิงโครไนซ์ข้อมูลไปยัง Global Store เพื่อการแสดงผล
 // --------------------------------------------------------
 
 (function (global) {
@@ -12,33 +12,63 @@
 
   const LeadApp = {
     // ========================================================================
-    // 1. STATE MANAGEMENT (การจัดการสถานะ)
+    // 1. REACTIVE STATE (สถานะของข้อมูลที่ผูกกับ UI)
     // ========================================================================
 
     /**
-     * สถานะ Reactive ของฟอร์ม Lead
-     * ใช้สำหรับผูกข้อมูลกับหน้าจอ UI (v-model) โดยตรง
-     * โครงสร้างข้อมูลเริ่มต้นถูกสร้างจาก DataSpec
+     * ตัวแปร Reactive สำหรับเก็บข้อมูลฟอร์มลูกค้า
+     * โครงสร้างข้อมูลถูกกำหนดโดย DataSpec.Lead.createDefault()
+     * ใช้สำหรับผูกกับ v-model ในหน้าจอเพิ่ม/แก้ไขข้อมูลโดยตรง
      */
     form: Vue.reactive(global.DataSpec.Lead.createDefault()),
 
     // ========================================================================
-    // 2. DATA LOADING & SYNCHRONIZATION (การโหลดและซิงค์ข้อมูล)
+    // 2. SYSTEM INITIALIZATION (การเริ่มต้นระบบและ Event Listeners)
     // ========================================================================
 
     /**
-     * ดึงข้อมูล Lead ทั้งหมดจากฐานข้อมูลและอัปเดตลง Store
-     * รวมถึงการตั้งค่าเริ่มต้นให้กับฟอร์มตาม Master Data ที่มี
+     * เริ่มต้นการทำงานของโมดูลและตั้งค่า Watchers
+     * @param {Object} state - Global AppState ที่ใช้ตรวจสอบสถานะ UI (เช่น Modal Open/Close)
+     * * การทำงาน:
+     * 1. ตรวจสอบว่า state และ property ที่จำเป็นมีอยู่จริง
+     * 2. ผูก Watcher เข้ากับสถานะการเปิด Modal (isOpenModalLead)
+     * 3. เมื่อ Modal ถูกปิด (isOpen == false) จะสั่งรีเซ็ตฟอร์มทันที
+     * เพื่อป้องกันข้อมูลค้าง (Stale Data) ในการใช้งานครั้งถัดไป
+     */
+    init(state) {
+      if (state && state.isOpenModalLead) {
+        Vue.watch(state.isOpenModalLead, (isOpen) => {
+          if (!isOpen) {
+            console.log("👤 LeadApp: Modal closed. Resetting form...");
+            this.resetLeadForm();
+          }
+        });
+      }
+    },
+
+    // ========================================================================
+    // 3. DATA LOADING & SYNCHRONIZATION (การโหลดและซิงค์ข้อมูล)
+    // ========================================================================
+
+    /**
+     * โหลดข้อมูล Lead ทั้งหมดจาก Local Database (IndexedDB)
+     * และนำไปอัปเดตลงใน Global Store เพื่อแสดงผล
+     * * กระบวนการทำงาน:
+     * 1. ดึงข้อมูลทั้งหมดจาก Repository
+     * 2. กำหนดค่าเริ่มต้นให้กับ Dropdown ในฟอร์ม (Occupation, Source)
+     * โดยดึงค่าแรกจาก Master Data ใน Store (ถ้ามี)
+     * 3. รีเซ็ตฟอร์มสัญญา (Sub-form) เพื่อความสะอาดของ State
+     * 4. อัปเดตข้อมูลลง Store ผ่าน Utils.storeSetItems
+     * 5. (Optional) ตรวจสอบและซ่อมแซมข้อมูล (Self-Healing) ใน Background
+     * หากพบรายการที่ต้องแก้ไขโครงสร้าง
      */
     async loadAll() {
       try {
-        // 1. ดึงข้อมูลดิบทั้งหมดจาก Repository (IndexedDB)
+        // 1. ดึงข้อมูลดิบจาก Repository
         const items = await global.Repository.leads.getAll();
-        const itemsToUpdate = []; // อาร์เรย์สำหรับเก็บรายการที่ต้องซ่อมแซมข้อมูล (Self-Healing)
+        const itemsToUpdate = []; // เก็บรายการที่ต้องซ่อมแซมโครงสร้าง (ถ้ามี)
 
-        // 2. กำหนดค่าเริ่มต้นให้กับฟอร์ม (Form Defaults)
-        // ตรวจสอบว่ามีข้อมูล Master Data ใน Store หรือไม่
-        // หากมี จะนำค่าลำดับแรกมาใช้เป็นค่าเริ่มต้นของฟอร์ม (อาชีพ)
+        // 2. กำหนดค่า Default Selection สำหรับ Dropdown
         if (
           global.Store &&
           Array.isArray(global.Store.data.occupationOptions) &&
@@ -47,7 +77,6 @@
           LeadApp.form.occupation = global.Store.data.occupationOptions[0];
         }
 
-        // หากมี จะนำค่าลำดับแรกมาใช้เป็นค่าเริ่มต้นของฟอร์ม (แหล่งที่มา)
         if (
           global.Store &&
           Array.isArray(global.Store.data.sourceOptions) &&
@@ -56,41 +85,29 @@
           LeadApp.form.source = global.Store.data.sourceOptions[0];
         }
 
-        // รีเซ็ตฟอร์มสัญญาที่เกี่ยวข้องให้เป็นค่าเริ่มต้น
+        // 3. รีเซ็ตฟอร์มส่วนควบ (Contract Form)
         this.resetNewContractForm();
 
-        // 3. อัปเดตข้อมูลลง Store เพื่อแสดงผลบน UI ทันที
-        // ใช้ Utils.storeSetItems เพื่อจัดการการแช่แข็งข้อมูล (Freeze) เพื่อประสิทธิภาพ
+        // 4. อัปเดต Store (UI Update)
         if (global.Utils?.storeSetItems) {
           global.Utils.storeSetItems("Lead", items);
         }
 
-        // 4. กระบวนการตรวจสอบและแก้ไขข้อมูลแบบเบื้องหลัง (Deferred Self-Healing)
-        // ตรวจสอบว่ามีรายการที่ต้องอัปเดตหรือไม่ (จาก logic ก่อนหน้า)
+        // 5. กระบวนการ Self-Healing (Background Task)
+        // ทำงานหลังจากโหลดเสร็จ 2 วินาที เพื่อไม่ให้กระทบ Performance แรกเริ่ม
         if (itemsToUpdate.length > 0) {
-          console.log(
-            `🛠️ LeadApp: Scheduled self-healing for ${itemsToUpdate.length} items (Deferred)...`
-          );
-
-          // ใช้ setTimeout เพื่อผลักภาระงานไปทำหลังจาก Main Thread ว่าง
-          // ป้องกันไม่ให้ UI กระตุกขณะเริ่มระบบ
           setTimeout(async () => {
             try {
               if (global.Repository?.leads?.update) {
-                // วนลูปอัปเดตข้อมูลเฉพาะส่วนที่จำเป็น (Partial Update)
                 for (const item of itemsToUpdate) {
                   await global.Repository.leads.update(item.id, {
                     _searchIndex: item._searchIndex,
                   });
                 }
-                console.log("✅ LeadApp: Self-healing complete (Safe Patch).");
+                console.log("✅ LeadApp: Self-healing complete.");
               }
             } catch (err) {
-              // ดักจับข้อผิดพลาดที่ไม่ร้ายแรงเพื่อไม่ให้ระบบหยุดทำงาน
-              console.warn(
-                "⚠️ LeadApp: Self-healing write skipped (Non-critical):",
-                err
-              );
+              console.warn("⚠️ LeadApp: Self-healing write skipped:", err);
             }
           }, 2000);
         }
@@ -101,41 +118,44 @@
     },
 
     // ========================================================================
-    // 3. DATA PERSISTENCE (การบันทึกข้อมูล - CRUD)
+    // 4. CRUD OPERATIONS (การจัดการข้อมูล: เพิ่ม / แก้ไข / ลบ)
     // ========================================================================
 
     /**
-     * สร้าง Lead ใหม่และบันทึกลงฐานข้อมูล
-     * @param {Object} formData - ข้อมูลจากฟอร์ม (ถ้าไม่ระบุจะใช้ LeadApp.form)
+     * สร้างข้อมูล Lead ใหม่และบันทึกลงฐานข้อมูล
+     * @param {Object} formData - ข้อมูลจากฟอร์ม (Optional: หากไม่ระบุจะใช้ this.form)
+     * * การทำงาน:
+     * 1. เตรียมข้อมูล (Payload Construction) และประทับเวลาสร้าง (createDate)
+     * 2. สร้าง Search Index สำหรับการค้นหาแบบรวดเร็ว
+     * 3. บันทึกลง IndexedDB ผ่าน Repository และรอรับ ID ใหม่
+     * 4. เพิ่มข้อมูลใหม่ลงใน Global Store ทันที (Optimistic UI Update)
+     * โดยไม่ต้องโหลดข้อมูลใหม่ทั้งหมด
+     * 5. รีเซ็ตฟอร์มเมื่อเสร็จสิ้น
      */
     async add(formData) {
       try {
         const src = formData || LeadApp.form;
 
-        // เตรียมข้อมูลสำหรับบันทึก พร้อมระบุวันที่สร้าง
         const dataToSave = {
           ...src,
           createDate: new Date().toLocaleDateString("th-TH"),
         };
 
-        // สร้างดัชนีการค้นหา (Search Index) เพื่อประสิทธิภาพในการกรองข้อมูล
+        // สร้าง Index สำหรับการค้นหา
         if (global.Utils?.generateSearchIndex) {
           dataToSave._searchIndex =
             global.Utils.generateSearchIndex(dataToSave);
         }
 
-        // บันทึกลง Repository และรับ ID ที่ได้กลับมา
+        // บันทึกลง DB
         const newId = await global.Repository.leads.create(dataToSave);
 
-        // เตรียม object สำหรับอัปเดต Store (ต้องมี ID)
+        // อัปเดต Store (ต้องแนบ ID ที่ได้จาก DB กลับไปด้วย)
         const itemForStore = { ...dataToSave, id: newId };
-
-        // อัปเดต Store ทันทีเพื่อให้ UI แสดงผลรายการใหม่โดยไม่ต้องโหลดซ้ำ
         if (global.Store && global.Store.data.leadItems) {
           global.Store.data.leadItems.push(Object.freeze(itemForStore));
         }
 
-        // รีเซ็ตฟอร์มเพื่อเตรียมพร้อมสำหรับการกรอกข้อมูลถัดไป
         LeadApp.resetLeadForm();
         global.AppNotifications?.show("✅ บันทึกข้อมูลเรียบร้อย");
       } catch (err) {
@@ -145,26 +165,29 @@
     },
 
     /**
-     * อัปเดตข้อมูล Lead ที่มีอยู่แล้ว
-     * ใช้ข้อมูลจาก LeadApp.form ในการบันทึก
+     * ปรับปรุงข้อมูล Lead ที่มีอยู่ (Update)
+     * * การทำงาน:
+     * 1. ตรวจสอบว่ามี ID หรือไม่ (Safety Check)
+     * 2. สร้างข้อมูลใหม่และอัปเดต Search Index
+     * 3. ส่งคำสั่ง Update ไปยัง Repository
+     * 4. ค้นหาและแทนที่ข้อมูลเดิมใน Global Store (Array Mutation)
+     * เพื่อให้หน้าจอแสดงข้อมูลล่าสุดทันที
      */
     async update() {
       try {
-        // ตรวจสอบความถูกต้องของ ID ก่อนดำเนินการ
         if (!LeadApp.form.id) return;
 
         const updatedData = { ...LeadApp.form };
 
-        // สร้างดัชนีการค้นหาใหม่เพื่อให้สอดคล้องกับข้อมูลที่แก้ไข
         if (global.Utils?.generateSearchIndex) {
           updatedData._searchIndex =
             global.Utils.generateSearchIndex(updatedData);
         }
 
-        // ส่งข้อมูลไปอัปเดตที่ Repository
+        // อัปเดต DB
         await global.Repository.leads.update(LeadApp.form.id, updatedData);
 
-        // ค้นหาและอัปเดตข้อมูลใน Store เพื่อให้ UI เป็นปัจจุบัน
+        // อัปเดต Store
         if (global.Store && global.Store.data.leadItems) {
           const list = global.Store.data.leadItems;
           const index = list.findIndex((item) => item.id === updatedData.id);
@@ -181,17 +204,18 @@
     },
 
     /**
-     * ลบข้อมูล Lead ตาม ID ที่ระบุ
-     * @param {number|string} id - ID ของ Lead ที่ต้องการลบ
+     * ลบข้อมูล Lead ตาม ID (Delete)
+     * * การทำงาน:
+     * 1. แสดงหน้าต่างยืนยัน (Confirmation Dialog)
+     * 2. ส่งคำสั่ง Delete ไปยัง Repository
+     * 3. ลบรายการออกจาก Global Store array (Array Splice)
      */
     async delete(id) {
       try {
         if (!confirm("ยืนยันการลบข้อมูลนี้?")) return;
 
-        // ลบข้อมูลออกจาก Repository
         await global.Repository.leads.delete(id);
 
-        // ลบข้อมูลออกจาก Store เพื่อให้ UI อัปเดตทันที
         if (global.Store && global.Store.data.leadItems) {
           const list = global.Store.data.leadItems;
           const index = list.findIndex((item) => item.id === id);
@@ -209,73 +233,68 @@
     },
 
     // ========================================================================
-    // 4. FORM MANAGEMENT (การจัดการฟอร์ม)
+    // 5. FORM MANAGEMENT & HELPERS (การจัดการสถานะฟอร์ม)
     // ========================================================================
 
     /**
-     * เตรียมข้อมูลสำหรับหน้าแก้ไข (Edit Mode)
-     * คัดลอกข้อมูลจาก Lead ที่เลือกมาใส่ใน Form State
-     * @param {Object} lead - ข้อมูล Lead ที่ต้องการแก้ไข
+     * เตรียมข้อมูลสำหรับการแก้ไข (Edit Mode Preparation)
+     * นำข้อมูล Lead ที่เลือกมาใส่ลงใน Form State
+     * @param {Object} lead - ข้อมูล Lead ต้นฉบับ
      */
     prepareEdit(lead) {
       if (!lead) return;
 
-      // คัดลอกคุณสมบัติทั้งหมดไปยัง Reactive Form
+      // คัดลอกข้อมูลลงฟอร์ม
       Object.assign(LeadApp.form, lead);
 
-      // ตรวจสอบความสมบูรณ์ของโครงสร้างข้อมูล (Contracts)
-      // หากไม่มี ให้สร้างเป็น Array ว่างเพื่อป้องกัน Error ใน UI
+      // ตรวจสอบโครงสร้าง Array ของ Contracts ให้ถูกต้อง
       if (!Array.isArray(LeadApp.form.contracts)) {
         LeadApp.form.contracts = [];
       }
     },
 
     /**
-     * รีเซ็ตฟอร์ม Lead กลับเป็นค่าเริ่มต้น
-     * ใช้ Utils.resetForm เพื่อจัดการค่า Default และ Mapping กับ Master Data
+     * รีเซ็ตฟอร์ม Lead กลับสู่ค่าเริ่มต้น (Reset Form)
+     * ใช้ Utils.resetForm เพื่อล้างค่าตกค้างทั้งหมด
+     * และตั้งค่า Default สำหรับ Dropdown จาก Config
      */
     resetLeadForm() {
       if (global.Utils && global.Utils.resetForm) {
-        // กำหนดการจับคู่ชื่อฟิลด์กับชื่อข้อมูลใน Store
         const config = {
           occupation: "occupationOptions",
           source: "sourceOptions",
         };
 
-        // รีเซ็ตค่าโดยใช้โครงสร้างเริ่มต้นจาก DataSpec
         global.Utils.resetForm(
           LeadApp.form,
           global.DataSpec.Lead.createDefault(),
           config
         );
       }
-      // รีเซ็ตฟอร์มย่อย (สัญญา) ด้วย
+      // รีเซ็ตฟอร์มย่อย (Contract) ด้วย
       this.resetNewContractForm();
     },
 
     /**
-     * รีเซ็ตฟอร์มสำหรับสร้างสัญญาใหม่
-     * เรียกใช้ฟังก์ชันจาก ContractApp
+     * สั่งรีเซ็ตฟอร์มสัญญาใหม่ (ผ่าน ContractApp)
      */
     resetNewContractForm() {
       if (global.ContractApp) global.ContractApp.resetNewForm();
     },
 
     /**
-     * เพิ่มสัญญาเปล่าลงในฟอร์มปัจจุบัน
-     * ใช้สำหรับกรณีต้องการเพิ่มสัญญาในขณะกรอกข้อมูล Lead
+     * เพิ่มสัญญาเปล่าลงในฟอร์ม Lead ปัจจุบัน
      */
     addEmptyContract() {
       if (global.ContractApp) global.ContractApp.addEmpty(LeadApp.form);
     },
 
     /**
-     * จัดการเมื่อมีการเปลี่ยนแปลงค่าในช่องอาชีพ (Occupation)
-     * หากเป็นค่าใหม่ จะทำการเพิ่มลงในตัวเลือก Master Data
-     * @param {string} val - ค่าอาชีพที่ผู้ใช้กรอก
+     * จัดการ Event เมื่อมีการเปลี่ยนอาชีพ หรือพิมพ์อาชีพใหม่
+     * หากเป็นอาชีพใหม่ ระบบจะบันทึกลง Master Data โดยอัตโนมัติ
+     * @param {string} val - ค่าอาชีพที่เลือกหรือพิมพ์
      */
     handleOccupationChange(val) {
-      // ✅ แก้ไข: เรียก MasterData โดยตรง (Direct Dependency)
       if (
         global.MasterData &&
         typeof global.MasterData.addOption === "function"
@@ -285,8 +304,10 @@
     },
 
     // ========================================================================
-    // 5. LEGACY WRAPPERS (ฟังก์ชันห่อหุ้มสำหรับการเข้ากันได้กับโค้ดเก่า)
+    // 6. LEGACY INTERFACE (จุดเชื่อมต่อสำหรับโค้ดเก่า)
     // ========================================================================
+    // Wrapper Functions เพื่อรองรับการเรียกใช้จากโค้ดส่วนอื่น
+    // ที่อาจยังใช้ชื่อฟังก์ชันแบบเก่าอยู่
 
     addLead(f) {
       return LeadApp.add(f);

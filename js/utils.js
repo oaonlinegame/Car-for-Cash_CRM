@@ -1,10 +1,11 @@
 // js/utils.js
 // --------------------------------------------------------
-// 🛠️ Utilities (ฟังก์ชันเครื่องมือและตัวช่วยทั่วไป)
+// 🛠️ UTILITIES MODULE
 // --------------------------------------------------------
-// รวบรวมฟังก์ชันที่เป็น Pure Function หรือ Helper
-// ที่ไม่มี State ของตัวเอง และสามารถเรียกใช้ได้จากทุกโมดูล
-// แบ่งกลุ่มตามลักษณะการใช้งาน: Formatting, Logic, Object Manipulation
+// โมดูลรวบรวมฟังก์ชันอรรถประโยชน์ (Helper Functions)
+// ที่ถูกเรียกใช้งานร่วมกันจากหลายส่วนของระบบ (Cross-Cutting Concerns)
+// ทำหน้าที่จัดการการแสดงผล, การจัดการข้อมูลเชิงโครงสร้าง,
+// และระบบการค้นหาข้อมูลภายใน Memory
 // --------------------------------------------------------
 
 (function (global) {
@@ -12,43 +13,51 @@
 
   const Utils = {
     // ========================================================================
-    // 1. FORMATTING HELPERS (การจัดรูปแบบข้อมูล)
+    // 1. DATA FORMATTING (การจัดรูปแบบข้อมูลเพื่อการแสดงผล)
     // ========================================================================
 
     /**
-     * แปลงวันที่เป็นรูปแบบภาษาไทย (DD/MM/YYYY)
-     * ใช้สำหรับแสดงผลวันที่ในตารางหรือรายงาน
-     * @param {string|Date} dateStr - วันที่ที่ต้องการแปลง
-     * @returns {string} วันที่ในรูปแบบ 31/01/2024 หรือ "-" หากไม่มีข้อมูล
+     * แปลงรูปแบบวันที่จาก String หรือ Date Object ให้เป็นรูปแบบภาษาไทย
+     * * @param {string|Date} dateStr - ข้อมูลวันที่ที่ต้องการแปลง
+     * @returns {string} วันที่ในรูปแบบ "dd/mm/yyyy" หรือ "-" หากข้อมูลไม่ถูกต้อง
+     * * การทำงาน:
+     * 1. ตรวจสอบความมีอยู่ของข้อมูล (Existence Check)
+     * 2. แปลงข้อมูลเข้าสู่ Date Object และตรวจสอบความถูกต้อง (Validity Check)
+     * 3. คืนค่าวันที่ตาม Locale "th-TH" เพื่อแสดงผลใน UI
      */
     formatDate(dateStr) {
       if (!dateStr) return "-";
       try {
         const d = new Date(dateStr);
+        // ตรวจสอบว่าค่าที่ได้เป็น NaN หรือไม่ (Invalid Date)
         if (isNaN(d.getTime())) return "-";
-        // ใช้ toLocaleDateString เพื่อรองรับรูปแบบท้องถิ่น
+
         return d.toLocaleDateString("th-TH", {
           year: "numeric",
           month: "2-digit",
           day: "2-digit",
         });
       } catch (e) {
+        // กรณีเกิดข้อผิดพลาดในการแปลงข้อมูล ให้คืนค่า Default
         return "-";
       }
     },
 
     /**
-     * จัดรูปแบบตัวเลขเป็นสกุลเงิน (มีลูกน้ำคั่นและทศนิยม 2 ตำแหน่ง)
-     * ใช้แสดงยอดเงินในสัญญาหรือราคาสินค้า
-     * @param {number|string} val - ค่าเงินที่ต้องการจัดรูปแบบ
-     * @returns {string} เช่น "1,000.00"
+     * แปลงข้อมูลตัวเลขให้เป็นรูปแบบเงินตรา (Currency) พร้อมทศนิยม 2 ตำแหน่ง
+     * * @param {number|string} val - ค่าตัวเลขที่ต้องการแปลง
+     * @returns {string} ตัวเลขในรูปแบบ "x,xxx.xx" หรือ "0.00"
+     * * การทำงาน:
+     * 1. ตรวจสอบค่า Null, Undefined หรือ String ว่าง
+     * 2. แปลงค่าเป็น Number type เพื่อป้องกัน Runtime Error ใน Intl.NumberFormat
+     * 3. ใช้ Intl.NumberFormat เพื่อจัดการ Separator ตามมาตรฐานไทย
      */
     formatMoney(val) {
       if (val === "" || val === null || val === undefined) return "0.00";
+
       const num = Number(val);
       if (isNaN(num)) return "0.00";
 
-      // ใช้ Intl.NumberFormat เพื่อประสิทธิภาพและความถูกต้องตามหลักสากล
       return new Intl.NumberFormat("th-TH", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -56,19 +65,91 @@
     },
 
     // ========================================================================
-    // 2. SEARCH & FILTER LOGIC (ตรรกะการค้นหาและกรองข้อมูล)
+    // 2. DATA MANIPULATION (การจัดการโครงสร้างข้อมูล)
     // ========================================================================
 
     /**
-     * สร้าง String สำหรับ Index การค้นหา (Search Index)
-     * นำค่าจากทุกฟิลด์สำคัญมาต่อกันเป็นข้อความเดียวเพื่อความเร็วในการค้นหา
-     * @param {Object} item - อ็อบเจกต์ข้อมูล (เช่น Lead)
-     * @returns {string} ข้อความยาวรวมข้อมูลสำคัญ (Case Insensitive)
+     * แบ่ง Array ขนาดใหญ่เป็น Array ย่อย (Chunks) ตามขนาดที่กำหนด
+     * มักใช้สำหรับการจัดการ Pagination หรือ Grid Layout
+     * * @param {Array} arr - Array ต้นทาง
+     * @param {number} size - ขนาดของแต่ละ Chunk
+     * @returns {Array[]} Array ที่บรรจุ Array ย่อย
+     */
+    chunkArray(arr, size) {
+      if (!Array.isArray(arr)) return [];
+
+      const results = [];
+      for (let i = 0; i < arr.length; i += size) {
+        // ตัดข้อมูลตามช่วง (Slice) และเพิ่มลงในผลลัพธ์
+        results.push(arr.slice(i, i + size));
+      }
+      return results;
+    },
+
+    /**
+     * รีเซ็ตข้อมูลในฟอร์ม (Reactive Object) ให้กลับสู่ค่าเริ่มต้นอย่างสมบูรณ์ (Deep Reset)
+     * ฟังก์ชันนี้ออกแบบมาเพื่อจัดการปัญหา State ตกค้างใน Vue Reactive Object
+     * * @param {Object} targetForm - Object ปลายทางที่เป็น Reactive Form
+     * @param {Object} defaultData - Object ต้นแบบที่เก็บค่าเริ่มต้น (Default State)
+     * @param {Object} config - การตั้งค่าเพิ่มเติมสำหรับ Field พิเศษ (เช่น Dropdown)
+     * * กลไกการทำงาน (Aggressive Cleanup):
+     * 1. Iteration 1: วนลูป Key ทั้งหมดที่มีอยู่ใน targetForm ปัจจุบัน
+     * - หาก Key นั้นมีอยู่ใน defaultData -> รีเซ็ตค่าตาม default
+     * - หาก Key นั้น "ไม่มี" ใน defaultData (Stray Key) -> ล้างค่าทิ้ง ("")
+     * เพื่อป้องกันฟิลด์ขยะที่เกิดจากการผูก v-model ผิดพลาดตกค้างในระบบ
+     * * 2. Iteration 2: วนลูป Key ทั้งหมดใน defaultData
+     * - หาก Key ใดขาดหายไปจาก targetForm -> สร้างเพิ่มและกำหนดค่าเริ่มต้น
+     * เพื่อประกันโครงสร้างข้อมูล (Schema Integrity)
+     * * 3. Configuration Handling: กำหนดค่าเริ่มต้นสำหรับ Dropdown จาก Store
+     * - หากมีการระบุ config mapping จะดึงค่าแรกจาก Store มาเป็น Default Selection
+     */
+    resetForm(targetForm, defaultData, config = {}) {
+      if (!targetForm || !defaultData) return;
+
+      // 1. ล้างค่าเดิมและกำจัด Key ส่วนเกิน (Stray Keys Cleanup)
+      Object.keys(targetForm).forEach((k) => {
+        if (Object.prototype.hasOwnProperty.call(defaultData, k)) {
+          // คืนค่าเริ่มต้นตาม Data Spec
+          targetForm[k] = defaultData[k];
+        } else {
+          // กำจัดข้อมูลขยะที่ไม่อยู่ใน Spec (Sanitization)
+          targetForm[k] = "";
+        }
+      });
+
+      // 2. เติม Key ที่ขาดหายไป (Schema Enforcement)
+      Object.keys(defaultData).forEach((k) => {
+        if (!Object.prototype.hasOwnProperty.call(targetForm, k)) {
+          targetForm[k] = defaultData[k];
+        }
+      });
+
+      // 3. ตั้งค่าเริ่มต้นสำหรับ UI Controls พิเศษ (Smart Defaults)
+      Object.keys(config).forEach((field) => {
+        const storeKey = config[field];
+        // ตรวจสอบว่ามีข้อมูลใน Global Store หรือไม่ ก่อนทำการ Assign
+        if (global.Store && global.Store.data[storeKey]?.length > 0) {
+          targetForm[field] = global.Store.data[storeKey][0];
+        }
+      });
+
+      console.log("🛠️ Utils: Deep Clean executed.");
+    },
+
+    // ========================================================================
+    // 3. SEARCH ENGINE (ระบบค้นหาข้อมูลภายใน)
+    // ========================================================================
+
+    /**
+     * สร้าง String Index สำหรับการค้นหา (Pre-computed Index)
+     * ช่วยเพิ่มประสิทธิภาพการค้นหาโดยไม่ต้องวน Loop Property ทุกตัวขณะค้นหาจริง
+     * * @param {Object} item - Object ข้อมูลต้นทาง (เช่น Lead)
+     * @returns {string} String ที่รวมข้อมูลสำคัญคั่นด้วย Space และเป็นตัวพิมพ์เล็ก
      */
     generateSearchIndex(item) {
       if (!item) return "";
-      // เลือกฟิลด์หลักที่ผู้ใช้มักใช้ค้นหา
-      // การรวมฟิลด์เหล่านี้ไว้ล่วงหน้าช่วยลด Load เวลาพิมพ์ค้นหา (O(1) lookup-like)
+
+      // ระบุฟิลด์ที่ต้องการนำมาสร้าง Index
       const parts = [
         item.name,
         item.tel,
@@ -78,7 +159,8 @@
         item.model,
         item.color,
       ];
-      // กรองค่าว่างออกและแปลงเป็นตัวพิมพ์เล็กทั้งหมด
+
+      // กรองค่าว่างออก, รวมเป็น String เดียว, และแปลงเป็น Lowercase
       return parts
         .filter((v) => v)
         .join(" ")
@@ -86,102 +168,69 @@
     },
 
     /**
-     * กรองรายการ Lead ตามคำค้นหา
-     * ใช้ _searchIndex ที่สร้างไว้ล่วงหน้าเพื่อประสิทธิภาพ
-     * @param {Array} list - รายการข้อมูลทั้งหมด
-     * @param {string} query - คำค้นหาจากผู้ใช้
-     * @returns {Array} รายการที่ตรงกับคำค้นหา
+     * ฟังก์ชันค้นหาข้อมูลอเนกประสงค์ (Unified Search)
+     * รองรับการค้นหาทั้งแบบระบุ Key, แบบใช้ Index, และแบบ Full Scan
+     * * @param {Array} items - ข้อมูลทั้งหมดที่ต้องการค้นหา
+     * @param {string} searchTerm - คำค้นหา
+     * @param {Array|null} keys - รายชื่อ Key ที่ต้องการเจาะจงค้นหา (Optional)
+     * @returns {Array} ผลลัพธ์ที่ตรงกับเงื่อนไข
      */
-    filterLeads(list, query) {
-      if (!list) return [];
-      if (!query) return list; // หากไม่มีคำค้นหา ให้คืนค่าทั้งหมด
+    searchItems(items, searchTerm, keys = null) {
+      // Validation: ตรวจสอบ input และกรณีไม่มีคำค้นหา ให้คืนค่าทั้งหมด
+      if (!items) return [];
+      if (!searchTerm) return items;
 
-      // แปลงคำค้นหาเป็นตัวพิมพ์เล็กเพื่อเปรียบเทียบแบบ Case Insensitive
-      const q = query.toLowerCase().trim();
+      const lowerTerm = searchTerm.toLowerCase().trim();
 
-      // ใช้ Index ที่สร้างไว้แล้ว (Pre-computed Index) แทนการวนเช็คทุกฟิลด์
-      return list.filter((item) => {
-        return item._searchIndex && item._searchIndex.includes(q);
-      });
-    },
-
-    // ========================================================================
-    // 3. OBJECT & ARRAY MANIPULATION (การจัดการอ็อบเจกต์และอาร์เรย์)
-    // ========================================================================
-
-    /**
-     * แบ่ง Array ออกเป็นกลุ่มย่อย (Chunks)
-     * จำเป็นสำหรับการแสดงผลแบบ Grid หรือ Virtual Scroller ที่ต้องการแถวละหลายรายการ
-     * @param {Array} arr - อาร์เรย์ต้นฉบับ
-     * @param {number} size - ขนาดของแต่ละกลุ่ม (เช่น 2 สำหรับ 2 คอลัมน์)
-     * @returns {Array[]} อาร์เรย์ซ้อนอาร์เรย์ (Matrix)
-     */
-    chunkArray(arr, size) {
-      if (!Array.isArray(arr)) return [];
-      const results = [];
-      // วนลูปตัดข้อมูลทีละส่วนตามขนาดที่กำหนด
-      for (let i = 0; i < arr.length; i += size) {
-        results.push(arr.slice(i, i + size));
-      }
-      return results;
-    },
-
-    /**
-     * รีเซ็ตค่าใน Reactive Form ให้เป็นค่าเริ่มต้น
-     * รองรับการ Mapping ค่าเริ่มต้นแบบพิเศษ (เช่น เลือก Master Data ตัวแรก)
-     * @param {Object} targetForm - อ็อบเจกต์ปลายทาง (Reactive)
-     * @param {Object} defaultData - ข้อมูลต้นแบบ (Default)
-     * @param {Object} [config] - การตั้งค่าเพิ่มเติม { fieldName: "storeKey" }
-     */
-    resetForm(targetForm, defaultData, config = {}) {
-      // 1. คืนค่าพื้นฐานทั้งหมดจาก Default Data
-      Object.keys(targetForm).forEach((k) => {
-        if (k in defaultData) {
-          targetForm[k] = defaultData[k];
+      return items.filter((item) => {
+        // Strategy 1: ค้นหาแบบเจาะจง Key (Specific Field Search)
+        // ใช้เมื่อต้องการความแม่นยำสูงในฟิลด์ที่กำหนด
+        if (keys && keys.length > 0) {
+          return keys.some((k) => {
+            const val = item[k];
+            return val && String(item[k]).toLowerCase().includes(lowerTerm);
+          });
         }
-      });
 
-      // 2. จัดการค่าพิเศษตาม Config (เช่น Dropdown ที่ต้องเลือกค่าแรกเสมอ)
-      // ช่วยลดภาระผู้ใช้ไม่ต้องเลือกค่าเดิมซ้ำๆ
-      Object.keys(config).forEach((field) => {
-        const storeKey = config[field];
-        // ตรวจสอบว่า Store มีข้อมูลตัวเลือกหรือไม่
-        if (
-          global.Store &&
-          global.Store.data[storeKey] &&
-          global.Store.data[storeKey].length > 0
-        ) {
-          // กำหนดค่าแรกของ List ให้เป็นค่าเริ่มต้น
-          targetForm[field] = global.Store.data[storeKey][0];
+        // Strategy 2: ค้นหาจาก Search Index (Optimized Search)
+        // ใช้ฟิลด์ _searchIndex ที่สร้างเตรียมไว้ (ถ้ามี) เพื่อความรวดเร็ว
+        if (item._searchIndex) {
+          return item._searchIndex.includes(lowerTerm);
         }
+
+        // Strategy 3: ค้นหาทุก Property (Full Object Scan)
+        // กรณีไม่มี Index และไม่ระบุ Key (Cost สูงสุด แต่ครอบคลุมที่สุด)
+        return Object.values(item).some(
+          (val) => val && String(val).toLowerCase().includes(lowerTerm)
+        );
       });
     },
 
     // ========================================================================
-    // 4. STORE HELPERS (ตัวช่วยจัดการ Store)
+    // 4. SYSTEM INTEGRATION (การเชื่อมต่อกับระบบหลัก)
     // ========================================================================
 
     /**
-     * บันทึกรายการลง Store อย่างปลอดภัย
-     * ทำการ Freeze Object เพื่อลดภาระของ Vue Reactivity System (Performance Optimization)
-     * เหมาะสำหรับข้อมูลขนาดใหญ่ที่ไม่ต้องการแก้ไขบ่อย (Read-heavy)
-     * @param {string} key - ชื่อ Key ใน Store (เช่น 'Lead' -> leadItems)
-     * @param {Array} items - ข้อมูลที่ต้องการบันทึก
+     * อัปเดตข้อมูลลงใน Global Store
+     * ทำหน้าที่เป็น Bridge ระหว่าง Logic Layer และ State Management Layer
+     * * @param {string} key - ชื่อหมวดหมู่ข้อมูล (เช่น 'Lead', 'Contract')
+     * @param {Array} items - รายการข้อมูลที่ต้องการอัปเดต
+     * * ข้อกำหนด:
+     * - ชื่อ Property ใน Store ต้องเป็นรูปแบบ lowercaseKey + 'Items' (เช่น leadItems)
+     * - ข้อมูลที่ถูกเก็บจะถูก Freeze (Object.freeze) เพื่อป้องกันการแก้ไขโดยตรง (Immutability)
      */
     storeSetItems(key, items) {
       if (!global.Store) return;
 
-      // สร้างชื่อตัวแปรใน Store ตาม Convention (เช่น Lead -> leadItems)
       const storeKey = key.toLowerCase() + "Items";
 
+      // ตรวจสอบว่า Store มีโครงสร้างรองรับ key นี้หรือไม่
       if (Array.isArray(global.Store.data[storeKey])) {
-        // ใช้ Object.freeze เพื่อบอก Vue ว่าไม่ต้อง Track การเปลี่ยนแปลงภายใน Object นี้
-        // ช่วยลด Memory Usage และเพิ่มความเร็วในการ Render List
         global.Store.data[storeKey] = items.map((i) => Object.freeze(i));
       }
     },
   };
 
-  // ส่งออก Utils เป็น Global Object
+  // ส่งออก Utils เป็น Global Object เพื่อให้ไฟล์อื่นเรียกใช้
   global.Utils = Utils;
 })(window);
