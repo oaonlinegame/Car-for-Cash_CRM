@@ -247,6 +247,10 @@
                                     </v-btn>
                                 </template>
                                 <v-list density="compact">
+                                    <v-list-item prepend-icon="mdi-arrow-down-bold-circle-outline"
+                                        @click="AppGui.toggleMenu('manageDropdownDialog', true)">
+                                        <v-list-item-title>จัดการตัวเลือก (Dropdown)</v-list-item-title>
+                                    </v-list-item>
                                     <v-list-item prepend-icon="mdi-car"
                                         @click="toggleMenu('isOpenModalCarSettings', true)">
                                         <v-list-item-title>การตั้งค่าเกี่ยวกับรถยนต์</v-list-item-title>
@@ -901,10 +905,8 @@
                                                     <v-row dense class="form-row">
                                                         <v-col cols="12" md="6">
                                                             <v-select label="แหล่งที่มา"
-                                                                :items="['Facebook','Line','เดินเข้าร้าน','มีคนแนะนำ','อื่นๆ']"
-                                                                density="comfortable" variant="outlined"
-                                                                prepend-inner-icon="mdi-source-branch"
-                                                                hide-details="auto"></v-select>
+                                                                :items="Store.data.sourceOptions"
+                                                                v-model="leadForm.source" ...></v-select>
                                                         </v-col>
 
                                                         <v-col cols="12" md="6">
@@ -2912,6 +2914,154 @@
                 </v-card>
             </v-dialog>
 
+            <!-- ================================ -->
+            <!-- 🟪 DIALOG จัดการข้อมูลตัวเลือก Manage Dropdown Data -->
+            <!-- ================================ -->
+            <v-dialog v-model="manageDropdownDialog" max-width="900">
+                <v-card class="rounded-xl d-flex flex-column"
+                    style="height: 85vh !important; max-height: 85vh !important; overflow: hidden; background: #fff;">
+
+                    <v-card-title class="py-3 px-5 d-flex align-center justify-space-between flex-shrink-0"
+                        style="border-bottom: 1px solid rgba(0, 0, 0, 0.08); background: #fff; z-index: 2;">
+
+                        <div class="d-flex align-center">
+                            <v-avatar color="indigo-lighten-5" size="40" class="mr-3">
+                                <v-icon color="indigo-darken-2">mdi-cog-transfer</v-icon>
+                            </v-avatar>
+                            <div>
+                                <div class="text-body-1 font-weight-bold text-grey-darken-3">จัดการตัวเลือก (Dropdown)
+                                </div>
+                                <div class="text-caption text-grey-darken-1">ลากวางเพื่อเรียงลำดับรายการ</div>
+                            </div>
+                        </div>
+
+                        <v-btn icon variant="text" size="small" @click="toggleMenu('manageDropdownDialog', false)"
+                            color="grey-darken-2">
+                            <v-icon>mdi-close</v-icon>
+                        </v-btn>
+                    </v-card-title>
+
+                    <div class="flex-shrink-0" style="background: white; border-bottom: 1px solid #eee;">
+                        <v-tabs v-model="manageDropdownTab" color="indigo-darken-2" align-tabs="start"
+                            density="comfortable" class="px-4">
+                            <v-tab v-for="item in Store.data.dropdownMasterList" :key="item.key" :value="item.key"
+                                style="text-transform: none; letter-spacing: normal; font-weight: 500;">
+                                <v-icon start class="mr-2">{{ item.icon }}</v-icon>
+                                {{ item.title }}
+                            </v-tab>
+                        </v-tabs>
+                    </div>
+
+                    <v-card-text class="pa-0 d-flex flex-column flex-grow-1"
+                        style="overflow: hidden; background: #fafafa; position: relative;">
+
+                        <v-tabs-window v-model="manageDropdownTab" class="d-flex flex-column"
+                            style="height: 100%; width: 100%;">
+
+                            <v-tabs-window-item v-for="item in Store.data.dropdownMasterList" :key="item.key"
+                                :value="item.key" class="h-100" style="height: 100% !important;">
+                                <div class="d-flex flex-column" style="height: 100%; width: 100%; overflow: hidden;">
+
+                                    <div class="pa-4 bg-white flex-shrink-0"
+                                        style="z-index: 1; box-shadow: none !important; border: none !important; border-bottom: none !important;">
+
+                                        <div class="d-flex align-center mb-2">
+                                            <v-icon color="indigo-darken-2" size="small"
+                                                class="mr-2">mdi-playlist-plus</v-icon>
+                                            <span
+                                                class="text-subtitle-2 font-weight-bold text-grey-darken-3">เพิ่มรายการใหม่</span>
+                                        </div>
+
+                                        <div class="d-flex align-center">
+                                            <v-text-field v-model="tempDropdownInput" variant="outlined"
+                                                density="comfortable" placeholder="พิมพ์ชื่อรายการ..." hide-details
+                                                bg-color="grey-lighten-5" class="mr-2 flex-grow-1"
+                                                @keyup.enter="MasterData.addOption(item.key, tempDropdownInput); tempDropdownInput = '';">
+                                            </v-text-field>
+
+                                            <v-btn color="indigo-darken-2" height="48" class="px-4" variant="flat"
+                                                @click="MasterData.addOption(item.key, tempDropdownInput); tempDropdownInput = '';">
+                                                <v-icon>mdi-plus</v-icon>
+                                            </v-btn>
+                                        </div>
+                                    </div>
+
+                                    <v-divider></v-divider>
+
+                                    <div class="flex-grow-1 pa-4" style="overflow-y: auto; overflow-x: hidden;">
+
+                                        <div class="d-flex align-center justify-space-between mb-2 px-1">
+                                            <span class="text-caption text-grey-darken-1 font-weight-medium">
+                                                รายการทั้งหมด ({{ Store.data[item.key]?.length || 0 }})
+                                            </span>
+                                            <span class="text-caption text-indigo-lighten-1 d-flex align-center">
+                                                <v-icon size="x-small" class="mr-1">mdi-drag-variant</v-icon>
+                                                Drag & Drop Only
+                                            </span>
+                                        </div>
+
+                                        <v-list bg-color="transparent" density="compact" class="pa-0">
+
+                                            <v-sheet v-for="(opt, idx) in Store.data[item.key]" :key="idx"
+                                                class="mb-2 rounded-lg transition-swing"
+                                                :class="{ 'elevation-4 bg-indigo-lighten-5': draggedItemIndex === idx, 'elevation-0 border bg-white': draggedItemIndex !== idx }"
+                                                draggable="true" @dragstart="draggedItemIndex = idx" @dragover.prevent
+                                                @drop="MasterData.reorderOption(item.key, draggedItemIndex, idx)"
+                                                @dragend="draggedItemIndex = null"
+                                                style="cursor: grab; position: relative; overflow: hidden;">
+                                                <v-list-item class="py-2">
+                                                    <template #prepend>
+                                                        <div class="d-flex align-center justify-center mr-3"
+                                                            style="width: 24px; height: 100%; cursor: grab; opacity: 0.5;">
+                                                            <v-icon color="grey-darken-1">mdi-drag-horizontal</v-icon>
+                                                        </div>
+
+                                                        <v-avatar size="24" color="grey-lighten-4"
+                                                            class="mr-3 font-weight-bold text-grey-darken-2 text-caption">
+                                                            {{ idx + 1 }}
+                                                        </v-avatar>
+                                                    </template>
+
+                                                    <v-list-item-title
+                                                        class="font-weight-medium text-grey-darken-3 pl-1">
+                                                        {{ opt }}
+                                                    </v-list-item-title>
+
+                                                    <template #append>
+                                                        <v-btn icon variant="text" size="small" color="red-lighten-1"
+                                                            @click="MasterData.removeOption(item.key, idx)">
+                                                            <v-icon>mdi-trash-can-outline</v-icon>
+                                                        </v-btn>
+                                                    </template>
+                                                </v-list-item>
+                                            </v-sheet>
+
+                                            <v-sheet v-if="!Store.data[item.key] || Store.data[item.key].length === 0"
+                                                class="d-flex flex-column align-center justify-center py-10 rounded-lg border border-dashed bg-transparent text-grey"
+                                                style="min-height: 200px;">
+                                                <v-icon size="48" color="grey-lighten-2"
+                                                    class="mb-2">mdi-playlist-remove</v-icon>
+                                                <div class="text-body-2">ยังไม่มีข้อมูลในรายการนี้</div>
+                                            </v-sheet>
+
+                                        </v-list>
+                                    </div>
+                                </div>
+                            </v-tabs-window-item>
+                        </v-tabs-window>
+                    </v-card-text>
+
+                    <v-card-actions class="py-3 px-4 flex-shrink-0"
+                        style="background: #fff; border-top: 1px solid rgba(0, 0, 0, 0.05);">
+                        <v-spacer></v-spacer>
+                        <v-btn variant="text" color="grey-darken-2" @click="toggleMenu('manageDropdownDialog', false)">
+                            เสร็จสิ้น
+                        </v-btn>
+                    </v-card-actions>
+
+                </v-card>
+            </v-dialog>
+
 
 
 
@@ -2928,6 +3078,9 @@
  🧠 ลำดับการโหลดไฟล์ JavaScript 
  สำคัญมาก! แกนของระบบทำงานตาม Flow นี้เท่านั้น
 -------------------------------------------------------- -->
+    <!-- 1️⃣ โหลด Constants (ค่าคงที่ต่างๆ ของระบบ) -->
+    <script src="./js/constants.js"></script>
+
     <!--โหลด State ก่อนสุด (ตัวแปร ref / reactive ของ Vue ทั้งหมด) -->
     <script src="./js/state.js"></script>
 
@@ -3001,6 +3154,9 @@
 
     <!-- โหลดการตั้งค่าต่างๆ ของระบบ -->
     <script src="./js/setting.js"></script>
+
+    <!-- โหลด Master Data (ข้อมูลตัวเลือกต่างๆ ที่ใช้ในระบบ) -->
+    <script src="./js/masterData.js"></script>
 
     <!-- 15️⃣ โหลด App.js (ไฟล์ Hub หลัก รวมทุกโมดูล + Mount Vue) -->
     <script src="./js/app.js"></script>

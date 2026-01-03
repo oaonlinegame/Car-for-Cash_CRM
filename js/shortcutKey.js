@@ -1,64 +1,149 @@
 // js/shortcutKey.js
 // --------------------------------------------------------
-// ⌨️ Shortcut Key Manager
+// ⌨️ Shortcut Key System (ระบบจัดการคีย์ลัด)
+// --------------------------------------------------------
+// โมดูลนี้ทำหน้าที่ดักจับเหตุการณ์การกดแป้นพิมพ์ (Keyboard Events)
+// และแปลงปุ่มที่กดให้เป็นการกระทำ (Action) ภายในแอปพลิเคชัน
+// ช่วยเพิ่มความเร็วในการทำงานของผู้ใช้ (Productivity)
 // --------------------------------------------------------
 
 (function (global) {
   "use strict";
 
   const AppShortcut = {
-    _handler: null,
+    // ========================================================================
+    // 1. STATE & LISTENER MANAGEMENT (จัดการสถานะและ Event Listener)
+    // ========================================================================
 
+    /**
+     * ตัวแปรเก็บฟังก์ชัน Handler เพื่อใช้สำหรับถอนการติดตั้ง (Cleanup)
+     * ป้องกันการสร้าง Listener ซ้ำซ้อน (Memory Leak Prevention)
+     */
+    activeListener: null,
+
+    /**
+     * เริ่มต้นระบบคีย์ลัด
+     * ทำการผูก (Bind) Event Listener เข้ากับ window
+     * ควรเรียกใช้เมื่อแอปพลิเคชันเริ่มทำงาน (Mounted)
+     */
     init() {
-      if (this._handler) return;
+      // ตรวจสอบว่ามี Listener เดิมอยู่หรือไม่ ถ้ามีให้ลบออกก่อน
+      if (this.activeListener) {
+        this.cleanup();
+      }
 
-      this._handler = (e) => {
-        if (global.AppState && global.AppState.hotkeysEnabled.value === false)
-          return;
+      // สร้างฟังก์ชัน Handler และผูก context
+      this.activeListener = this.handleKeydown.bind(this);
 
-        const tag = e.target.tagName.toLowerCase();
-        if (tag === "input" || tag === "textarea") return;
-
-        // Alt + L -> เปิด Modal Lead
-        if (e.altKey && (e.key === "l" || e.key === "L")) {
-          e.preventDefault();
-          // ✅ Correct Architecture
-          if (global.AppGui) global.AppGui.openLeadModal();
-          return;
-        }
-
-        // Alt + C -> ปิดเมนูทั้งหมด
-        if (e.altKey && (e.key === "c" || e.key === "C")) {
-          e.preventDefault();
-          if (global.AppGui) global.AppGui.closeAllMenus();
-          return;
-        }
-
-        // Alt + B -> เปิด Bot
-        if (e.altKey && (e.key === "b" || e.key === "B")) {
-          e.preventDefault();
-          // ✅ Correct Architecture
-          if (global.AppGui) global.AppGui.openBotModal();
-          return;
-        }
-
-        if (e.key === "F1") {
-          e.preventDefault();
-          console.log("Help Triggered");
-        }
-      };
-
-      window.addEventListener("keydown", this._handler);
-      console.log("⌨️ AppShortcut: Initialized (Architecture Fixed)");
+      // เริ่มดักจับเหตุการณ์ keydown ที่ระดับ window
+      window.addEventListener("keydown", this.activeListener);
+      console.log("⌨️ Shortcut: Activated");
     },
 
+    /**
+     * ยกเลิกระบบคีย์ลัด
+     * ถอด Event Listener ออกจาก window
+     * ควรเรียกใช้เมื่อปิดแอปพลิเคชันหรือเปลี่ยนหน้า (Unmounted)
+     */
     cleanup() {
-      if (this._handler) {
-        window.removeEventListener("keydown", this._handler);
-        this._handler = null;
+      if (this.activeListener) {
+        window.removeEventListener("keydown", this.activeListener);
+        this.activeListener = null;
+        console.log("⌨️ Shortcut: Deactivated");
+      }
+    },
+
+    // ========================================================================
+    // 2. EVENT HANDLER (ตรรกะการตรวจสอบปุ่มกด)
+    // ========================================================================
+
+    /**
+     * ฟังก์ชันหลักสำหรับประมวลผลเมื่อมีการกดปุ่ม
+     * @param {KeyboardEvent} e - เหตุการณ์การกดปุ่ม
+     */
+    handleKeydown(e) {
+      // ตรวจสอบความปลอดภัย: หากระบบยังไม่พร้อม ให้ข้ามการทำงาน
+      if (!global.AppState || !global.AppGui) return;
+
+      const key = e.key.toLowerCase();
+      const isAlt = e.altKey;
+      const isCtrl = e.ctrlKey;
+
+      // --------------------------------------------------
+      // 🛑 GLOBAL ACTIONS (คำสั่งทั่วไป)
+      // --------------------------------------------------
+
+      // ปุ่ม ESC: ปิดเมนูและ Dialog ทั้งหมด
+      // ช่วยให้ผู้ใช้สามารถยกเลิกการกระทำหรือออกจากหน้าจอต่างๆ ได้ทันที
+      if (e.key === "Escape") {
+        global.AppGui.closeAllMenus();
+        return;
+      }
+
+      // ปุ่ม / (Slash) หรือ Ctrl+K: โฟกัสช่องค้นหา
+      // ช่วยให้ผู้ใช้เริ่มค้นหาข้อมูลได้โดยไม่ต้องใช้เมาส์คลิก
+      if (
+        (key === "/" && !e.target.matches("input, textarea")) ||
+        (isCtrl && key === "k")
+      ) {
+        e.preventDefault(); // ป้องกันการพิมพ์ '/' ลงในหน้าจอปกติ
+
+        // ตรวจสอบว่ามีการอ้างอิง Element ช่องค้นหาอยู่หรือไม่
+        if (global.AppState.searchRef && global.AppState.searchRef.value) {
+          global.AppState.searchRef.value.focus();
+        }
+        return;
+      }
+
+      // --------------------------------------------------
+      // ⚡ ALT + KEY COMMANDS (คำสั่งลัดด้วยปุ่ม Alt)
+      // --------------------------------------------------
+
+      if (isAlt) {
+        switch (key) {
+          // [Alt + N]: สร้าง Lead ใหม่ (New)
+          case "n":
+            e.preventDefault();
+            global.AppGui.toggleMenu("isOpenModalLead", true);
+            // รีเซ็ตฟอร์มให้พร้อมกรอกข้อมูลใหม่
+            if (global.LeadApp) global.LeadApp.resetLeadForm();
+            break;
+
+          // [Alt + S]: บันทึกข้อมูล (Save)
+          // ตรวจสอบบริบทว่ากำลังเปิดฟอร์มอยู่หรือไม่ ถ้าใช่ให้ทำการบันทึก
+          case "s":
+            e.preventDefault();
+            if (
+              global.AppState.isOpenModalLead &&
+              global.AppState.isOpenModalLead.value
+            ) {
+              // ตรวจสอบว่าเป็นโหมดแก้ไขหรือสร้างใหม่ (เช็ค ID)
+              if (global.LeadApp.form.id) {
+                global.LeadApp.update();
+              } else {
+                global.LeadApp.add();
+              }
+            }
+            break;
+
+          // [Alt + C]: เพิ่มสัญญา (Contract)
+          case "c":
+            e.preventDefault();
+            // เปิดแท็บสัญญาและเตรียมฟอร์มเปล่า
+            global.AppGui.openContractTabPlus();
+            break;
+
+          // [Alt + L]: (Reserved)
+          // ตามที่ระบุใน Index.html อาจใช้สำหรับการนำทางหรือการจัดการ Lead
+          case "l":
+            e.preventDefault();
+            console.log("Shortcut Alt+L Triggered");
+            break;
+        }
       }
     },
   };
 
+  // ส่งออก AppShortcut เป็น Global Object
   global.AppShortcut = AppShortcut;
 })(window);

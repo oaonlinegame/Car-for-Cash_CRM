@@ -1,77 +1,94 @@
 // js/dataSpec.js
+// --------------------------------------------------------
+// 📐 Data Specifications (ข้อกำหนดโครงสร้างข้อมูล)
+// --------------------------------------------------------
+// โมดูลนี้ทำหน้าที่เป็น "Factory" สำหรับสร้าง Object เริ่มต้น
+// ช่วยให้มั่นใจว่าข้อมูลทุกชุดที่ถูกสร้างขึ้นในระบบ
+// มีฟิลด์ครบถ้วนและมีค่าเริ่มต้นที่ถูกต้อง (Type Safety & Consistency)
+// ป้องกันปัญหา undefined หรือ null pointer exception ใน UI
+// --------------------------------------------------------
+
 (function (global) {
   "use strict";
 
   const DataSpec = {
-    // ----------------------------------------------------
-    // 👤 Lead Model (ข้อมูลลูกค้า)
-    // ----------------------------------------------------
+    // ========================================================================
+    // 1. LEAD SPECIFICATION (โครงสร้างข้อมูลลูกค้า)
+    // ========================================================================
+
     Lead: {
+      /**
+       * สร้าง Object ข้อมูล Lead ใหม่พร้อมค่าเริ่มต้น
+       * ถูกเรียกใช้เมื่อเปิดฟอร์มเพิ่มลูกค้าใหม่ หรือรีเซ็ตฟอร์ม
+       * @returns {Object} โครงสร้างข้อมูล Lead ที่สมบูรณ์
+       */
       createDefault() {
-        // ✅ เตรียมสินทรัพย์เริ่มต้น 1 รายการ (เพื่อให้กรอกได้เลย)
-        let defaultAssets = [];
-
-        // ตรวจสอบเพื่อความปลอดภัย (เรียกฟังก์ชัน Asset.createDefault)
-        if (global.DataSpec && global.DataSpec.Asset) {
-          defaultAssets.push(global.DataSpec.Asset.createDefault());
-        }
-
         return {
-          id: null,
-          firstName: "",
-          nickName: "",
-          phones: "",
-          birthDate: "",
-          address: "",
-          province: "",
-          postalCode: "",
-          occupation: "",
-          status: "ลูกค้าใหม่",
-          isProspect: true,
-          prospectStage: "สนใจ",
-          rating: 3,
-          note: "",
-          createDate: new Date().toLocaleDateString("th-TH"),
+          // --- Identity (ข้อมูลระบุตัวตน) ---
+          id: null, // ใช้ null เพื่อระบุว่าเป็นรายการใหม่ (ยังไม่ได้บันทึกลง DB)
+          name: "", // ชื่อ-นามสกุล (Required)
+          tel: "", // เบอร์โทรศัพท์หลัก
+          idCard: "", // เลขบัตรประชาชน (ใช้ตรวจสอบความซ้ำซ้อน)
 
-          contracts: [],
-          assets: defaultAssets, // ✅ เริ่มต้นด้วย 1 รายการเสมอ
+          // --- Demographics & Profiling (ข้อมูลทั่วไป) ---
+          address: "", // ที่อยู่ปัจจุบัน
+          occupation: "", // อาชีพ (ผูกกับ Master Data ใน Store)
+          source: "", // แหล่งที่มาลูกค้า (เช่น Facebook, Walk-in)
+
+          // --- Interest (ความสนใจ) ---
+          brand: "", // ยี่ห้อรถที่สนใจ
+          model: "", // รุ่นรถ
+          year: "", // ปีรถ
+          color: "", // สีรถ
+          licensePlate: "", // ทะเบียนรถ (ถ้ามี)
+          price: "", // ราคาที่ตั้งไว้
+
+          // --- System Fields (ข้อมูลระบบ) ---
+          createDate: null, // วันที่สร้าง (อัปเดตเมื่อบันทึก)
+          note: "", // หมายเหตุเพิ่มเติม
+
+          // --- Relations (ความสัมพันธ์) ---
+          contracts: [], // รายการสัญญาที่เกี่ยวข้อง (Array ว่างป้องกัน Error ใน Loop)
+
+          // --- Search Index (ดัชนีค้นหา) ---
+          _searchIndex: "", // ฟิลด์พิเศษสำหรับเก็บ Text รวมเพื่อการค้นหาที่รวดเร็ว
         };
       },
     },
 
-    // ----------------------------------------------------
-    // 🏠 Asset Model (ข้อมูลสินทรัพย์)
-    // ----------------------------------------------------
-    Asset: {
-      createDefault() {
-        return {
-          type: "รถยนต์",
-          details: "",
-          value: "",
-          owner: "ชื่อลูกค้า",
-        };
-      },
-    },
+    // ========================================================================
+    // 2. CONTRACT SPECIFICATION (โครงสร้างข้อมูลสัญญา)
+    // ========================================================================
 
-    // ----------------------------------------------------
-    // 📝 Contract Model (ข้อมูลสัญญา)
-    // ----------------------------------------------------
     Contract: {
+      /**
+       * สร้าง Object ข้อมูลสัญญาใหม่พร้อมค่าเริ่มต้น
+       * ใช้สำหรับฟอร์มสร้างสัญญา หรือเพิ่มสัญญาใน Lead
+       * @returns {Object} โครงสร้างข้อมูล Contract
+       */
       createDefault() {
         return {
-          contractId: "",
-          financeType: "จำนำเล่ม",
-          principal: 0,
-          interestRate: 0,
-          totalInstallment: 0,
-          terms: 12,
-          installmentPerMonth: 0,
-          startDate: new Date().toISOString().substr(0, 10),
-          status: "รออนุมัติ",
+          // --- Contract Info (ข้อมูลสัญญา) ---
+          contractNo: "", // เลขที่สัญญา (Unique Key)
+          signDate: new Date().toISOString().substr(0, 10), // วันที่ทำสัญญา (Default: วันปัจจุบัน)
+
+          // --- Financial (การเงิน) ---
+          financeAmount: 0, // ยอดจัดไฟแนนซ์
+          interestRate: 0, // อัตราดอกเบี้ย (%)
+          terms: 0, // จำนวนงวด
+          installment: 0, // ค่างวดต่อเดือน
+
+          // --- Status (สถานะ) ---
+          status: "Draft", // สถานะเริ่มต้น (Draft / Active / Closed)
+
+          // --- Related Entities (ข้อมูลที่เกี่ยวข้อง) ---
+          leadId: null, // ID ของลูกค้าเจ้าของสัญญา (Foreign Key)
+          carId: null, // ID ของรถยนต์ (ถ้ามีการผูกกับ Stock)
         };
       },
     },
   };
 
+  // ส่งออก DataSpec เป็น Global Object เพื่อให้ LeadApp และ ContractApp เรียกใช้
   global.DataSpec = DataSpec;
 })(window);

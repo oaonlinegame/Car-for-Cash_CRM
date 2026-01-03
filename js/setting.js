@@ -1,90 +1,43 @@
 // js/setting.js
 // --------------------------------------------------------
-// ⚙️ Application Settings & Configuration
+// ⚙️ AppSetting (การตั้งค่าเริ่มต้นของระบบ UI/Framework)
 // --------------------------------------------------------
+
 (function (global) {
   "use strict";
 
   const AppSetting = {
-    // ค่า Config พื้นฐาน
-    theme: "light",
-    language: "th",
-    version: "1.0.0",
+    /**
+     * เริ่มต้น Plugin และตั้งค่า UI Framework
+     */
+    init(vueApp) {
+      if (!vueApp) {
+        console.error("❌ AppSetting: ไม่พบ Vue Instance");
+        return;
+      }
 
-    // ----------------------------------------------------
-    // 🚀 init(app): ตั้งค่า Plugins
-    // ----------------------------------------------------
-    init(app) {
-      console.log("⚙️ AppSetting: Initializing Plugins...");
+      console.log("⚙️ AppSetting: Initializing system...");
 
-      // Virtual Scroller
-      global.VueVirtualScroller?.VirtualScroller &&
-        app.component(
-          "virtual-scroller",
-          global.VueVirtualScroller.VirtualScroller
+      // 1. Vuetify Setup
+      if (
+        global.Vuetify &&
+        global.AppConstants &&
+        global.AppConstants.VUETIFY_CONFIG
+      ) {
+        const vuetify = Vuetify.createVuetify(
+          global.AppConstants.VUETIFY_CONFIG
         );
-
-      // Vuetify
-      if (global.Vuetify) {
-        const vuetify = global.Vuetify.createVuetify({
-          components: { ...global.Vuetify.components, ...global.Vuetify.labs },
-        });
-        app.use(vuetify);
+        vueApp.use(vuetify);
       } else {
-        console.error("❌ AppSetting: Vuetify library not found!");
+        console.warn("⚠️ AppSetting: Vuetify or Config missing");
       }
-      console.log("✅ AppSetting: Plugins Loaded.");
-    },
 
-    // ----------------------------------------------------
-    // 📥 load(): โหลดค่า Master Data จาก DB (ถ้ามี)
-    // ----------------------------------------------------
-    async load() {
-      if (!global.Repository || !global.Repository.settings) return;
-      if (!global.Store) return;
-
-      try {
-        // รายการ Master Data ที่ต้องการโหลด (ชื่อ Key ใน Store)
-        const keysToLoad = ["occupationOptions", "assetTypeOptions"];
-
-        for (const key of keysToLoad) {
-          // ดึงจาก DB
-          const dbData = await global.Repository.settings.get(key);
-
-          // ✅ Logic: ถ้ามีใน DB -> เอามาทับ Store (ถ้าไม่มี -> ใช้ Default ใน Store ต่อไป)
-          if (dbData && Array.isArray(dbData.value)) {
-            global.Store.data[key] = dbData.value;
-            console.log(`📥 AppSetting: Loaded '${key}' from DB`);
-          }
-        }
-      } catch (err) {
-        console.error("❌ AppSetting Load Error:", err);
+      // 2. Virtual Scroller
+      if (global.VueVirtualScroller) {
+        vueApp.use(global.VueVirtualScroller);
       }
-    },
 
-    // ----------------------------------------------------
-    // 💾 addOption(): เพิ่มตัวเลือกใหม่และบันทึกลง DB
-    // ----------------------------------------------------
-    async addOption(storeKey, newValue) {
-      // 1. Validation
-      if (!newValue || typeof newValue !== "string") return;
-      const cleanValue = newValue.trim();
-      if (!cleanValue) return;
-
-      if (!global.Store || !global.Store.data[storeKey]) return;
-
-      // 2. เช็คซ้ำ (Duplicate Check)
-      if (global.Store.data[storeKey].includes(cleanValue)) return;
-
-      // 3. อัปเดต Store (Update UI)
-      const newList = [...global.Store.data[storeKey], cleanValue];
-      global.Store.data[storeKey] = newList;
-
-      // 4. บันทึกลง DB (Persistence)
-      if (global.Repository && global.Repository.settings) {
-        await global.Repository.settings.set(storeKey, newList);
-        console.log(`💾 AppSetting: Saved '${storeKey}' to DB`);
-      }
+      console.log("✅ AppSetting: System Initialized");
     },
   };
 

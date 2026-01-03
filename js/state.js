@@ -15,7 +15,14 @@ const AppState = {
   isOpenModalRecordCallResult: Vue.ref(false), // หน้าต่างบันทึกผลการโทร
   isOpenModalCarSettings: Vue.ref(false), // หน้าต่างตั้งค่ารถยนต์
   isOpenModalCarPriceSelector: Vue.ref(false), // หน้าต่างเลือกราคากลาง
-  manageDropdownDialog: false, // ตัวแปรชั่วคราวสำหรับจัดการ Dropdown Dialog
+
+  // ------------------------------------------------------
+  // 📋 สถานะ Dialog และ Dropdown ต่างๆ
+  // ------------------------------------------------------
+  manageDropdownDialog: Vue.ref(false), // ✅ ต้องใช้ Vue.ref() เพื่อให้ Toggle ได้
+  manageDropdownTab: Vue.ref("occupationOptions"), // แท็บในหน้าจัดการรายการดรอปดาวน์
+  tempDropdownInput: Vue.ref(""), // ข้อความในช่องกรอกเพิ่มรายการดรอปดาวน์
+  draggedItemIndex: Vue.ref(null), // ดัชนีของรายการที่กำลังถูกลาก
 
   // ------------------------------------------------------
   // 📑 สถานะแท็บและการนำทาง (Tabs & Navigation)
