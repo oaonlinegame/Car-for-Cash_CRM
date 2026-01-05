@@ -13,40 +13,38 @@ const app = Vue.createApp({
     // ========================================================================
     // 1. CORE DEPENDENCIES & REFERENCES
     // ========================================================================
-
-    // ดึงฟังก์ชันที่จำเป็นจาก Vue Composition API
+    // ดึงฟังก์ชันที่จำเป็นจาก Vue Composition API เพื่อใช้งานภายใน setup
     const { onMounted, onUnmounted, ref } = Vue;
 
-    // สร้าง Reference สำหรับ DOM Element (ช่องค้นหา)
-    // ใช้สำหรับจัดการ Focus หรือ Event Programmatically
+    // สร้าง Reference สำหรับ DOM Element ของช่องค้นหา
+    // เพื่อให้ระบบสามารถสั่ง Focus หรือจัดการ Event ได้โดยตรงจากฝั่ง Logic
     const searchBarRef = ref(null);
 
     // ========================================================================
-    // 2. SERVICE INITIALIZATION (การเริ่มต้นบริการและเชื่อมโยงระบบ)
+    // 2. SYSTEM INITIALIZATION (การเริ่มต้นระบบและเชื่อมโยงโมดูล)
     // ========================================================================
 
-    // 2.1 เริ่มต้นระบบคำนวณค่าทาง GUI (Computed Properties)
-    // ตั้งค่าตัวแปร Computed ต่างๆ เช่น Pagination, Filtered Lists
+    // 2.1 เตรียมการคำนวณข้อมูลสำหรับการแสดงผล (Computed Properties)
+    // กำหนด Logic การกรองข้อมูล (Filtering) และการแบ่งหน้า (Pagination) ในระดับ GUI
     AppGui.setupComputed();
 
     // 2.2 เชื่อมโยง State กลางเข้ากับ Business Logic Modules (Dependency Injection)
-    // ส่ง AppState เข้าไปเพื่อให้โมดูลต่างๆ สามารถตอบสนองต่อการเปลี่ยนแปลงของ UI ได้
-    // เช่น การรีเซ็ตฟอร์มเมื่อ Modal ถูกปิด
-    // หมายเหตุ: เรียกใช้ฟังก์ชัน init โดยตรง (Assumed modules are loaded)
-    LeadApp.init(AppState);
-    ContractApp.init(AppState);
-    CarApp.init(AppState);
+    // ส่ง AppState เข้าไปในโมดูลต่างๆ เพื่อให้แต่ละส่วนสามารถตอบสนองต่อการเปลี่ยนแปลงของ UI ได้
+    // เช่น การสั่งรีเซ็ตฟอร์มโดยอัตโนมัติเมื่อ Modal ถูกปิดลง
+    LeadApp.init(AppState); // จัดการข้อมูลลูกค้า
+    ContractApp.init(AppState); // จัดการข้อมูลสัญญา
+    CarApp.init(AppState); // จัดการข้อมูลยานพาหนะ
 
     // ========================================================================
     // 3. DATA BOOTSTRAPPING (การโหลดข้อมูลเริ่มต้น)
     // ========================================================================
 
-    // 3.1 เริ่มกระบวนการโหลดข้อมูล Master Data
-    // โหลดตัวเลือกต่างๆ (Dropdowns) เช่น อาชีพ, แหล่งที่มา, ประเภทรถ
+    // 3.1 โหลดข้อมูล Master Data จาก Database ขึ้นสู่ Memory
+    // เพื่อเตรียมตัวเลือกใน Dropdown ต่างๆ (เช่น รายชื่ออาชีพ, ยี่ห้อรถ) ให้พร้อมใช้งาน
     MasterData.load();
 
-    // 3.2 เริ่มกระบวนการโหลดข้อมูล Transactional Data
-    // โหลดรายการ Lead ทั้งหมดจาก Database ลงสู่ Store
+    // 3.2 โหลดข้อมูล Transactional Data
+    // ดึงรายการ Lead ทั้งหมดจาก IndexedDB มาเก็บไว้ใน Global Store เพื่อแสดงผลในตารางหลัก
     LeadApp.loadAll();
 
     // ========================================================================
@@ -57,11 +55,11 @@ const app = Vue.createApp({
      * ทำงานเมื่อ Component ถูกติดตั้งลงใน DOM เรียบร้อยแล้ว (Mounted)
      */
     onMounted(() => {
-      // เริ่มต้นระบบคีย์ลัด (Shortcut System)
+      // เริ่มต้นการดักจับปุ่มกดคีย์ลัด (Shortcut Keys) ทั่วทั้งระบบ
       AppShortcut.init();
 
-      // เชื่อมโยง DOM Reference เข้ากับ State กลาง
-      // เพื่อให้ Logic ภายนอกสามารถเข้าถึง Element ช่องค้นหาได้
+      // บันทึก DOM Reference ของช่องค้นหาลงใน State กลาง
+      // เพื่อให้โมดูลอื่น (เช่น AppShortcut) สามารถสั่ง Focus ช่องค้นหาได้ผ่านคีย์ลัด
       AppState.searchRef.value = searchBarRef;
     });
 
@@ -69,35 +67,38 @@ const app = Vue.createApp({
      * ทำงานเมื่อ Component กำลังจะถูกทำลาย (Unmounted)
      */
     onUnmounted(() => {
-      // ยกเลิกระบบคีย์ลัดและคืนทรัพยากร (Cleanup)
+      // ถอดถอนการดักจับคีย์ลัดและคืนทรัพยากรให้กับระบบ เพื่อป้องกัน Memory Leak
       AppShortcut.cleanup();
     });
 
     // ========================================================================
     // 5. CONTEXT EXPOSURE (การส่งค่าออกไปให้ Template ใช้งาน)
     // ========================================================================
+    // ส่วนนี้ระบุว่าตัวแปรหรือฟังก์ชันใดบ้างที่หน้า HTML (index.html) สามารถเรียกใช้ได้
 
     return {
-      // --- 5.1 Global State (สถานะรวมของระบบ) ---
-      ...AppState,
+      // --- 5.1 Global State (สถานะหลักของระบบ) ---
+      ...AppState, // แตกตัวแปร ref ทั้งหมดใน AppState ออกมาเพื่อให้เรียกใช้ได้ทันที
 
       // --- 5.2 Data Views (ข้อมูลสำหรับการแสดงผล) ---
-      leadItems: Store.data.leadItems, // รายการ Lead
-      leadHeaders: Store.data.leadHeaders, // หัวตาราง
-      leadForm: LeadApp.form, // ฟอร์ม Lead ปัจจุบัน
+      leadItems: Store.data.leadItems, // รายการลูกค้าทั้งหมด
+      leadHeaders: Store.data.leadHeaders, // หัวตารางสำหรับ v-data-table
+      leadForm: LeadApp.form, // ข้อมูลในฟอร์มที่กำลังกรอกอยู่
 
-      // --- 5.3 Domain Actions (การกระทำเกี่ยวกับข้อมูลหลัก) ---
-      addLead: LeadApp.add,
-      updateLead: LeadApp.updateLead,
-      deleteLead: LeadApp.deleteLead,
-      addEmptyContract: LeadApp.addEmptyContract,
+      // --- 5.3 Domain Actions (การจัดการข้อมูลหลัก) ---
+      addLead: LeadApp.add, // ฟังก์ชันเพิ่มลูกค้าใหม่
+      updateLead: LeadApp.updateLead, // ฟังก์ชันแก้ไขข้อมูลลูกค้า
+      deleteLead: LeadApp.deleteLead, // ฟังก์ชันลบข้อมูลลูกค้า
+      addEmptyContract: LeadApp.addEmptyContract, // ฟังก์ชันเพิ่มแถวสัญญาว่าง
 
       // --- 5.4 UI Actions (การควบคุมหน้าจอ) ---
-      toggleMenu: AppGui.toggleMenu,
-      closeAllMenus: AppGui.closeAllMenus,
-      openContractTabPlus: AppGui.openContractTabPlus,
+      toggleMenu: AppGui.toggleMenu, // ฟังก์ชันเปิด/ปิด Modals
+      closeAllMenus: AppGui.closeAllMenus, // ฟังก์ชันปิดทุกหน้าต่าง
+      openContractTabPlus: AppGui.openContractTabPlus, // ฟังก์ชันเปิดแท็บสัญญาใหม่
 
-      // --- 5.5 External Modules (โมดูลภายนอกที่เรียกใช้ใน Template) ---
+      // --- 5.5 External Modules (โมดูลสนับสนุน) ---
+      // ส่ง Object ของโมดูลต่างๆ ออกไปเพื่อให้ Template สามารถเรียกใช้ Helper Functions ได้โดยตรง
+      AppConstants,
       FileSystem,
       TestData,
       Store,
@@ -113,7 +114,7 @@ const app = Vue.createApp({
       AppApi,
 
       // --- 5.6 DOM References ---
-      searchBarRef,
+      searchBarRef, // สำหรับผูกกับ ref="searchBarRef" ใน HTML
     };
   },
 });
@@ -122,8 +123,9 @@ const app = Vue.createApp({
 // 6. APPLICATION MOUNTING (การติดตั้งแอปพลิเคชัน)
 // ========================================================================
 
-// กำหนดค่าเริ่มต้นให้กับ UI Framework (Vuetify, Plugins)
+// กำหนดค่าเริ่มต้นให้กับ UI Framework และ Plugins (เช่น Vuetify, Scroller)
+// โดยการ Inject Vue Instance เข้าไปในโมดูล Setting
 AppSetting.init(app);
 
-// ติดตั้งแอปพลิเคชันลงใน Element #app
+// ติดตั้งแอปพลิเคชันลงใน Element ID "app" ในหน้า HTML
 app.mount("#app");

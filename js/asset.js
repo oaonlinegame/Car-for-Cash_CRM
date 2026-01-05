@@ -1,82 +1,106 @@
 // js/asset.js
 // --------------------------------------------------------
-// 🏠 Asset App (จัดการหลักทรัพย์ค้ำประกัน)
+// 🚗 ASSET MANAGEMENT MODULE
+// --------------------------------------------------------
+// โมดูลสำหรับจัดการตรรกะของหลักทรัพย์ (Asset Business Logic)
+// ทำหน้าที่ควบคุมรายการทรัพย์สิน ทั้งในส่วนของข้อมูลลูกค้า (Lead)
+// และข้อมูลสัญญา (Contract) เพื่อให้โครงสร้างข้อมูลเป็นไปตามมาตรฐาน
 // --------------------------------------------------------
 
 (function (global) {
   "use strict";
 
   const AssetApp = {
-    // ----------------------------------------------------
-    // ⭐ คำนวณมูลค่ารวมของหลักทรัพย์ใน Lead (เผื่อใช้ในอนาคต)
-    // ----------------------------------------------------
-    calculateTotalValue(leadForm) {
-      if (!leadForm || !Array.isArray(leadForm.assets)) return 0;
+    // ========================================================================
+    // 1. DATA COMPUTATION (การคำนวณข้อมูล)
+    // ========================================================================
 
-      // วนลูปทุกรายการเพื่อรวมมูลค่า
-      return leadForm.assets.reduce((sum, asset) => {
-        // แปลง string "1,000,000" ให้เป็นตัวเลข 1000000
+    /**
+     * คำนวณยอดรวมราคาประเมินของหลักทรัพย์ทั้งหมดในรายการ
+     * @param {Object} target - อ็อบเจ็กต์ที่มีอาเรย์ assets (เช่น leadForm หรือ contract)
+     * @returns {number} ผลรวมของมูลค่าทรัพย์สินทั้งหมด
+     */
+    calculateTotalValue(target) {
+      // ตรวจสอบความพร้อมของข้อมูล หากไม่มีรายการทรัพย์สินให้คืนค่าเป็น 0 ทันที
+      if (!target || !Array.isArray(target.assets)) return 0;
+
+      return target.assets.reduce((sum, asset) => {
+        // ดึงค่ามูลค่าทรัพย์สินและลบเครื่องหมายคอมม่าออกเพื่อการคำนวณตัวเลข
         const val = parseFloat((asset.value || "0").replace(/,/g, ""));
+        // ตรวจสอบความถูกต้องของตัวเลข หากไม่ใช่ตัวเลข (NaN) ให้บวกค่าเป็น 0
         return sum + (isNaN(val) ? 0 : val);
       }, 0);
     },
 
-    // ✅ ฟังก์ชันบันทึกยี่ห้อรถใหม่ (Auto Save Brand)
+    // ========================================================================
+    // 2. MASTER DATA INTEGRATION (การเชื่อมโยงข้อมูลหลัก)
+    // ========================================================================
+
+    /**
+     * จัดการการเปลี่ยนแปลงยี่ห้อรถและบันทึกข้อมูลใหม่ลงในฐานข้อมูล
+     * @param {string} newValue - ชื่อยี่ห้อรถที่ผู้ใช้เลือกหรือพิมพ์เพิ่ม
+     */
     handleBrandChange(newValue) {
+      // ตรวจสอบว่ามีการส่งค่าข้อมูลมาหรือไม่
       if (!newValue) return;
-      // เรียกใช้ MasterData เพื่อบันทึกลงฐานข้อมูลและ Memory
+
+      // ส่งข้อมูลไปยัง MasterData เพื่อบันทึกเป็นตัวเลือกถาวร (Auto-save New Option)
+      // เพื่อให้ข้อมูลตัวเลือกมีความต่อเนื่องและลดภาระการกรอกข้อมูลในครั้งต่อไป
       if (global.MasterData && global.MasterData.addOption) {
         global.MasterData.addOption("carBrandOptions", newValue);
       }
     },
 
-    // ----------------------------------------------------
-    // ⭐ ตรวจสอบความครบถ้วนของข้อมูลหลักทรัพย์
-    // ----------------------------------------------------
-    validate(assetData) {
-      if (!assetData.type) return "กรุณาระบุประเภทหลักทรัพย์";
-      // สามารถเพิ่มเงื่อนไขอื่นๆ ได้ที่นี่
-      return null; // ผ่าน
-    },
+    // ========================================================================
+    // 3. COLLECTION MANIPULATION (การจัดการรายการทรัพย์สิน)
+    // ========================================================================
 
-    // ----------------------------------------------------
-    // ✅ ADD: เพิ่มสินทรัพย์ใหม่ลงใน Lead
-    // ----------------------------------------------------
-    add(leadForm) {
-      if (!leadForm) return;
+    /**
+     * เพิ่มรายการหลักทรัพย์ใหม่ลงในอาเรย์เป้าหมาย
+     * @param {Object} target - อ็อบเจ็กต์ที่ต้องการเพิ่มทรัพย์สิน
+     */
+    add(target) {
+      // ตรวจสอบความปลอดภัยของตัวแปรอ้างอิง
+      if (!target) return;
 
-      // 1. ตรวจสอบว่ามี Array assets หรือยัง (ถ้าไม่มีให้สร้างใหม่)
-      if (!Array.isArray(leadForm.assets)) {
-        leadForm.assets = [];
+      // ตรวจสอบโครงสร้างข้อมูล หากยังไม่เป็นอาเรย์ให้เริ่มกำหนดค่าใหม่
+      if (!Array.isArray(target.assets)) {
+        target.assets = [];
       }
 
-      // 2. ตรวจสอบว่า DataSpec พร้อมใช้งานหรือไม่
+      // ดึงโครงสร้างข้อมูลมาตรฐานจาก DataSpec เพื่อประกันความถูกต้องของฟิลด์ข้อมูล
       if (global.DataSpec && global.DataSpec.Asset) {
-        // สร้างข้อมูลเปล่าจาก DataSpec แล้ว push เข้า Array
-        leadForm.assets.push(global.DataSpec.Asset.createDefault());
-        console.log("🏠 AssetApp: Added new asset item.");
-      } else {
-        console.error(
-          "❌ Error: DataSpec.Asset not found! (กรุณาอัปเดตไฟล์ js/dataSpec.js)"
-        );
+        target.assets.push(global.DataSpec.Asset.createDefault());
       }
     },
 
-    // ----------------------------------------------------
-    // ✅ REMOVE: ลบสินทรัพย์ตาม Index
-    // ----------------------------------------------------
-    remove(leadForm, index) {
-      if (!leadForm || !Array.isArray(leadForm.assets)) return;
+    /**
+     * ลบรายการหลักทรัพย์ออกจากอาเรย์ตามลำดับที่ระบุ
+     * @param {Object} target - อ็อบเจ็กต์ที่ต้องการลบทรัพย์สิน
+     * @param {number} index - ลำดับของทรัพย์สินในอาเรย์
+     */
+    remove(target, index) {
+      // ตรวจสอบความพร้อมของอาเรย์ข้อมูลก่อนดำเนินการ
+      if (!target || !Array.isArray(target.assets)) return;
 
-      // 1. กฎ: ถ้าเหลือแค่ 1 รายการ ห้ามลบ (กันรายการหมด)
-      if (leadForm.assets.length <= 1) {
+      // ตรวจสอบเงื่อนไขขั้นต่ำ: หากเหลือเพียง 1 รายการ ระบบจะไม่ลบแถวออก
+      // แต่จะใช้วิธีรีเซ็ตค่าในแถวให้เป็นค่าว่างตามมาตรฐาน DataSpec แทน
+      if (target.assets.length <= 1) {
+        if (global.DataSpec && global.DataSpec.Asset) {
+          // คัดลอกค่าว่างมาตรฐานทับข้อมูลเดิม เพื่อล้างสถานะฟอร์มใน UI
+          Object.assign(
+            target.assets[0],
+            global.DataSpec.Asset.createDefault()
+          );
+        }
         return;
       }
 
-      // 2. ลบเลยทันที (ไม่ต้องมี confirm)
-      leadForm.assets.splice(index, 1);
+      // หากมีมากกว่า 1 รายการ ให้ทำการลบสมาชิกออกจากอาเรย์ตามตำแหน่ง
+      target.assets.splice(index, 1);
     },
   };
 
+  // ส่งออกโมดูลไปยังตัวแปร Global เพื่อให้ส่วนงานอื่นเรียกใช้งาน
   global.AssetApp = AssetApp;
 })(window);

@@ -12,44 +12,50 @@
 
   const MasterData = {
     // ========================================================================
-    // 1. DATA SYNCHRONIZATION (การซิงค์ข้อมูลเมื่อเริ่มต้นระบบ)
+    // 1. DATA SYNCHRONIZATION (การซิงค์ข้อมูลเริ่มต้น)
     // ========================================================================
 
     /**
      * โหลดข้อมูล Master Data ทั้งหมดจาก Database ขึ้นสู่ Memory Store
-     * * กระบวนการทำงาน (Logic Flow):
-     * 1. ระบุรายการ Key ที่ต้องการโหลด (Whitelist)
-     * 2. วนลูปตรวจสอบข้อมูลใน Database ทีละรายการ
-     * 3. (Case A - Data Exists): หากพบข้อมูลใน DB ให้นำมาทับค่าใน Store ทันที
-     * 4. (Case B - Data Missing): หากไม่พบข้อมูล (เช่น เปิดใช้งานครั้งแรก)
-     * ให้นำค่า Default จาก Store ไปบันทึกลง DB (Data Seeding)
+     * ทำหน้าที่เป็นจุดเริ่มต้น (Entry Point) สำหรับการคืนค่าสถานะตัวเลือกต่างๆ
+     *
+     * ลำดับการทำงาน:
+     * 1. กำหนดรายการ Key ที่ต้องการโหลด (Whitelist) เพื่อความปลอดภัย
+     * 2. ตรวจสอบข้อมูลใน Database (IndexedDB)
+     * 3. (Case A) หากมีข้อมูล: โหลดข้อมูลเข้าสู่ Global Store (State Hydration)
+     * 4. (Case B) หากไม่มีข้อมูล: นำค่าเริ่มต้นจาก Code บันทึกลง DB (Initial Seeding)
      */
     async load() {
       try {
         console.log("⏳ MasterData: Loading options...");
 
-        // รายชื่อ Key ที่ระบบรองรับ (ต้องสอดคล้องกับ Store)
+        // รายชื่อ Key ที่ระบบรองรับ (ต้องตรงกับ property ใน store.js)
         const keysToLoad = [
-          "occupationOptions",
-          "sourceOptions",
-          "assetTypeOptions",
+          "occupationOptions", // ตัวเลือกอาชีพ
+          "sourceOptions", // ตัวเลือกแหล่งที่มา
+          "assetTypeOptions", // ประเภทหลักทรัพย์
+          "carBrandOptions", // ยี่ห้อรถยนต์
+          "contractTypeOptions", // ประเภทสัญญา
+          "contractStatusOptions", // สถานะสัญญา
+          "gradeOptions", // เกรดลูกค้า
         ];
 
         for (const key of keysToLoad) {
-          // ตรวจสอบความพร้อมของ Store ก่อนดำเนินการป้องกัน Error
+          // ตรวจสอบความสมบูรณ์ของ Store ก่อนเริ่มทำงาน
           if (!global.Store || !global.Store.data[key]) continue;
 
-          // ดึงข้อมูลจาก Repository
+          // ดึงข้อมูลจาก Repository (IndexedDB)
           const result = await global.Repository.settings.get(key);
 
           if (result && Array.isArray(result.value)) {
-            // กรณีพบข้อมูลเดิม: โหลดเข้าสู่ Memory (State Hydration)
+            // กรณีพบข้อมูลเดิมในฐานข้อมูล: โหลดเข้าสู่ Memory
             console.log(
               `📥 Loaded ${key} from DB (${result.value.length} items)`
             );
             global.Store.data[key] = result.value;
           } else {
-            // กรณีไม่พบข้อมูล: สร้างข้อมูลตั้งต้น (Initial Seeding)
+            // กรณีไม่พบข้อมูล: ใช้ค่า Default จาก Store.js แล้วบันทึกลงฐานข้อมูล
+            // เพื่อให้ครั้งต่อไปมีข้อมูลชุดเดียวกัน
             const defaultData = global.Store.data[key];
 
             if (Array.isArray(defaultData) && defaultData.length > 0) {
@@ -60,6 +66,7 @@
         }
         console.log("✅ MasterData: Sync complete.");
       } catch (err) {
+        // ดักจับข้อผิดพลาดเพื่อไม่ให้กระบวนการ Boot ของแอปหยุดชะงัก
         console.error("❌ MasterData Load Error:", err);
       }
     },
@@ -72,24 +79,26 @@
      * เพิ่มตัวเลือกใหม่ลงในระบบ (Add Option)
      * @param {string} storeKey - ชื่อ Key ของข้อมูล (เช่น 'occupationOptions')
      * @param {string} newValue - ค่าที่ต้องการเพิ่ม
-     * * การทำงาน:
-     * 1. ตรวจสอบค่าซ้ำ (Duplicate Check) เพื่อป้องกันข้อมูลขยะ
-     * 2. อัปเดต Memory (Push to Array) เพื่อให้ UI เปลี่ยนแปลงทันที
-     * 3. บันทึกลง Storage เพื่อความคงทนของข้อมูล
+     *
+     * ลำดับการทำงาน:
+     * 1. ตรวจสอบความถูกต้องของ Key และค่าที่รับมา
+     * 2. ตรวจสอบค่าซ้ำ (Duplicate Check) เพื่อป้องกันข้อมูลขยะ
+     * 3. อัปเดต Memory Store ทันทีเพื่อให้ UI ตอบสนองรวดเร็ว (Optimistic UI)
+     * 4. เรียก _saveToDb เพื่อบันทึกข้อมูลถาวร
      */
     async addOption(storeKey, newValue) {
       if (!newValue) return;
       const val = newValue.trim();
 
-      // ตรวจสอบโครงสร้าง Array ปลายทาง
+      // ตรวจสอบว่า Store มี Array รองรับหรือไม่
       if (!global.Store.data[storeKey]) global.Store.data[storeKey] = [];
 
       const list = global.Store.data[storeKey];
 
-      // ป้องกันการบันทึกค่าซ้ำ
+      // ป้องกันการเพิ่มข้อมูลที่ซ้ำกัน
       if (list.includes(val)) return;
 
-      // อัปเดต State และ Database
+      // อัปเดต State และบันทึกผล
       list.push(val);
       await this._saveToDb(storeKey, list);
       console.log(`✅ Added option to ${storeKey}`);
@@ -98,13 +107,18 @@
     /**
      * ลบตัวเลือกออกจากระบบ (Remove Option)
      * @param {string} storeKey - ชื่อ Key ของข้อมูล
-     * @param {number} index - ลำดับที่ต้องการลบ
+     * @param {number} index - ลำดับ Index ที่ต้องการลบ
+     *
+     * ลำดับการทำงาน:
+     * 1. ตรวจสอบว่ามีข้อมูลใน Store หรือไม่
+     * 2. ใช้ splice เพื่อตัดข้อมูลออกจาก Array ใน Memory
+     * 3. บันทึก Array ใหม่ลงฐานข้อมูล
      */
     async removeOption(storeKey, index) {
       const list = global.Store.data[storeKey];
       if (!list) return;
 
-      // ลบจาก Memory และบันทึกผล
+      // ลบข้อมูลและอัปเดต DB
       list.splice(index, 1);
       await this._saveToDb(storeKey, list);
       console.log(`🗑️ Removed option from ${storeKey}`);
@@ -112,20 +126,25 @@
 
     /**
      * จัดลำดับตัวเลือกใหม่ (Reorder Options)
-     * ใช้สำหรับ Drag & Drop ในหน้าตั้งค่า
+     * ใช้สำหรับฟีเจอร์ Drag & Drop ในหน้าตั้งค่า
      * @param {string} storeKey - ชื่อ Key ของข้อมูล
      * @param {number} fromIndex - ตำแหน่งเดิม
-     * @param {number} toIndex - ตำแหน่งใหม่
+     * @param {number} toIndex - ตำแหน่งใหม่ปลายทาง
+     *
+     * ลำดับการทำงาน:
+     * 1. ดึงข้อมูลจาก Memory Store
+     * 2. สลับตำแหน่งข้อมูลใน Array โดยตรง (In-place Mutation)
+     * 3. บันทึกลำดับใหม่ลงฐานข้อมูลทันที
      */
     async reorderOption(storeKey, fromIndex, toIndex) {
       const list = global.Store.data[storeKey];
       if (!list) return;
 
-      // สลับตำแหน่งข้อมูลใน Array (In-place Mutation)
+      // ย้ายตำแหน่งข้อมูลใน Array
       const item = list.splice(fromIndex, 1)[0];
       list.splice(toIndex, 0, item);
 
-      // บันทึกลำดับใหม่ลง DB
+      // บันทึกผลลัพธ์
       await this._saveToDb(storeKey, list);
       console.log(`🔄 Reordered ${storeKey}`);
     },
@@ -135,18 +154,21 @@
     // ========================================================================
 
     /**
-     * ฟังก์ชันภายในสำหรับบันทึก Array ลง IndexedDB
+     * ฟังก์ชันภายในสำหรับบันทึก Array ลง IndexedDB (Internal Helper)
      * @param {string} key - Key ที่ใช้บันทึก
      * @param {Array} listData - ข้อมูล Array ที่ต้องการบันทึก
-     * * ความสำคัญ:
-     * - ต้องทำการ Deep Clone ข้อมูลก่อนส่งให้ Repository
-     * - เพื่อตัด Reference จาก Reactive State ของ Vue
-     * - ป้องกัน Proxy Object Error เมื่อบันทึกลง IndexedDB
+     *
+     * ความสำคัญ:
+     * - ข้อมูลใน Store เป็น Vue Reactive Object (Proxy)
+     * - IndexedDB ไม่สามารถบันทึก Proxy Object ได้โดยตรง (Data Clone Error)
+     * - จำเป็นต้องทำ Deep Clone / Serialization เพื่อแปลงเป็น Plain JavaScript Object ก่อนบันทึก
      */
     async _saveToDb(key, listData) {
       try {
-        // Serialization เพื่อล้าง Proxy Wrapper
+        // Serialization: ล้าง Proxy Wrapper ออกจากข้อมูล
         const plainData = JSON.parse(JSON.stringify(listData));
+
+        // ส่งข้อมูลที่สะอาดแล้วไปยัง Repository
         await global.Repository.settings.set(key, plainData);
       } catch (err) {
         console.error(`❌ MasterData: Save failed ${key}`, err);

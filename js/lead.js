@@ -18,22 +18,22 @@
     /**
      * ตัวแปร Reactive สำหรับเก็บข้อมูลฟอร์มลูกค้า
      * โครงสร้างข้อมูลถูกกำหนดโดย DataSpec.Lead.createDefault()
-     * ใช้สำหรับผูกกับ v-model ในหน้าจอเพิ่ม/แก้ไขข้อมูลโดยตรง
+     * ทำหน้าที่เป็น Data Binding Source สำหรับหน้าจอเพิ่มและแก้ไขข้อมูล
      */
     form: Vue.reactive(global.DataSpec.Lead.createDefault()),
 
     // ========================================================================
-    // 2. SYSTEM INITIALIZATION (การเริ่มต้นระบบและ Event Listeners)
+    // 2. SYSTEM INITIALIZATION (การเริ่มต้นระบบและวงจรชีวิต)
     // ========================================================================
 
     /**
-     * เริ่มต้นการทำงานของโมดูลและตั้งค่า Watchers
-     * @param {Object} state - Global AppState ที่ใช้ตรวจสอบสถานะ UI (เช่น Modal Open/Close)
-     * * การทำงาน:
-     * 1. ตรวจสอบว่า state และ property ที่จำเป็นมีอยู่จริง
-     * 2. ผูก Watcher เข้ากับสถานะการเปิด Modal (isOpenModalLead)
-     * 3. เมื่อ Modal ถูกปิด (isOpen == false) จะสั่งรีเซ็ตฟอร์มทันที
-     * เพื่อป้องกันข้อมูลค้าง (Stale Data) ในการใช้งานครั้งถัดไป
+     * เริ่มต้นการทำงานของโมดูลและตั้งค่า Event Watchers
+     * @param {Object} state - Global AppState สำหรับตรวจสอบสถานะ UI
+     *
+     * วัตถุประสงค์:
+     * - เพื่อผูกการทำงานระหว่างสถานะของ Modal และข้อมูลในฟอร์ม
+     * - เมื่อ Modal ปิดลง (isOpen == false) ระบบจะทำการรีเซ็ตฟอร์มอัตโนมัติ
+     * - ป้องกันการค้างของข้อมูล (Stale Data) เมื่อผู้ใช้เปิดหน้าต่างขึ้นมาใหม่
      */
     init(state) {
       if (state && state.isOpenModalLead) {
@@ -51,24 +51,23 @@
     // ========================================================================
 
     /**
-     * โหลดข้อมูล Lead ทั้งหมดจาก Local Database (IndexedDB)
-     * และนำไปอัปเดตลงใน Global Store เพื่อแสดงผล
-     * * กระบวนการทำงาน:
-     * 1. ดึงข้อมูลทั้งหมดจาก Repository
-     * 2. กำหนดค่าเริ่มต้นให้กับ Dropdown ในฟอร์ม (Occupation, Source)
-     * โดยดึงค่าแรกจาก Master Data ใน Store (ถ้ามี)
-     * 3. รีเซ็ตฟอร์มสัญญา (Sub-form) เพื่อความสะอาดของ State
-     * 4. อัปเดตข้อมูลลง Store ผ่าน Utils.storeSetItems
-     * 5. (Optional) ตรวจสอบและซ่อมแซมข้อมูล (Self-Healing) ใน Background
-     * หากพบรายการที่ต้องแก้ไขโครงสร้าง
+     * ดึงข้อมูล Lead ทั้งหมดจาก Local Database (IndexedDB)
+     * และดำเนินการอัปเดตลงใน Global Store เพื่อแสดงผล
+     *
+     * ลำดับการทำงาน:
+     * 1. เรียกข้อมูลทั้งหมดจาก Repository (leads.getAll)
+     * 2. กำหนดค่าเริ่มต้นให้กับ Dropdown ในฟอร์ม (Occupation, Source) จาก MasterData
+     * 3. รีเซ็ตฟอร์มสัญญาย่อย (Contract Form) เพื่อเตรียมความพร้อม
+     * 4. อัปเดตข้อมูลลง Global Store เพื่อให้ UI ทำการ Render
+     * 5. เริ่มกระบวนการตรวจสอบและซ่อมแซมข้อมูล (Self-Healing) ใน Background (ถ้าจำเป็น)
      */
     async loadAll() {
       try {
         // 1. ดึงข้อมูลดิบจาก Repository
         const items = await global.Repository.leads.getAll();
-        const itemsToUpdate = []; // เก็บรายการที่ต้องซ่อมแซมโครงสร้าง (ถ้ามี)
+        const itemsToUpdate = []; // เก็บรายการที่ต้องซ่อมแซมโครงสร้าง
 
-        // 2. กำหนดค่า Default Selection สำหรับ Dropdown
+        // 2. กำหนดค่า Default Selection สำหรับ Dropdown หากมีข้อมูลใน Store
         if (
           global.Store &&
           Array.isArray(global.Store.data.occupationOptions) &&
@@ -85,16 +84,16 @@
           LeadApp.form.source = global.Store.data.sourceOptions[0];
         }
 
-        // 3. รีเซ็ตฟอร์มส่วนควบ (Contract Form)
+        // 3. รีเซ็ตฟอร์มส่วนควบ (Contract Form) ผ่าน Module ที่เกี่ยวข้อง
         this.resetNewContractForm();
 
-        // 4. อัปเดต Store (UI Update)
+        // 4. อัปเดต Store (UI Update) ผ่าน Utility
         if (global.Utils?.storeSetItems) {
           global.Utils.storeSetItems("Lead", items);
         }
 
         // 5. กระบวนการ Self-Healing (Background Task)
-        // ทำงานหลังจากโหลดเสร็จ 2 วินาที เพื่อไม่ให้กระทบ Performance แรกเริ่ม
+        // หน่วงเวลาทำงานเพื่อให้ UI หลัก Render เสร็จสิ้นก่อน (Performance Optimization)
         if (itemsToUpdate.length > 0) {
           setTimeout(async () => {
             try {
@@ -118,19 +117,145 @@
     },
 
     // ========================================================================
-    // 4. CRUD OPERATIONS (การจัดการข้อมูล: เพิ่ม / แก้ไข / ลบ)
+    // 4. FORM MANAGEMENT (การจัดการสถานะฟอร์มและการเตรียมข้อมูล)
     // ========================================================================
 
     /**
-     * สร้างข้อมูล Lead ใหม่และบันทึกลงฐานข้อมูล
-     * @param {Object} formData - ข้อมูลจากฟอร์ม (Optional: หากไม่ระบุจะใช้ this.form)
-     * * การทำงาน:
-     * 1. เตรียมข้อมูล (Payload Construction) และประทับเวลาสร้าง (createDate)
-     * 2. สร้าง Search Index สำหรับการค้นหาแบบรวดเร็ว
+     * เตรียมข้อมูลสำหรับการแก้ไข (Edit Mode Preparation)
+     * @param {Object} lead - ข้อมูล Lead ต้นฉบับที่ต้องการแก้ไข
+     *
+     * วัตถุประสงค์:
+     * - คัดลอกข้อมูลจาก Object ต้นฉบับลงสู่ Form State
+     * - ตรวจสอบความสมบูรณ์ของโครงสร้างข้อมูล (เช่น Array contracts)
+     * - เพื่อให้ UI แสดงข้อมูลเดิมก่อนที่ผู้ใช้จะทำการแก้ไข
+     */
+    prepareEdit(lead) {
+      if (!lead) return;
+
+      // คัดลอกข้อมูลลงฟอร์ม
+      Object.assign(LeadApp.form, lead);
+
+      // ตรวจสอบโครงสร้าง Array ของ Contracts ให้ถูกต้อง (Schema Enforcement)
+      if (!Array.isArray(LeadApp.form.contracts)) {
+        LeadApp.form.contracts = [];
+      }
+    },
+
+    /**
+     * รีเซ็ตฟอร์ม Lead กลับสู่ค่าเริ่มต้น (Reset Form)
+     *
+     * ลำดับการทำงาน:
+     * 1. ใช้ Utils.resetForm เพื่อล้างค่าและคืนค่า Default ตาม DataSpec
+     * 2. กำหนดค่า Default ให้กับ Dropdown (อาชีพ, แหล่งที่มา, เกรด) ตาม Config
+     * 3. รีเซ็ตสถานะ Tab ของ UI กลับไปที่หน้าข้อมูลทั่วไป
+     * 4. สั่งรีเซ็ตฟอร์มย่อย (Contract) ที่เกี่ยวข้อง
+     */
+    resetLeadForm() {
+      if (global.Utils && global.Utils.resetForm) {
+        const config = {
+          occupation: "occupationOptions", // ดึงค่า Default จาก Master Data อาชีพ
+          source: "sourceOptions", // ดึงค่า Default จาก Master Data แหล่งที่มา
+          grade: "gradeOptions", // ดึงค่า Default จาก Master Data เกรดลูกค้า
+        };
+
+        global.Utils.resetForm(
+          LeadApp.form,
+          global.DataSpec.Lead.createDefault(),
+          config
+        );
+      }
+
+      // คืนค่าแท็บกลับไปที่หน้าข้อมูลลูกค้าเสมอเมื่อรีเซ็ต
+      if (global.AppState && global.AppState.leadTab) {
+        global.AppState.leadTab.value = "leadInfo";
+        console.log(
+          "👤 LeadApp: Reset leadTab to 'leadInfo' to prevent blank screen."
+        );
+      }
+
+      // รีเซ็ตฟอร์มย่อย (Contract) ด้วย
+      this.resetNewContractForm();
+    },
+
+    /**
+     * สั่งรีเซ็ตฟอร์มสัญญาใหม่
+     * โดยการ Delegate คำสั่งไปยัง ContractApp
+     */
+    resetNewContractForm() {
+      if (global.ContractApp) global.ContractApp.resetNewForm();
+    },
+
+    /**
+     * เพิ่มสัญญาเปล่าลงในฟอร์ม Lead ปัจจุบัน (In-Memory Operation)
+     *
+     * ลำดับการทำงาน:
+     * 1. เรียก ContractApp เพื่อสร้าง Object สัญญาใหม่และเพิ่มลงใน Array
+     * 2. ทำการสลับ Tab ใน UI ไปยังสัญญาที่เพิ่งสร้างใหม่ทันที
+     * 3. ใช้ setTimeout เพื่อรอให้ Vue Render DOM ของ Tab ใหม่ให้เสร็จสมบูรณ์ก่อน
+     */
+    addEmptyContract() {
+      if (global.ContractApp) {
+        global.ContractApp.addEmpty(LeadApp.form);
+
+        // หลังจากเพิ่มสัญญาใน Array แล้ว ให้สลับแท็บไปที่สัญญาสุดท้ายทันที
+        const newContractIndex = LeadApp.form.contracts.length - 1;
+        if (global.AppState && global.AppState.leadTab) {
+          // ใช้ความล่าช้าเล็กน้อยเพื่อให้ Vue Render DOM ของแท็บใหม่ก่อน
+          setTimeout(() => {
+            global.AppState.leadTab.value = "contract-" + newContractIndex;
+            console.log(
+              "📑 LeadApp: Switched to new contract tab:",
+              newContractIndex
+            );
+          }, 0);
+        }
+      }
+    },
+
+    /**
+     * จัดการ Event เมื่อมีการเปลี่ยนข้อมูลอาชีพ (Auto-Save Master Data)
+     * @param {string} val - ค่าอาชีพที่ระบุ
+     * หากเป็นค่าใหม่ที่ยังไม่มีในระบบ จะทำการเพิ่มลงใน MasterData ทันที
+     */
+    handleOccupationChange(val) {
+      if (
+        global.MasterData &&
+        typeof global.MasterData.addOption === "function"
+      ) {
+        global.MasterData.addOption("occupationOptions", val);
+      }
+    },
+
+    /**
+     * จัดการ Event เมื่อมีการเปลี่ยนข้อมูลเกรดลูกค้า (Auto-Save Master Data)
+     * @param {string} val - ค่าเกรดที่ระบุ
+     * หากเป็นค่าใหม่ที่ยังไม่มีในระบบ จะทำการเพิ่มลงใน MasterData ทันที
+     */
+    handleGradeChange(val) {
+      if (
+        val &&
+        global.MasterData &&
+        typeof global.MasterData.addOption === "function"
+      ) {
+        global.MasterData.addOption("gradeOptions", val);
+        console.log("⭐ LeadApp: Auto-saved new Grade:", val);
+      }
+    },
+
+    // ========================================================================
+    // 5. CRUD OPERATIONS (การจัดการข้อมูล: เพิ่ม / แก้ไข / ลบ)
+    // ========================================================================
+
+    /**
+     * สร้างข้อมูล Lead ใหม่และบันทึกลงฐานข้อมูล (Create)
+     * @param {Object} formData - ข้อมูลจากฟอร์ม (Optional)
+     *
+     * ลำดับการทำงาน:
+     * 1. เตรียมข้อมูล (Payload) และประทับเวลาสร้าง (createDate)
+     * 2. สร้าง Search Index จากข้อมูลสำคัญเพื่อเพิ่มประสิทธิภาพการค้นหา
      * 3. บันทึกลง IndexedDB ผ่าน Repository และรอรับ ID ใหม่
-     * 4. เพิ่มข้อมูลใหม่ลงใน Global Store ทันที (Optimistic UI Update)
-     * โดยไม่ต้องโหลดข้อมูลใหม่ทั้งหมด
-     * 5. รีเซ็ตฟอร์มเมื่อเสร็จสิ้น
+     * 4. เพิ่มข้อมูลใหม่ลงใน Global Store ทันที (Optimistic Update)
+     * 5. รีเซ็ตฟอร์มและแสดงการแจ้งเตือน
      */
     async add(formData) {
       try {
@@ -166,12 +291,13 @@
 
     /**
      * ปรับปรุงข้อมูล Lead ที่มีอยู่ (Update)
-     * * การทำงาน:
-     * 1. ตรวจสอบว่ามี ID หรือไม่ (Safety Check)
-     * 2. สร้างข้อมูลใหม่และอัปเดต Search Index
+     *
+     * ลำดับการทำงาน:
+     * 1. ตรวจสอบความมีอยู่ของ ID (Primary Key)
+     * 2. สร้าง Search Index ใหม่ตามข้อมูลล่าสุด
      * 3. ส่งคำสั่ง Update ไปยัง Repository
-     * 4. ค้นหาและแทนที่ข้อมูลเดิมใน Global Store (Array Mutation)
-     * เพื่อให้หน้าจอแสดงข้อมูลล่าสุดทันที
+     * 4. ค้นหาและแทนที่ข้อมูลใน Global Store (Array Mutation)
+     * 5. แสดงการแจ้งเตือนความสำเร็จ
      */
     async update() {
       try {
@@ -205,10 +331,13 @@
 
     /**
      * ลบข้อมูล Lead ตาม ID (Delete)
-     * * การทำงาน:
+     * @param {number|string} id - รหัสอ้างอิงของข้อมูลที่ต้องการลบ
+     *
+     * ลำดับการทำงาน:
      * 1. แสดงหน้าต่างยืนยัน (Confirmation Dialog)
      * 2. ส่งคำสั่ง Delete ไปยัง Repository
-     * 3. ลบรายการออกจาก Global Store array (Array Splice)
+     * 3. ลบรายการออกจาก Global Store (Array Splice) เพื่ออัปเดต UI
+     * 4. แสดงการแจ้งเตือนความสำเร็จ
      */
     async delete(id) {
       try {
@@ -233,81 +362,10 @@
     },
 
     // ========================================================================
-    // 5. FORM MANAGEMENT & HELPERS (การจัดการสถานะฟอร์ม)
-    // ========================================================================
-
-    /**
-     * เตรียมข้อมูลสำหรับการแก้ไข (Edit Mode Preparation)
-     * นำข้อมูล Lead ที่เลือกมาใส่ลงใน Form State
-     * @param {Object} lead - ข้อมูล Lead ต้นฉบับ
-     */
-    prepareEdit(lead) {
-      if (!lead) return;
-
-      // คัดลอกข้อมูลลงฟอร์ม
-      Object.assign(LeadApp.form, lead);
-
-      // ตรวจสอบโครงสร้าง Array ของ Contracts ให้ถูกต้อง
-      if (!Array.isArray(LeadApp.form.contracts)) {
-        LeadApp.form.contracts = [];
-      }
-    },
-
-    /**
-     * รีเซ็ตฟอร์ม Lead กลับสู่ค่าเริ่มต้น (Reset Form)
-     * ใช้ Utils.resetForm เพื่อล้างค่าตกค้างทั้งหมด
-     * และตั้งค่า Default สำหรับ Dropdown จาก Config
-     */
-    resetLeadForm() {
-      if (global.Utils && global.Utils.resetForm) {
-        const config = {
-          occupation: "occupationOptions",
-          source: "sourceOptions",
-        };
-
-        global.Utils.resetForm(
-          LeadApp.form,
-          global.DataSpec.Lead.createDefault(),
-          config
-        );
-      }
-      // รีเซ็ตฟอร์มย่อย (Contract) ด้วย
-      this.resetNewContractForm();
-    },
-
-    /**
-     * สั่งรีเซ็ตฟอร์มสัญญาใหม่ (ผ่าน ContractApp)
-     */
-    resetNewContractForm() {
-      if (global.ContractApp) global.ContractApp.resetNewForm();
-    },
-
-    /**
-     * เพิ่มสัญญาเปล่าลงในฟอร์ม Lead ปัจจุบัน
-     */
-    addEmptyContract() {
-      if (global.ContractApp) global.ContractApp.addEmpty(LeadApp.form);
-    },
-
-    /**
-     * จัดการ Event เมื่อมีการเปลี่ยนอาชีพ หรือพิมพ์อาชีพใหม่
-     * หากเป็นอาชีพใหม่ ระบบจะบันทึกลง Master Data โดยอัตโนมัติ
-     * @param {string} val - ค่าอาชีพที่เลือกหรือพิมพ์
-     */
-    handleOccupationChange(val) {
-      if (
-        global.MasterData &&
-        typeof global.MasterData.addOption === "function"
-      ) {
-        global.MasterData.addOption("occupationOptions", val);
-      }
-    },
-
-    // ========================================================================
     // 6. LEGACY INTERFACE (จุดเชื่อมต่อสำหรับโค้ดเก่า)
     // ========================================================================
     // Wrapper Functions เพื่อรองรับการเรียกใช้จากโค้ดส่วนอื่น
-    // ที่อาจยังใช้ชื่อฟังก์ชันแบบเก่าอยู่
+    // ที่อาจยังใช้ชื่อฟังก์ชันแบบเก่าอยู่ (Backward Compatibility)
 
     addLead(f) {
       return LeadApp.add(f);
