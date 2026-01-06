@@ -15,6 +15,8 @@ const AppState = {
   isOpenModalRecordCallResult: Vue.ref(false), // หน้าต่างบันทึกผลการโทร
   isOpenModalCarSettings: Vue.ref(false), // หน้าต่างตั้งค่ารถยนต์
   isOpenModalCarPriceSelector: Vue.ref(false), // หน้าต่างเลือกราคากลาง
+  isOpenConfirmSaveLead: Vue.ref(false), // หน้าต่างยืนยันการบันทึก Lead
+  duplicateLeads: Vue.ref([]), // รายการ Lead ที่ซ้ำกัน (สำหรับ Modal ยืนยันการบันทึก)
 
   // ------------------------------------------------------
   // 📋 สถานะ Dialog และ Dropdown ต่างๆ
@@ -64,7 +66,7 @@ const AppState = {
   page: Vue.ref(1), // หน้าปัจจุบัน
   itemsPerPage: Vue.ref(10), // จำนวนรายการต่อหน้า
   totalPages: Vue.ref(1), // จำนวนหน้าทั้งหมด
-  totalItems: Vue.ref(0), // ✅ [เพิ่มใหม่] เก็บจำนวนรายการทั้งหมดใน DB (เพื่อนับหน้า)
+  totalItems: Vue.ref(0), // เก็บจำนวนรายการทั้งหมดใน DB (เพื่อนับหน้า)
 
   // ข้อมูลผลลัพธ์ที่คำนวณแล้ว (ถูกจัดการโดย gui.js)
   pagedLeads: Vue.ref([]), // รายการ Lead ในหน้าปัจจุบัน

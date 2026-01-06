@@ -894,15 +894,15 @@
 
                                                     <v-row dense class="mb-2 form-row">
                                                         <v-col cols="12" md="6">
-                                                            <v-text-field label="LINE ID" density="comfortable"
-                                                                variant="outlined" color="primary"
+                                                            <v-text-field label="LINE ID" v-model="leadForm.lineId"
+                                                                density="comfortable" variant="outlined" color="primary"
                                                                 prepend-inner-icon="mdi-chat-processing-outline"
                                                                 hide-details="auto"></v-text-field>
                                                         </v-col>
 
                                                         <v-col cols="12" md="6">
-                                                            <v-text-field label="Facebook" density="comfortable"
-                                                                variant="outlined" color="primary"
+                                                            <v-text-field label="Facebook" v-model="leadForm.facebook"
+                                                                density="comfortable" variant="outlined" color="primary"
                                                                 prepend-inner-icon="mdi-facebook"
                                                                 hide-details="auto"></v-text-field>
                                                         </v-col>
@@ -1104,6 +1104,7 @@
                                                                         <v-col cols="12" md="6">
                                                                             <v-combobox label="ยี่ห้อ"
                                                                                 v-model="asset.brand"
+                                                                                @update:model-value="CarApp.handleBrandChange"
                                                                                 :items="Store.data.carBrandOptions"
                                                                                 density="comfortable" variant="outlined"
                                                                                 bg-color="white"
@@ -1567,8 +1568,9 @@
                                                         </v-col>
 
                                                         <v-col cols="12" sm="6">
-                                                            <v-text-field type="number" label="วันดิวชำระ"
-                                                                suffix="ของเดือน" variant="outlined" density="compact"
+                                                            <v-text-field type="number" v-model="ct.paymentDay"
+                                                                label="วันดิวชำระ" suffix="ของเดือน" variant="outlined"
+                                                                density="compact"
                                                                 prepend-inner-icon="mdi-bell-alert-outline"
                                                                 hide-details></v-text-field>
                                                         </v-col>
@@ -1653,8 +1655,9 @@
                                                                 hide-details></v-text-field>
                                                         </v-col>
                                                         <v-col cols="12" sm="6">
-                                                            <v-text-field label="ค่าติดตามทวงถาม" prefix="฿"
-                                                                type="number" variant="outlined" density="compact"
+                                                            <v-text-field v-model="ct.collectionFee"
+                                                                label="ค่าติดตามทวงถาม" prefix="฿" type="number"
+                                                                variant="outlined" density="compact"
                                                                 prepend-inner-icon="mdi-phone-alert-outline"
                                                                 hide-details></v-text-field>
                                                         </v-col>
@@ -1804,6 +1807,7 @@
                                                                         <v-col cols="12" md="6">
                                                                             <v-combobox label="ยี่ห้อ"
                                                                                 v-model="asset.brand"
+                                                                                @update:model-value="CarApp.handleBrandChange"
                                                                                 :items="Store.data.carBrandOptions"
                                                                                 density="comfortable" variant="outlined"
                                                                                 bg-color="white"
@@ -2180,7 +2184,7 @@
                             ยกเลิก
                         </v-btn>
 
-                        <v-btn color="primary" variant="flat" class="ml-2" @click="LeadApp.add(leadForm)">
+                        <v-btn color="primary" variant="flat" class="ml-2" @click="LeadApp.checkDuplicateAndOpen()">
                             บันทึก
                         </v-btn>
 
@@ -3666,6 +3670,112 @@
                         </v-btn>
                     </v-card-actions>
 
+                </v-card>
+            </v-dialog>
+
+
+            <v-dialog v-model="isOpenConfirmSaveLead" max-width="650" scrollable>
+                <v-card class="rounded-xl d-flex flex-column"
+                    style="height: 600px; max-height: 80vh; background: #fff;">
+
+                    <v-card-title class="py-3 px-5 d-flex align-center flex-shrink-0"
+                        style="border-bottom: 1px solid #f0f0f0;">
+                        <div class="d-flex align-center">
+                            <v-icon color="orange-darken-2" class="mr-3">mdi-alert-circle-outline</v-icon>
+                            <div>
+                                <span class="text-h6 font-weight-bold text-grey-darken-3">พบข้อมูลซ้ำ (Duplicate)</span>
+                                <div class="text-caption text-grey">
+                                    มีข้อมูลลูกค้าที่คล้ายกันในระบบ {{ duplicateLeads.length }} รายการ
+                                </div>
+                            </div>
+                        </div>
+                        <v-spacer></v-spacer>
+                        <v-btn icon variant="text" color="grey" @click="toggleMenu('isOpenConfirmSaveLead', false)">
+                            <v-icon>mdi-close</v-icon>
+                        </v-btn>
+                    </v-card-title>
+
+                    <v-card-text class="pa-0 flex-grow-1" style="overflow-y: auto; background-color: #fff;">
+
+                        <div class="px-5 py-3 bg-grey-lighten-5 text-caption text-grey-darken-1 border-b">
+                            <v-icon size="small" start color="blue">mdi-information-outline</v-icon>
+                            กรุณาเลือก <b>"อัปเดต"</b> เพื่อแก้ไขข้อมูลเดิม หรือ <b>"แทนที่"</b>
+                            เพื่อเขียนทับใหม่ทั้งหมด
+                        </div>
+
+                        <v-list lines="two" class="py-0">
+                            <template v-for="(item, i) in duplicateLeads" :key="i">
+                                <v-list-item class="py-4 px-5">
+
+                                    <template v-slot:prepend>
+                                        <v-avatar color="indigo-lighten-5" size="44" class="mr-4">
+                                            <span class="text-h6 font-weight-bold text-indigo">{{ (item.firstName ||
+                                                '?')[0] }}</span>
+                                        </v-avatar>
+                                    </template>
+
+                                    <v-list-item-title class="font-weight-bold text-body-1 text-grey-darken-3 mb-1">
+                                        {{ item.firstName }} {{ item.lastName }}
+                                        <span v-if="item.nickName" class="text-grey font-weight-regular">({{
+                                            item.nickName }})</span>
+                                    </v-list-item-title>
+
+                                    <v-list-item-subtitle class="d-flex align-center ga-3 mt-1">
+                                        <div class="d-flex align-center text-caption text-grey-darken-1">
+                                            <v-icon size="14" start class="mr-1">mdi-phone</v-icon>
+                                            {{ item.phones || '-' }}
+                                        </div>
+                                        <div class="text-caption text-grey-lighten-1">|</div>
+                                        <div class="text-caption text-grey-darken-1">
+                                            ID: {{ item.id }}
+                                        </div>
+                                        <v-chip v-if="item.status" size="x-small" color="grey" variant="tonal"
+                                            class="font-weight-medium">
+                                            {{ item.status }}
+                                        </v-chip>
+                                    </v-list-item-subtitle>
+
+                                    <template v-slot:append>
+                                        <div class="d-flex align-center ga-2">
+
+                                            <v-btn variant="outlined" color="indigo" size="small" class="px-4 text-none"
+                                                prepend-icon="mdi-pencil"
+                                                @click="LeadApp.resolveDuplicate('update', item)">
+                                                อัปเดต
+                                            </v-btn>
+
+                                            <v-tooltip text="แทนที่ข้อมูลทั้งหมด" location="top">
+                                                <template v-slot:activator="{ props }">
+                                                    <v-btn v-bind="props" variant="text" color="error"
+                                                        icon="mdi-swap-horizontal" density="comfortable"
+                                                        @click="LeadApp.resolveDuplicate('replace', item)">
+                                                    </v-btn>
+                                                </template>
+                                            </v-tooltip>
+
+                                        </div>
+                                    </template>
+                                </v-list-item>
+                                <v-divider v-if="i < duplicateLeads.length - 1"
+                                    class="border-opacity-50 mx-5"></v-divider>
+                            </template>
+                        </v-list>
+
+                    </v-card-text>
+
+                    <v-divider></v-divider>
+                    <v-card-actions class="pa-4 bg-white flex-shrink-0">
+                        <v-btn variant="text" color="grey-darken-1" @click="toggleMenu('isOpenConfirmSaveLead', false)">
+                            ยกเลิก
+                        </v-btn>
+
+                        <v-spacer></v-spacer>
+
+                        <span class="text-caption text-grey mr-2">หรือสร้างใหม่เลย</span>
+                        <v-btn color="indigo-darken-1" variant="flat" prepend-icon="mdi-plus" @click="LeadApp.save()">
+                            สร้างใหม่ (New ID)
+                        </v-btn>
+                    </v-card-actions>
                 </v-card>
             </v-dialog>
 

@@ -15,26 +15,12 @@
     // 1. REACTIVE STATE (สถานะของข้อมูลที่ผูกกับ UI)
     // ========================================================================
 
-    /**
-     * ตัวแปร Reactive สำหรับเก็บข้อมูลฟอร์มลูกค้า
-     * โครงสร้างข้อมูลถูกกำหนดโดย DataSpec.Lead.createDefault()
-     * ทำหน้าที่เป็น Data Binding Source สำหรับหน้าจอเพิ่มและแก้ไขข้อมูล
-     */
     form: Vue.reactive(global.DataSpec.Lead.createDefault()),
 
     // ========================================================================
     // 2. SYSTEM INITIALIZATION (การเริ่มต้นระบบและวงจรชีวิต)
     // ========================================================================
 
-    /**
-     * เริ่มต้นการทำงานของโมดูลและตั้งค่า Event Watchers
-     * @param {Object} state - Global AppState สำหรับตรวจสอบสถานะ UI
-     *
-     * วัตถุประสงค์:
-     * - เพื่อผูกการทำงานระหว่างสถานะของ Modal และข้อมูลในฟอร์ม
-     * - เมื่อ Modal ปิดลง (isOpen == false) ระบบจะทำการรีเซ็ตฟอร์มอัตโนมัติ
-     * - ป้องกันการค้างของข้อมูล (Stale Data) เมื่อผู้ใช้เปิดหน้าต่างขึ้นมาใหม่
-     */
     init(state) {
       if (state && state.isOpenModalLead) {
         Vue.watch(state.isOpenModalLead, (isOpen) => {
@@ -50,24 +36,11 @@
     // 3. DATA LOADING & SYNCHRONIZATION (การโหลดและซิงค์ข้อมูล)
     // ========================================================================
 
-    /**
-     * ดึงข้อมูล Lead ทั้งหมดจาก Local Database (IndexedDB)
-     * และดำเนินการอัปเดตลงใน Global Store เพื่อแสดงผล
-     *
-     * ลำดับการทำงาน:
-     * 1. เรียกข้อมูลทั้งหมดจาก Repository (leads.getAll)
-     * 2. กำหนดค่าเริ่มต้นให้กับ Dropdown ในฟอร์ม (Occupation, Source) จาก MasterData
-     * 3. รีเซ็ตฟอร์มสัญญาย่อย (Contract Form) เพื่อเตรียมความพร้อม
-     * 4. อัปเดตข้อมูลลง Global Store เพื่อให้ UI ทำการ Render
-     * 5. เริ่มกระบวนการตรวจสอบและซ่อมแซมข้อมูล (Self-Healing) ใน Background (ถ้าจำเป็น)
-     */
     async loadAll() {
       try {
-        // 1. ดึงข้อมูลดิบจาก Repository
         const items = await global.Repository.leads.getAll();
-        const itemsToUpdate = []; // เก็บรายการที่ต้องซ่อมแซมโครงสร้าง
+        const itemsToUpdate = [];
 
-        // 2. กำหนดค่า Default Selection สำหรับ Dropdown หากมีข้อมูลใน Store
         if (
           global.Store &&
           Array.isArray(global.Store.data.occupationOptions) &&
@@ -84,16 +57,12 @@
           LeadApp.form.source = global.Store.data.sourceOptions[0];
         }
 
-        // 3. รีเซ็ตฟอร์มส่วนควบ (Contract Form) ผ่าน Module ที่เกี่ยวข้อง
         this.resetNewContractForm();
 
-        // 4. อัปเดต Store (UI Update) ผ่าน Utility
         if (global.Utils?.storeSetItems) {
           global.Utils.storeSetItems("Lead", items);
         }
 
-        // 5. กระบวนการ Self-Healing (Background Task)
-        // หน่วงเวลาทำงานเพื่อให้ UI หลัก Render เสร็จสิ้นก่อน (Performance Optimization)
         if (itemsToUpdate.length > 0) {
           setTimeout(async () => {
             try {
@@ -120,42 +89,20 @@
     // 4. FORM MANAGEMENT (การจัดการสถานะฟอร์มและการเตรียมข้อมูล)
     // ========================================================================
 
-    /**
-     * เตรียมข้อมูลสำหรับการแก้ไข (Edit Mode Preparation)
-     * @param {Object} lead - ข้อมูล Lead ต้นฉบับที่ต้องการแก้ไข
-     *
-     * วัตถุประสงค์:
-     * - คัดลอกข้อมูลจาก Object ต้นฉบับลงสู่ Form State
-     * - ตรวจสอบความสมบูรณ์ของโครงสร้างข้อมูล (เช่น Array contracts)
-     * - เพื่อให้ UI แสดงข้อมูลเดิมก่อนที่ผู้ใช้จะทำการแก้ไข
-     */
     prepareEdit(lead) {
       if (!lead) return;
-
-      // คัดลอกข้อมูลลงฟอร์ม
       Object.assign(LeadApp.form, lead);
-
-      // ตรวจสอบโครงสร้าง Array ของ Contracts ให้ถูกต้อง (Schema Enforcement)
       if (!Array.isArray(LeadApp.form.contracts)) {
         LeadApp.form.contracts = [];
       }
     },
 
-    /**
-     * รีเซ็ตฟอร์ม Lead กลับสู่ค่าเริ่มต้น (Reset Form)
-     *
-     * ลำดับการทำงาน:
-     * 1. ใช้ Utils.resetForm เพื่อล้างค่าและคืนค่า Default ตาม DataSpec
-     * 2. กำหนดค่า Default ให้กับ Dropdown (อาชีพ, แหล่งที่มา, เกรด) ตาม Config
-     * 3. รีเซ็ตสถานะ Tab ของ UI กลับไปที่หน้าข้อมูลทั่วไป
-     * 4. สั่งรีเซ็ตฟอร์มย่อย (Contract) ที่เกี่ยวข้อง
-     */
     resetLeadForm() {
       if (global.Utils && global.Utils.resetForm) {
         const config = {
-          occupation: "occupationOptions", // ดึงค่า Default จาก Master Data อาชีพ
-          source: "sourceOptions", // ดึงค่า Default จาก Master Data แหล่งที่มา
-          grade: "gradeOptions", // ดึงค่า Default จาก Master Data เกรดลูกค้า
+          occupation: "occupationOptions",
+          source: "sourceOptions",
+          grade: "gradeOptions",
         };
 
         global.Utils.resetForm(
@@ -165,42 +112,24 @@
         );
       }
 
-      // คืนค่าแท็บกลับไปที่หน้าข้อมูลลูกค้าเสมอเมื่อรีเซ็ต
       if (global.AppState && global.AppState.leadTab) {
         global.AppState.leadTab.value = "leadInfo";
         console.log(
           "👤 LeadApp: Reset leadTab to 'leadInfo' to prevent blank screen."
         );
       }
-
-      // รีเซ็ตฟอร์มย่อย (Contract) ด้วย
       this.resetNewContractForm();
     },
 
-    /**
-     * สั่งรีเซ็ตฟอร์มสัญญาใหม่
-     * โดยการ Delegate คำสั่งไปยัง ContractApp
-     */
     resetNewContractForm() {
       if (global.ContractApp) global.ContractApp.resetNewForm();
     },
 
-    /**
-     * เพิ่มสัญญาเปล่าลงในฟอร์ม Lead ปัจจุบัน (In-Memory Operation)
-     *
-     * ลำดับการทำงาน:
-     * 1. เรียก ContractApp เพื่อสร้าง Object สัญญาใหม่และเพิ่มลงใน Array
-     * 2. ทำการสลับ Tab ใน UI ไปยังสัญญาที่เพิ่งสร้างใหม่ทันที
-     * 3. ใช้ setTimeout เพื่อรอให้ Vue Render DOM ของ Tab ใหม่ให้เสร็จสมบูรณ์ก่อน
-     */
     addEmptyContract() {
       if (global.ContractApp) {
         global.ContractApp.addEmpty(LeadApp.form);
-
-        // หลังจากเพิ่มสัญญาใน Array แล้ว ให้สลับแท็บไปที่สัญญาสุดท้ายทันที
         const newContractIndex = LeadApp.form.contracts.length - 1;
         if (global.AppState && global.AppState.leadTab) {
-          // ใช้ความล่าช้าเล็กน้อยเพื่อให้ Vue Render DOM ของแท็บใหม่ก่อน
           setTimeout(() => {
             global.AppState.leadTab.value = "contract-" + newContractIndex;
             console.log(
@@ -212,11 +141,6 @@
       }
     },
 
-    /**
-     * จัดการ Event เมื่อมีการเปลี่ยนข้อมูลอาชีพ (Auto-Save Master Data)
-     * @param {string} val - ค่าอาชีพที่ระบุ
-     * หากเป็นค่าใหม่ที่ยังไม่มีในระบบ จะทำการเพิ่มลงใน MasterData ทันที
-     */
     handleOccupationChange(val) {
       if (
         global.MasterData &&
@@ -226,11 +150,6 @@
       }
     },
 
-    /**
-     * จัดการ Event เมื่อมีการเปลี่ยนข้อมูลเกรดลูกค้า (Auto-Save Master Data)
-     * @param {string} val - ค่าเกรดที่ระบุ
-     * หากเป็นค่าใหม่ที่ยังไม่มีในระบบ จะทำการเพิ่มลงใน MasterData ทันที
-     */
     handleGradeChange(val) {
       if (
         val &&
@@ -248,25 +167,32 @@
 
     /**
      * สร้างข้อมูล Lead ใหม่และบันทึกลงฐานข้อมูล (Create)
-     * @param {Object} formData - ข้อมูลจากฟอร์ม (Optional)
-     *
-     * ลำดับการทำงาน:
-     * 1. เตรียมข้อมูล (Payload) และประทับเวลาสร้าง (createDate)
-     * 2. สร้าง Search Index จากข้อมูลสำคัญเพื่อเพิ่มประสิทธิภาพการค้นหา
-     * 3. บันทึกลง IndexedDB ผ่าน Repository และรอรับ ID ใหม่
-     * 4. เพิ่มข้อมูลใหม่ลงใน Global Store ทันที (Optimistic Update)
-     * 5. รีเซ็ตฟอร์มและแสดงการแจ้งเตือน
+     * [แก้ไข]: ลบ id ทิ้งหากเป็น null เพื่อแก้ปัญหา DataError ของ IndexedDB
      */
     async add(formData) {
       try {
         const src = formData || LeadApp.form;
 
+        // 1. Validation
+        if (!src.firstName || src.firstName.trim() === "") {
+          alert("กรุณาระบุชื่อลูกค้า หรือ ชื่อบริษัท");
+          return;
+        }
+
+        // 2. Proxy Stripping
+        const plainData = JSON.parse(JSON.stringify(src));
+
+        // [CRITICAL FIX] ลบ Property 'id' ออก หากค่าเป็น null/falsy
+        // เพื่อให้ Dexie/IndexedDB ทำงาน Auto Increment ได้ถูกต้อง
+        if (!plainData.id) {
+          delete plainData.id;
+        }
+
         const dataToSave = {
-          ...src,
+          ...plainData,
           createDate: new Date().toLocaleDateString("th-TH"),
         };
 
-        // สร้าง Index สำหรับการค้นหา
         if (global.Utils?.generateSearchIndex) {
           dataToSave._searchIndex =
             global.Utils.generateSearchIndex(dataToSave);
@@ -275,45 +201,39 @@
         // บันทึกลง DB
         const newId = await global.Repository.leads.create(dataToSave);
 
-        // อัปเดต Store (ต้องแนบ ID ที่ได้จาก DB กลับไปด้วย)
+        // อัปเดต Store
         const itemForStore = { ...dataToSave, id: newId };
         if (global.Store && global.Store.data.leadItems) {
           global.Store.data.leadItems.push(Object.freeze(itemForStore));
         }
 
         LeadApp.resetLeadForm();
-        global.AppNotifications?.show("✅ บันทึกข้อมูลเรียบร้อย");
+
+        if (global.AppState && global.AppState.isOpenModalLead) {
+          global.AppState.isOpenModalLead.value = false;
+        }
+
+        alert("✅ บันทึกข้อมูลลูกค้าเรียบร้อยแล้ว");
       } catch (err) {
-        console.error(err);
-        global.AppNotifications?.show("❌ บันทึกไม่สำเร็จ: " + err.message);
+        console.error("LeadApp Add Error:", err);
+        alert("❌ บันทึกไม่สำเร็จ: " + err.message);
       }
     },
 
-    /**
-     * ปรับปรุงข้อมูล Lead ที่มีอยู่ (Update)
-     *
-     * ลำดับการทำงาน:
-     * 1. ตรวจสอบความมีอยู่ของ ID (Primary Key)
-     * 2. สร้าง Search Index ใหม่ตามข้อมูลล่าสุด
-     * 3. ส่งคำสั่ง Update ไปยัง Repository
-     * 4. ค้นหาและแทนที่ข้อมูลใน Global Store (Array Mutation)
-     * 5. แสดงการแจ้งเตือนความสำเร็จ
-     */
     async update() {
       try {
         if (!LeadApp.form.id) return;
 
-        const updatedData = { ...LeadApp.form };
+        const plainData = JSON.parse(JSON.stringify(LeadApp.form));
+        const updatedData = { ...plainData };
 
         if (global.Utils?.generateSearchIndex) {
           updatedData._searchIndex =
             global.Utils.generateSearchIndex(updatedData);
         }
 
-        // อัปเดต DB
         await global.Repository.leads.update(LeadApp.form.id, updatedData);
 
-        // อัปเดต Store
         if (global.Store && global.Store.data.leadItems) {
           const list = global.Store.data.leadItems;
           const index = list.findIndex((item) => item.id === updatedData.id);
@@ -322,23 +242,17 @@
           }
         }
 
-        global.AppNotifications?.show("✅ แก้ไขข้อมูลเรียบร้อย");
+        if (global.AppState && global.AppState.isOpenModalLead) {
+          global.AppState.isOpenModalLead.value = false;
+        }
+
+        alert("✅ แก้ไขข้อมูลเรียบร้อย");
       } catch (err) {
         console.error(err);
-        global.AppNotifications?.show("❌ แก้ไขไม่สำเร็จ");
+        alert("❌ แก้ไขไม่สำเร็จ: " + err.message);
       }
     },
 
-    /**
-     * ลบข้อมูล Lead ตาม ID (Delete)
-     * @param {number|string} id - รหัสอ้างอิงของข้อมูลที่ต้องการลบ
-     *
-     * ลำดับการทำงาน:
-     * 1. แสดงหน้าต่างยืนยัน (Confirmation Dialog)
-     * 2. ส่งคำสั่ง Delete ไปยัง Repository
-     * 3. ลบรายการออกจาก Global Store (Array Splice) เพื่ออัปเดต UI
-     * 4. แสดงการแจ้งเตือนความสำเร็จ
-     */
     async delete(id) {
       try {
         if (!confirm("ยืนยันการลบข้อมูลนี้?")) return;
@@ -364,8 +278,113 @@
     // ========================================================================
     // 6. LEGACY INTERFACE (จุดเชื่อมต่อสำหรับโค้ดเก่า)
     // ========================================================================
-    // Wrapper Functions เพื่อรองรับการเรียกใช้จากโค้ดส่วนอื่น
-    // ที่อาจยังใช้ชื่อฟังก์ชันแบบเก่าอยู่ (Backward Compatibility)
+
+    // ✅ [NEW] ฟังก์ชันกลางสำหรับตัดสินใจว่า บันทึกใหม่ หรือ แก้ไข
+    save() {
+      // 1. ปิด Dialog ยืนยัน
+      if (global.AppState.isOpenConfirmSaveLead) {
+        global.AppState.isOpenConfirmSaveLead.value = false;
+      }
+
+      // 2. ตรวจสอบว่ามี ID หรือไม่ เพื่อเลือก Action ที่ถูกต้อง
+      if (LeadApp.form.id) {
+        // กรณีมี ID = แก้ไข
+        this.update();
+      } else {
+        // กรณีไม่มี ID = สร้างใหม่
+        this.add(LeadApp.form);
+      }
+    },
+    // ฟังก์ชันเช็คซ้ำก่อนเปิด Dialog
+    async checkDuplicateAndOpen() {
+      try {
+        // 1. เคลียร์ค่าเก่า
+        global.AppState.duplicateLeads.value = [];
+
+        // 2. ดึงข้อมูลทั้งหมดจาก Repository (แก้ไข path ให้ถูกต้อง)
+        // จากเดิม: global.Repository.getAll("leads") ❌ ผิด
+        // เปลี่ยนเป็น: global.Repository.leads.getAll() ✅ ถูกต้องตาม repository.js
+        const allLeads = await global.Repository.leads.getAll();
+        const f = this.form;
+
+        if (allLeads && allLeads.length > 0) {
+          // กรองหาตัวซ้ำ
+          const duplicates = allLeads.filter((item) => {
+            // ไม่นับตัวเอง (กรณีแก้ไข)
+            if (f.id && item.id === f.id) return false;
+
+            // ⚠️ แก้ไขชื่อ Field ให้ตรงกับ DataSpec.js
+            // (firstName, nickName, phones, phone2)
+
+            // เช็คชื่อ (firstName)
+            const matchName =
+              f.firstName &&
+              item.firstName &&
+              item.firstName.trim() === f.firstName.trim();
+
+            // เช็คชื่อเล่น (nickName)
+            const matchNick =
+              f.nickName &&
+              item.nickName &&
+              item.nickName.trim() === f.nickName.trim();
+
+            // เช็คเบอร์โทรหลัก (phones)
+            const matchTel1 =
+              f.phones && item.phones && item.phones.trim() === f.phones.trim();
+
+            // เช็คเบอร์โทรสำรอง (phone2)
+            const matchTel2 =
+              f.phone2 && item.phone2 && item.phone2.trim() === f.phone2.trim();
+
+            return matchName || matchNick || matchTel1 || matchTel2;
+          });
+
+          global.AppState.duplicateLeads.value = duplicates;
+        }
+
+        // 3. เปิด Dialog (Dialog จะแสดงผลต่างกันตาม duplicateLeads)
+        global.AppState.isOpenConfirmSaveLead.value = true;
+      } catch (error) {
+        console.error("Duplicate Check Error:", error);
+        // กรณี Error ให้เปิด Dialog ไปเลย เพื่อไม่ให้ User ติดขัด (Fail-safe)
+        global.AppState.isOpenConfirmSaveLead.value = true;
+      }
+    },
+
+    /**
+     * จัดการข้อมูลซ้ำตามปุ่มที่เลือก (Update / Replace)
+     * @param {string} action - คำสั่ง 'update' หรือ 'replace'
+     * @param {Object} targetLead - ข้อมูล Lead เดิมที่อยู่ในระบบ
+     */
+    async resolveDuplicate(action, targetLead) {
+      if (!targetLead || !targetLead.id) return;
+
+      console.log(
+        `🚀 Resolve Duplicate Action: [${action}] on ID: ${targetLead.id}`
+      );
+
+      // 1. ยึด ID ของตัวเดิม เพื่อให้ระบบรู้ว่าเรากำลังจะ "ทับ" ตัวนี้
+      this.form.id = targetLead.id;
+
+      // 2. แยก Logic (เตรียมไว้สำหรับคำสั่งต่อไปของคุณ)
+      if (action === "update") {
+        // TODO: รอคำสั่ง Logic การอัปเดตแบบละเอียด
+        // เบื้องต้น: ใช้ข้อมูลฟอร์มปัจจุบัน บันทึกทับข้อมูลเดิม
+        console.log("ℹ️ Mode: Update (Merge Logic Pending)");
+      } else if (action === "replace") {
+        // TODO: รอคำสั่ง Logic การแทนที่แบบละเอียด
+        // เบื้องต้น: เขียนทับทั้งหมด
+        console.log("ℹ️ Mode: Replace (Overwrite All)");
+      }
+
+      // 3. ปิด Dialog แจ้งเตือนซ้ำ
+      if (global.AppState.isOpenConfirmSaveLead) {
+        global.AppState.isOpenConfirmSaveLead.value = false;
+      }
+
+      // 4. สั่งบันทึกทันที (Update)
+      await this.update();
+    },
 
     addLead(f) {
       return LeadApp.add(f);
@@ -378,6 +397,5 @@
     },
   };
 
-  // ส่งออก LeadApp เป็น Global Object
   global.LeadApp = LeadApp;
 })(window);
