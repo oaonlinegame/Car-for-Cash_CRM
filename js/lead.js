@@ -386,6 +386,66 @@
       await this.update();
     },
 
+    /**
+     * เปิดดูข้อมูลสรุป (Read-Only) เมื่อ User คลิกที่แถวรายการซ้ำ
+     */
+    // --------------------------------------------------------
+    // 🟢 ส่วนเสริมสำหรับ Summary Dialog (วางเพิ่มตรงนี้)
+    // --------------------------------------------------------
+
+    /**
+     * เปิดดูข้อมูลสรุป (Read-Only)
+     */
+    viewSummary(lead) {
+      if (!lead) return;
+      // ส่งข้อมูลเข้า State
+      if (global.AppState) {
+        global.AppState.summaryLead.value = lead;
+        global.AppState.isOpenModalLeadSummary.value = true;
+      }
+    },
+
+    /**
+     * รวมหลักทรัพย์ทั้งหมด (Profile + Contracts) เพื่อแสดงในตารางเดียว
+     */
+    getConsolidatedAssets(lead) {
+      if (!lead) return [];
+      let allAssets = [];
+
+      // 1. ดึงจาก Lead Profile
+      if (Array.isArray(lead.assets)) {
+        lead.assets.forEach((a) => {
+          allAssets.push({
+            ...a,
+            _sourceType: "Profile",
+            _sourceName: "ทรัพย์สินส่วนตัว",
+            _color: "teal",
+          });
+        });
+      }
+
+      // 2. ดึงจาก Contracts
+      if (Array.isArray(lead.contracts)) {
+        lead.contracts.forEach((ct, index) => {
+          if (Array.isArray(ct.assets)) {
+            ct.assets.forEach((a) => {
+              const ctName = ct.contractNo
+                ? `สัญญา ${ct.contractNo}`
+                : `สัญญา #${index + 1}`;
+              allAssets.push({
+                ...a,
+                _sourceType: "Contract",
+                _sourceName: ctName,
+                _color: "indigo",
+              });
+            });
+          }
+        });
+      }
+
+      return allAssets;
+    },
+
     addLead(f) {
       return LeadApp.add(f);
     },

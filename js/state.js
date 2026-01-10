@@ -17,14 +17,16 @@ const AppState = {
   isOpenModalCarPriceSelector: Vue.ref(false), // หน้าต่างเลือกราคากลาง
   isOpenConfirmSaveLead: Vue.ref(false), // หน้าต่างยืนยันการบันทึก Lead
   duplicateLeads: Vue.ref([]), // รายการ Lead ที่ซ้ำกัน (สำหรับ Modal ยืนยันการบันทึก)
+  isOpenModalLeadSummary: Vue.ref(false), // สถานะสำหรับ Dialog สรุปข้อมูล (Conflict Resolution View)
 
   // ------------------------------------------------------
   // 📋 สถานะ Dialog และ Dropdown ต่างๆ
   // ------------------------------------------------------
-  manageDropdownDialog: Vue.ref(false), // ✅ ต้องใช้ Vue.ref() เพื่อให้ Toggle ได้
+  manageDropdownDialog: Vue.ref(false), // สถานะ Dialog จัดการรายการดรอปดาวน์
   manageDropdownTab: Vue.ref("occupationOptions"), // แท็บในหน้าจัดการรายการดรอปดาวน์
   tempDropdownInput: Vue.ref(""), // ข้อความในช่องกรอกเพิ่มรายการดรอปดาวน์
   draggedItemIndex: Vue.ref(null), // ดัชนีของรายการที่กำลังถูกลาก
+  summaryLead: Vue.ref(null), // เก็บข้อมูล Lead ตัวที่กดเลือกดู (Read-Only)
 
   // ------------------------------------------------------
   // 📑 สถานะแท็บและการนำทาง (Tabs & Navigation)
