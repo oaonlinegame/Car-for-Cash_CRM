@@ -112,6 +112,7 @@ const app = Vue.createApp({
       MasterData,
       AppBot,
       AppApi,
+      LogApp,
 
       // --- 5.6 DOM References ---
       searchBarRef, // สำหรับผูกกับ ref="searchBarRef" ใน HTML

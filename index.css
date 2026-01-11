@@ -61,7 +61,6 @@ body {
   padding-top: 4px;
   padding-bottom: 8px;
   /* กำหนด scroll-margin เพื่อให้ Browser เว้นระยะหัวข้อเมื่อเลื่อนหา ID (Anchor Scroll) */
-  scroll-margin-top: 100px;
 }
 
 /* ปรับระยะห่างภายใน Card Content */

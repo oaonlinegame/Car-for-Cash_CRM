@@ -66,14 +66,8 @@
 
                         <!-- ขวา: ปุ่มต่าง ๆ -->
                         <v-col cols="4" class="d-flex align-center justify-end">
-                            <!-- 🤖 บอท -->
-                            <v-tooltip text="เปิดระบบบอทอัตโนมัติ" location="bottom">
-                                <template #activator="{ props }">
-                                    <v-btn icon variant="text" v-bind="props" @click="AppBot.autoFill()">
-                                        <v-icon>mdi-robot-angry</v-icon>
-                                    </v-btn>
-                                </template>
-                            </v-tooltip>
+
+
 
                             <!-- 💾 Export CSV -->
                             <v-tooltip text="ส่งออกข้อมูลทั้งหมดเป็นไฟล์ CSV" location="bottom">
@@ -222,13 +216,13 @@
                             </v-menu>
 
                             <!-- ข้อมูลการโทรการติดตาม -->
-                            <v-tooltip text="บันทึกการโทร/ติดตามลูกค้า" location="bottom">
+                            <!--                      <v-tooltip text="บันทึกการโทร/ติดตามลูกค้า" location="bottom">
                                 <template #activator="{ props }">
                                     <v-btn icon variant="text" v-bind="props" @click="toggleMenu('isOpenModalLog')">
                                         <v-icon>mdi-phone-in-talk-outline</v-icon>
                                     </v-btn>
                                 </template>
-                            </v-tooltip>
+                            </v-tooltip> -->
 
                             <!-- 🧪 สร้างข้อมูลทดสอบ -->
                             <v-tooltip text="สร้างข้อมูลทดสอบ 1000 รายการ" location="bottom">
@@ -478,130 +472,292 @@
 
             <!-- ✅ ใช้ v-main เพื่อไม่ให้ App Bar บังเนื้อหา -->
             <v-main>
-                <v-container class="d-flex justify-center align-center" fluid style="height: 90vh;">
-                    <v-card class="elevation-10 d-flex flex-column"
-                        style="width: 1500px; max-width: 100%; height: 85vh; max-height: 85vh;">
+                <!-- ปุ่ม floating buttin -->
 
-                        <v-card-title class="d-flex flex-shrink-0">
-                            <span class="headline">Lead Manager</span>
+                <div style="position: fixed; bottom: 30px; right: 30px; z-index: 2000;">
+
+                    <v-menu location="top center" open-on-hover transition="slide-y-reverse-transition"
+                        :close-on-content-click="false">
+
+                        <template v-slot:activator="{ props }">
+                            <v-btn v-bind="props" icon color="deep-purple-darken-2" size="large" elevation="10"
+                                @click="toggleMenu('isOpenModalLeadAutoFill')">
+                                <v-icon size="32">mdi-robot-angry</v-icon>
+                                <v-tooltip activator="parent" location="start">Auto Fill (Bot)</v-tooltip>
+                            </v-btn>
+                        </template>
+
+                        <div class="d-flex flex-column align-center mb-4 ga-3">
+
+                            <v-btn icon color="white" size="large" elevation="8"
+                                @click="document.querySelector('.v-card-text').scrollTo({ top: 0, behavior: 'smooth' })">
+                                <v-icon color="grey-darken-3" size="28">mdi-arrow-up</v-icon>
+                                <v-tooltip activator="parent" location="start">เลื่อนขึ้นบนสุด</v-tooltip>
+                            </v-btn>
+
+                            <v-btn icon color="primary" size="large" elevation="8"
+                                @click="toggleMenu('isOpenModalLead')">
+                                <v-icon size="28">mdi-plus</v-icon>
+                                <v-tooltip activator="parent" location="start">เพิ่มลูกค้าใหม่</v-tooltip>
+                            </v-btn>
+
+
+                        </div>
+                    </v-menu>
+                </div>
+
+                <v-container class="d-flex justify-center align-center" fluid style="height: 90vh;">
+                    <v-card class="d-flex flex-column mx-auto elevation-10" width="1200" max-width="100%" height="85vh">
+
+                        <v-card-title class="d-flex flex-shrink-0 align-center pa-4">
+                            <span class="text-h5 font-weight-bold">Lead Manager</span>
                             <v-spacer></v-spacer>
-                            <v-btn color="deep-purple" @click="toggleMenu('isOpenModalLeadAutoFill')">
-                                <v-icon>mdi-refresh-auto</v-icon>
+
+                            <v-btn color="deep-purple" prepend-icon="mdi-refresh-auto"
+                                @click="toggleMenu('isOpenModalLeadAutoFill')">
                                 เพิ่มข้อมูล Autofill
                             </v-btn>
 
-                            <v-btn color="success" @click="toggleMenu('isOpenModalLead')" class="ml-5">
-                                <v-icon>mdi-plus</v-icon>
+                            <v-btn color="success" prepend-icon="mdi-plus" class="ms-4"
+                                @click="toggleMenu('isOpenModalLead')">
                                 เพิ่ม Lead
                             </v-btn>
-
                         </v-card-title>
 
-                        <v-card-text class="pa-2 flex-grow-1"
-                            style="overflow: hidden; display: flex; flex-direction: column;">
+                        <v-card-text class="pa-2 flex-grow-1 overflow-hidden d-flex flex-column">
 
-                            <v-row v-if="itemsPerPage !== 'All'" class="ma-0 pa-0" no-gutters style="overflow-y: auto;">
+                            <v-row v-if="itemsPerPage !== 'All'" class="ma-0 overflow-y-auto" no-gutters
+                                align-content="start">
+                                <v-col cols="12" sm="12" lg="6" v-for="lead in (pagedLeads || rowOfLeads)"
+                                    :key="lead.id" class="pa-2">
 
-                                <v-col cols="12" sm="12" lg="6" v-for="lead in pagedLeads" :key="lead.id" class="pa-2"
-                                    style="height: 260px;">
+                                    <v-hover v-slot="{ isHovering, props }">
+                                        <v-card v-bind="props" variant="flat"
+                                            class="rounded-xl cursor-pointer transition-swing"
+                                            :class="{ 'hover-lift': isHovering }" :elevation="isHovering ? 8 : 2"
+                                            @click="LogApp ? LogApp.openAdd(lead) : console.warn('LogApp not found')">
 
-                                    <v-card class="elevation-4 d-flex flex-column" @click="LeadApp.openEdit(lead)"
-                                        v-ripple style="cursor: pointer; overflow: hidden;" width="100%" height="100%">
+                                            <div class="pa-4 pt-5 flex-grow-1">
+                                                <div class="d-flex align-start">
 
-                                        <v-card-title class="text-h6 flex-shrink-0"> <v-icon color="primary"
-                                                class="mr-2">mdi-account</v-icon>
-                                            {{ lead.firstName }}
-                                            <span v-if="lead.nickName" class="text-caption text-grey-darken-1 ml-2">
-                                                ({{ lead.nickName }})
-                                            </span>
-                                        </v-card-title>
+                                                    <v-avatar size="56" rounded="lg" class="me-4 elevation-2 border"
+                                                        :color="lead.isProspect ? 'green-lighten-5' : 'blue-lighten-5'">
+                                                        <span class="text-h5 font-weight-black"
+                                                            :class="lead.isProspect ? 'text-green-darken-3' : 'text-blue-darken-3'">
+                                                            {{ (lead.firstName || '?')[0] }}
+                                                        </span>
+                                                    </v-avatar>
 
-                                        <v-divider></v-divider>
-                                        <v-card-text class="flex-grow-1">
-                                            <div class="d-flex justify-space-between mb-2">
-                                                <div><v-icon size="18" class="mr-1">mdi-phone</v-icon>{{ lead.phones }}
+                                                    <div class="flex-grow-1 overflow-hidden">
+                                                        <div class="d-flex align-center justify-space-between mb-1">
+                                                            <div class="text-h6 font-weight-black text-grey-darken-4 text-truncate"
+                                                                style="line-height: 1.2;">
+                                                                {{ lead.firstName }}
+                                                            </div>
+                                                            <v-chip size="small" variant="elevated"
+                                                                class="font-weight-bold px-3 elevation-1"
+                                                                :color="lead.isProspect ? 'green-darken-1' : 'blue-darken-1'">
+                                                                {{ lead.status || 'General' }}
+                                                            </v-chip>
+                                                        </div>
+                                                        <div
+                                                            class="text-subtitle-2 text-grey-darken-2 font-weight-bold text-truncate">
+                                                            {{ lead.nickName ? lead.nickName : '(ไม่มีชื่อเล่น)' }}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div><v-chip size="small" color="primary" class="text-white"
-                                                        variant="flat">{{ lead.status }}</v-chip></div>
+
+                                                <v-row dense no-gutters class="mt-5">
+                                                    <v-col cols="6" class="d-flex align-center mb-3">
+                                                        <v-icon size="22" color="grey-darken-3"
+                                                            class="me-2">mdi-phone-outline</v-icon>
+                                                        <span
+                                                            class="text-subtitle-1 font-weight-black text-grey-darken-4">{{
+                                                            lead.phones || '-' }}</span>
+                                                    </v-col>
+
+                                                    <v-col cols="6" class="d-flex align-center mb-3">
+                                                        <v-icon size="22" color="grey-darken-3"
+                                                            class="me-2">mdi-map-marker-outline</v-icon>
+                                                        <span
+                                                            class="text-subtitle-2 font-weight-bold text-grey-darken-3 text-truncate">
+                                                            {{ lead.province || 'ไม่ระบุ' }}
+                                                        </span>
+                                                    </v-col>
+
+                                                    <v-col cols="6" class="d-flex align-center">
+                                                        <v-icon size="18" color="grey-darken-1"
+                                                            class="me-2">mdi-clock-outline</v-icon>
+                                                        <span class="text-body-2 text-grey-darken-2 font-weight-bold">{{
+                                                            lead.createDate }}</span>
+                                                    </v-col>
+
+                                                    <v-col cols="6" class="d-flex align-center justify-end">
+                                                        <v-rating :model-value="lead.rating" color="amber-darken-2"
+                                                            active-color="amber-darken-2" density="compact" size="small"
+                                                            half-increments readonly></v-rating>
+                                                    </v-col>
+                                                </v-row>
                                             </div>
-                                            <div class="d-flex justify-space-between mb-2">
-                                                <div><v-icon size="18" class="mr-1">mdi-map-marker</v-icon>{{
-                                                    lead.province }}</div>
-                                                <div><v-icon size="18" class="mr-1">mdi-calendar</v-icon>{{
-                                                    lead.createDate }}</div>
-                                            </div>
-                                            <div class="d-flex justify-space-between">
-                                                <div><v-icon size="18" class="mr-1">mdi-chart-bar</v-icon>คะแนน: {{
-                                                    lead.rating }}</div>
-                                                <div><v-icon size="18" class="mr-1">mdi-progress-clock</v-icon>ขั้นตอน:
-                                                    {{ lead.prospectStage }}</div>
-                                            </div>
-                                        </v-card-text>
-                                    </v-card>
+
+                                            <v-fade-transition>
+                                                <div v-if="isHovering" class="position-absolute"
+                                                    style="top: 10px; right: 10px; z-index: 10;">
+                                                    <v-btn icon="mdi-pencil" variant="elevated" color="white"
+                                                        size="small" class="me-2 elevation-3 border border-primary"
+                                                        @click.stop="LeadApp.openEdit(lead)">
+                                                        <v-icon color="yellow-darken-4"></v-icon>
+                                                        <v-tooltip activator="parent"
+                                                            location="top">แก้ไขข้อมูล</v-tooltip>
+                                                    </v-btn>
+                                                    <v-btn icon="mdi-trash-can-outline" variant="elevated" color="white"
+                                                        size="small" class="elevation-3 border border-error"
+                                                        @click.stop="deleteLead(lead.id)">
+                                                        <v-icon color="error"></v-icon>
+                                                        <v-tooltip activator="parent"
+                                                            location="top">ลบข้อมูล</v-tooltip>
+                                                    </v-btn>
+                                                </div>
+                                            </v-fade-transition>
+
+                                            <v-progress-linear v-if="lead.prospectStage" :model-value="100"
+                                                :color="lead.isProspect ? 'green' : 'blue'" height="6"
+                                                class="mx-4 mb-4 rounded-pill" style="width: 60px;">
+                                            </v-progress-linear>
+
+                                        </v-card>
+                                    </v-hover>
                                 </v-col>
                             </v-row>
 
                             <v-virtual-scroll v-else :items="pagedLeads" height="100%" item-height="260">
-
                                 <template v-slot:default="{ item: rowOfLeads }">
-
                                     <v-row no-gutters class="w-100 pa-0 ma-0">
+                                        <v-row class="ma-0 pa-0" no-gutters align-content="start">
+                                            <v-col cols="12" sm="12" lg="6" v-for="lead in rowOfLeads" :key="lead.id"
+                                                class="pa-2">
 
-                                        <v-col cols="12" sm="12" lg="6" v-for="lead in rowOfLeads" :key="lead.id"
-                                            class="pa-2">
+                                                <v-hover v-slot="{ isHovering, props }">
+                                                    <v-card v-bind="props" variant="flat"
+                                                        class="rounded-xl cursor-pointer transition-swing"
+                                                        :class="{ 'hover-lift': isHovering }"
+                                                        :elevation="isHovering ? 8 : 2"
+                                                        @click="LogApp ? LogApp.openAdd(lead) : console.warn('LogApp not found')">
 
-                                            <v-card class="elevation-4" @click="LeadApp.openEdit(lead)" v-ripple
-                                                style="cursor: pointer;" width="100%" height="100%">
-                                                <v-card-title class="text-h6">
-                                                    <v-icon color="primary" class="mr-2">mdi-account</v-icon>
-                                                    {{ lead.firstName }}
-                                                    <span v-if="lead.nickName"
-                                                        class="text-caption text-grey-darken-1 ml-2">
-                                                        ({{ lead.nickName }})
-                                                    </span>
-                                                </v-card-title>
-                                                <v-divider></v-divider>
-                                                <v-card-text>
-                                                    <div class="d-flex justify-space-between mb-2">
-                                                        <div><v-icon size="18" class="mr-1">mdi-phone</v-icon>{{
-                                                            lead.phones }}</div>
-                                                        <div><v-chip size="small" color="primary" class="text-white"
-                                                                variant="flat">{{ lead.status }}</v-chip></div>
-                                                    </div>
-                                                    <div class="d-flex justify-space-between mb-2">
-                                                        <div><v-icon size="18" class="mr-1">mdi-map-marker</v-icon>{{
-                                                            lead.province }}</div>
-                                                        <div><v-icon size="18" class="mr-1">mdi-calendar</v-icon>{{
-                                                            lead.createDate }}</div>
-                                                    </div>
-                                                    <div class="d-flex justify-space-between">
-                                                        <div><v-icon size="18" class="mr-1">mdi-chart-bar</v-icon>คะแนน:
-                                                            {{ lead.rating }}</div>
-                                                        <div><v-icon size="18"
-                                                                class="mr-1">mdi-progress-clock</v-icon>ขั้นตอน: {{
-                                                            lead.prospectStage }}</div>
-                                                    </div>
-                                                </v-card-text>
-                                            </v-card>
+                                                        <div class="pa-4 pt-5 flex-grow-1">
+                                                            <div class="d-flex align-start">
+                                                                <v-avatar size="56" rounded="lg"
+                                                                    class="me-4 elevation-2 border"
+                                                                    :color="lead.isProspect ? 'green-lighten-5' : 'blue-lighten-5'">
+                                                                    <span class="text-h5 font-weight-black"
+                                                                        :class="lead.isProspect ? 'text-green-darken-3' : 'text-blue-darken-3'">
+                                                                        {{ (lead.firstName || '?')[0] }}
+                                                                    </span>
+                                                                </v-avatar>
 
-                                        </v-col>
+                                                                <div class="flex-grow-1 overflow-hidden">
+                                                                    <div
+                                                                        class="d-flex align-center justify-space-between mb-1">
+                                                                        <div class="text-h6 font-weight-black text-grey-darken-4 text-truncate"
+                                                                            style="line-height: 1.2;">
+                                                                            {{ lead.firstName }}
+                                                                        </div>
+                                                                        <v-chip size="small" variant="elevated"
+                                                                            class="font-weight-bold px-3 elevation-1"
+                                                                            :color="lead.isProspect ? 'green-darken-1' : 'blue-darken-1'">
+                                                                            {{ lead.status || 'General' }}
+                                                                        </v-chip>
+                                                                    </div>
+                                                                    <div
+                                                                        class="text-subtitle-2 text-grey-darken-2 font-weight-bold text-truncate">
+                                                                        {{ lead.nickName ? lead.nickName :
+                                                                        '(ไม่มีชื่อเล่น)' }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <v-row dense no-gutters class="mt-5">
+                                                                <v-col cols="6" class="d-flex align-center mb-3">
+                                                                    <v-icon size="22" color="grey-darken-3"
+                                                                        class="me-2">mdi-phone-outline</v-icon>
+                                                                    <span
+                                                                        class="text-subtitle-1 font-weight-black text-grey-darken-4">{{
+                                                                        lead.phones || '-' }}</span>
+                                                                </v-col>
+                                                                <v-col cols="6" class="d-flex align-center mb-3">
+                                                                    <v-icon size="22" color="grey-darken-3"
+                                                                        class="me-2">mdi-map-marker-outline</v-icon>
+                                                                    <span
+                                                                        class="text-subtitle-2 font-weight-bold text-grey-darken-3 text-truncate">
+                                                                        {{ lead.province || 'ไม่ระบุ' }}
+                                                                    </span>
+                                                                </v-col>
+                                                                <v-col cols="6" class="d-flex align-center">
+                                                                    <v-icon size="18" color="grey-darken-1"
+                                                                        class="me-2">mdi-clock-outline</v-icon>
+                                                                    <span
+                                                                        class="text-body-2 text-grey-darken-2 font-weight-bold">{{
+                                                                        lead.createDate }}</span>
+                                                                </v-col>
+                                                                <v-col cols="6" class="d-flex align-center justify-end">
+                                                                    <v-rating :model-value="lead.rating"
+                                                                        color="amber-darken-2"
+                                                                        active-color="amber-darken-2" density="compact"
+                                                                        size="small" half-increments
+                                                                        readonly></v-rating>
+                                                                </v-col>
+                                                            </v-row>
+                                                        </div>
+
+                                                        <v-fade-transition>
+                                                            <div v-if="isHovering" class="position-absolute"
+                                                                style="top: 10px; right: 10px; z-index: 10;">
+                                                                <v-btn icon="mdi-pencil" variant="elevated"
+                                                                    color="white" size="small"
+                                                                    class="me-2 elevation-3 border border-primary"
+                                                                    @click.stop="LeadApp.openEdit(lead)">
+                                                                    <v-icon color="yellow-darken-4"></v-icon>
+                                                                    <v-tooltip activator="parent"
+                                                                        location="top">แก้ไขข้อมูล</v-tooltip>
+                                                                </v-btn>
+                                                                <v-btn icon="mdi-trash-can-outline" variant="elevated"
+                                                                    color="white" size="small"
+                                                                    class="elevation-3 border border-error"
+                                                                    @click.stop="deleteLead(lead.id)">
+                                                                    <v-icon color="error"></v-icon>
+                                                                    <v-tooltip activator="parent"
+                                                                        location="top">ลบข้อมูล</v-tooltip>
+                                                                </v-btn>
+                                                            </div>
+                                                        </v-fade-transition>
+
+                                                        <v-progress-linear v-if="lead.prospectStage" :model-value="100"
+                                                            :color="lead.isProspect ? 'green' : 'blue'" height="6"
+                                                            class="mx-4 mb-4 rounded-pill" style="width: 60px;">
+                                                        </v-progress-linear>
+
+                                                    </v-card>
+                                                </v-hover>
+                                            </v-col>
+                                        </v-row>
                                     </v-row>
                                 </template>
                             </v-virtual-scroll>
 
                         </v-card-text>
 
-                        <v-card-actions class="flex-shrink-0 border-t">
+                        <v-card-actions class="flex-shrink-0 border-t pa-3">
                             <div class="d-flex align-center ga-2">
-                                <span>ต่อหน้า:</span>
-                                <v-select :items="[10, 20, 50, 100 , 'All']" v-model="itemsPerPage"
-                                    density="comfortable" style="max-width:100px" hide-details />
+                                <span class="text-body-2">ต่อหน้า:</span>
+                                <v-select :items="[10, 20, 50, 100 , 'All']" v-model="itemsPerPage" density="compact"
+                                    style="width: 100px;" hide-details variant="outlined"></v-select>
                             </div>
                             <v-spacer></v-spacer>
                             <v-pagination v-if="totalPages > 1" style="min-width: 320px;" v-model="page"
                                 :length="totalPages" :total-visible="7" density="comfortable" active-color="primary"
                                 variant="flat"></v-pagination>
                         </v-card-actions>
+
                     </v-card>
                 </v-container>
             </v-main>
