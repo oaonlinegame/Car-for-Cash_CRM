@@ -14,12 +14,13 @@
 
   // 2. กำหนด Schema (Table Structure)
   // หมายเหตุ: ++id คือ Auto Increment
-  db.version(3113).stores({
-    leads: "++id, firstName, phones, status, province, postalCode, createDate",
-    logs: "++id, leadId, action, timestamp", // เพิ่มเผื่อไว้สำหรับ log.js
-    settings: "key", // <-- ตารางใหม่สำหรับเก็บค่า Master Data ต่างๆ
+  db.version(3115).stores({
+    // ขยับเวอร์ชันเป็น 3114
+    leads:
+      "++id, firstName, phones, status, province, postalCode, createDate ,*assets",
+    logs: "++id, leadId, action, timestamp",
+    settings: "key",
   });
-
   // 3. Export ตัว DB Instance ออกไปให้ Repository ใช้
   global.AppDexie = db;
 

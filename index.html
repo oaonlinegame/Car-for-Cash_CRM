@@ -497,20 +497,27 @@
 
                         </v-card-title>
 
-                        <v-card-text class="pa-4 flex-grow-1"
+                        <v-card-text class="pa-2 flex-grow-1"
                             style="overflow: hidden; display: flex; flex-direction: column;">
 
                             <v-row v-if="itemsPerPage !== 'All'" class="ma-0 pa-0" no-gutters style="overflow-y: auto;">
-                                <v-col cols="12" sm="12" lg="6" v-for="lead in pagedLeads" :key="lead.id" class="pa-2">
-                                    <v-card class="elevation-4" width="100%">
-                                        <v-card-title class="text-h6">
-                                            <v-icon color="primary" class="mr-2">mdi-account</v-icon>
+
+                                <v-col cols="12" sm="12" lg="6" v-for="lead in pagedLeads" :key="lead.id" class="pa-2"
+                                    style="height: 260px;">
+
+                                    <v-card class="elevation-4 d-flex flex-column" @click="LeadApp.openEdit(lead)"
+                                        v-ripple style="cursor: pointer; overflow: hidden;" width="100%" height="100%">
+
+                                        <v-card-title class="text-h6 flex-shrink-0"> <v-icon color="primary"
+                                                class="mr-2">mdi-account</v-icon>
                                             {{ lead.firstName }}
-                                            <span v-if="lead.nickName" class="text-caption text-grey-darken-1 ml-2">({{
-                                                lead.nickName }})</span>
+                                            <span v-if="lead.nickName" class="text-caption text-grey-darken-1 ml-2">
+                                                ({{ lead.nickName }})
+                                            </span>
                                         </v-card-title>
+
                                         <v-divider></v-divider>
-                                        <v-card-text>
+                                        <v-card-text class="flex-grow-1">
                                             <div class="d-flex justify-space-between mb-2">
                                                 <div><v-icon size="18" class="mr-1">mdi-phone</v-icon>{{ lead.phones }}
                                                 </div>
@@ -543,7 +550,8 @@
                                         <v-col cols="12" sm="12" lg="6" v-for="lead in rowOfLeads" :key="lead.id"
                                             class="pa-2">
 
-                                            <v-card class="elevation-4" width="100%" height="100%">
+                                            <v-card class="elevation-4" @click="LeadApp.openEdit(lead)" v-ripple
+                                                style="cursor: pointer;" width="100%" height="100%">
                                                 <v-card-title class="text-h6">
                                                     <v-icon color="primary" class="mr-2">mdi-account</v-icon>
                                                     {{ lead.firstName }}
@@ -613,7 +621,9 @@
 
                         <div class="d-flex align-center">
                             <v-icon size="18" class="mr-2" color="primary">mdi-account-plus</v-icon>
-                            <span class="text-body-1 font-weight-medium">เพิ่มข้อมูลลูกค้า</span>
+                            <span class="text-body-1 font-weight-medium">
+                                {{ leadForm.id ? 'แก้ไขข้อมูลลูกค้า' : 'เพิ่มข้อมูลลูกค้า' }}
+                            </span>
                         </div>
 
                         <v-btn icon variant="text" size="small" @click="toggleMenu('isOpenModalLead')"
@@ -2184,8 +2194,14 @@
                             ยกเลิก
                         </v-btn>
 
-                        <v-btn color="primary" variant="flat" class="ml-2" @click="LeadApp.checkDuplicateAndOpen()">
+                        <v-btn v-if="!leadForm.id" color="primary" variant="flat" class="ml-2"
+                            @click="LeadApp.checkDuplicateAndOpen()">
                             บันทึก
+                        </v-btn>
+
+                        <v-btn v-else color="primary" variant="flat" class="ml-2"
+                            @click="LeadApp.openSummaryBeforeUpdate()">
+                            อัพเดท
                         </v-btn>
 
                     </v-card-actions>
@@ -3792,383 +3808,1106 @@
             <!-- ================================ -->
             <!-- 🟪 DIALOG สรุปข้อมูลเดิม Lead Summary Dialog -->
             <!-- ================================ -->
-            <v-dialog v-model="isOpenModalLeadSummary" max-width="1000" scrollable>
-                <v-card class="rounded-xl" style="height: 85vh; max-height: 85vh; background: #fff;">
+            <v-dialog v-model="isOpenModalLeadSummary" max-width="1100" scrollable>
+                <v-card class="rounded-xl"
+                    style="height: 90vh; max-height: 90vh; min-height: 0; flex-direction: column; overflow: hidden; background: #fff;">
 
-                    <v-card-title class="py-3 px-5 d-flex align-center justify-space-between flex-shrink-0"
-                        style="border-bottom: 1px solid #f0f0f0; background: #fff; z-index: 10;">
+                    <v-card-title class="py-3 px-5 d-flex align-center justify-space-between"
+                        style="position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.08);">
                         <div class="d-flex align-center">
                             <v-avatar color="indigo-lighten-5" size="40" class="mr-3">
-                                <v-icon color="indigo-darken-2">mdi-compare</v-icon>
+                                <v-icon color="indigo-darken-2" size="24">mdi-compare-horizontal</v-icon>
                             </v-avatar>
                             <div>
-                                <span class="text-h6 font-weight-bold text-grey-darken-3">ตรวจสอบการเปลี่ยนแปลง (Diff
-                                    View)</span>
-                                <div class="text-caption text-grey" v-if="summaryLead">
+                                <span class="text-body-1 font-weight-bold text-grey-darken-3">ตรวจสอบการเปลี่ยนแปลง
+                                    (Diff View)</span>
+                                <div class="text-caption text-grey-darken-1" v-if="summaryLead">
                                     เปรียบเทียบข้อมูลเดิม (ID: {{ summaryLead.id }}) กับข้อมูลที่กำลังบันทึก
                                 </div>
                             </div>
                         </div>
-                        <v-btn icon variant="text" color="grey" @click="isOpenModalLeadSummary = false">
+                        <v-btn icon variant="text" size="small" @click="isOpenModalLeadSummary = false"
+                            color="grey-darken-2">
                             <v-icon>mdi-close</v-icon>
                         </v-btn>
                     </v-card-title>
 
-                    <v-card-text class="pa-0 bg-grey-lighten-5" style="overflow-y: auto;" v-if="summaryLead">
-                        <v-container fluid class="pa-4">
+                    <v-card-text class="px-4 pb-4 pt-0"
+                        style="flex: 1 1 auto; overflow-y: auto !important; background: #fafafa; min-height: 0 !important;"
+                        v-if="summaryLead">
 
-                            <v-row dense class="mb-2">
-                                <v-col cols="12" class="d-flex align-center justify-end">
-                                    <div
-                                        class="d-flex align-center text-caption bg-white px-3 py-1 rounded-pill border">
-                                        <span class="d-flex align-center mr-3"><v-icon size="x-small" color="black"
-                                                class="mr-1">mdi-circle-medium</v-icon> เดิม (ดำ)</span>
-                                        <span class="d-flex align-center mr-3"><v-icon size="x-small"
-                                                color="amber-darken-3" class="mr-1">mdi-arrow-right-bold</v-icon>
-                                            เปลี่ยนแปลง (เหลือง)</span>
-                                        <span class="d-flex align-center"><v-icon size="x-small" color="green-darken-3"
-                                                class="mr-1">mdi-circle-medium</v-icon> ใหม่ (เขียว)</span>
+                        <v-sheet class="sticky-profile-area mb-8" elevation="0"
+                            style="background: transparent !important; border: none !important; position: static !important;">
+                            <v-container class="pa-0 pt-4" fluid>
+                                <v-row no-gutters>
+                                    <v-col cols="12">
+                                        <div class="d-flex align-center justify-space-between px-2">
+                                            <div class="d-flex align-center">
+                                                <v-avatar size="48" color="indigo-darken-2" class="mr-4 elevation-2">
+                                                    <span class="text-h6 font-weight-bold text-white">
+                                                        {{ (leadForm.firstName || '?')[0] }}
+                                                    </span>
+                                                </v-avatar>
+                                                <div>
+                                                    <div class="text-overline text-indigo-darken-2"
+                                                        style="line-height: 1;">TARGET PROFILE</div>
+                                                    <div class="text-h6 font-weight-bold text-grey-darken-3">
+                                                        {{ leadForm.firstName }}
+                                                        <span v-if="leadForm.nickName"
+                                                            class="text-subtitle-1 text-grey">({{ leadForm.nickName
+                                                            }})</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <v-chip class="font-weight-bold" color="indigo" variant="flat">
+                                                <v-icon start>mdi-file-document-edit-outline</v-icon>
+                                                กำลังแก้ไข
+                                            </v-chip>
+                                        </div>
+                                    </v-col>
+                                </v-row>
+                            </v-container>
+                        </v-sheet>
+
+                        <v-container class="pa-0 pt-2" fluid>
+
+                            <v-card variant="outlined" rounded="xl" class="section-card section-card--lead-main mb-4">
+                                <v-card-title class="py-3">
+                                    <div class="d-flex align-center">
+                                        <v-avatar size="32" color="blue-lighten-4" class="mr-3">
+                                            <v-icon size="small" icon="mdi-account-details-outline"
+                                                color="blue-darken-2"></v-icon>
+                                        </v-avatar>
+                                        <div>
+                                            <div class="text-body-1 font-weight-medium">ข้อมูลพื้นฐานลูกค้า</div>
+                                            <div class="text-caption text-grey-darken-1">ชื่อ / บริษัท · ผู้ติดต่อ ·
+                                                วันเกิด · คะแนน</div>
+                                        </div>
                                     </div>
-                                </v-col>
-                            </v-row>
+                                </v-card-title>
+                                <v-divider></v-divider>
+                                <v-card-text class="pt-4 pb-3">
+                                    <v-row dense>
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                ชื่อ-นามสกุล / บริษัท</div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.firstName && leadForm.firstName"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.firstName }}</span>
+                                                <span
+                                                    v-else-if="leadForm.firstName && summaryLead.firstName !== leadForm.firstName"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.firstName }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.firstName
+                                                        }}
+                                                    </div>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.firstName || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
 
-                            <v-row>
-                                <v-col cols="12">
-                                    <div class="d-flex align-center mb-2">
-                                        <v-icon color="indigo" class="mr-2">mdi-account-circle</v-icon>
-                                        <span
-                                            class="text-subtitle-1 font-weight-bold text-indigo">ข้อมูลลูกค้าและหลักทรัพย์</span>
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">ผู้ติดต่อ
+                                            </div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.ContactPerson && leadForm.ContactPerson"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.ContactPerson }}</span>
+                                                <span
+                                                    v-else-if="leadForm.ContactPerson && summaryLead.ContactPerson !== leadForm.ContactPerson"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.ContactPerson }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{
+                                                        leadForm.ContactPerson }}
+                                                    </div>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.ContactPerson ||
+                                                    '-' }}</span>
+                                            </div>
+                                        </v-col>
+
+                                        <v-col cols="6" md="3">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">ชื่อเล่น
+                                            </div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.nickName && leadForm.nickName"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.nickName }}</span>
+                                                <span
+                                                    v-else-if="leadForm.nickName && summaryLead.nickName !== leadForm.nickName"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.nickName }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.nickName }}
+                                                    </div>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.nickName || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
+
+                                        <v-col cols="6" md="3">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">วันเกิด
+                                            </div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.birthDate && leadForm.birthDate"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.birthDate }}</span>
+                                                <span
+                                                    v-else-if="leadForm.birthDate && summaryLead.birthDate !== leadForm.birthDate"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.birthDate }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.birthDate
+                                                        }}
+                                                    </div>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.birthDate || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
+
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">อาชีพ
+                                            </div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.occupation && leadForm.occupation"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.occupation }}</span>
+                                                <span
+                                                    v-else-if="leadForm.occupation && summaryLead.occupation !== leadForm.occupation"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.occupation }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.occupation
+                                                        }}
+                                                    </div>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.occupation || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
+
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                คะแนนลูกค้า (Rating)</div>
+                                            <div>
+                                                <span v-if="!summaryLead.rating && leadForm.rating"
+                                                    class="d-inline-flex align-center text-green-darken-3 font-weight-bold bg-green-lighten-5 px-3 py-1 rounded">
+                                                    <v-rating :model-value="leadForm.rating" color="amber-darken-2"
+                                                        density="compact" size="small" half-increments
+                                                        readonly></v-rating>
+                                                    <span class="ml-2">({{ leadForm.rating }})</span>
+                                                </span>
+
+                                                <span
+                                                    v-else-if="leadForm.rating !== undefined && summaryLead.rating !== leadForm.rating"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="d-flex align-center text-grey mb-1">
+                                                        <span
+                                                            class="text-caption mr-2 text-decoration-line-through">เดิม:
+                                                            {{ summaryLead.rating || 0 }}</span>
+                                                        <v-rating :model-value="summaryLead.rating"
+                                                            color="grey-lighten-1" density="compact" size="x-small"
+                                                            half-increments readonly></v-rating>
+                                                    </div>
+                                                    <div
+                                                        class="d-flex align-center text-green-darken-4 font-weight-bold">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-2">mdi-arrow-right</v-icon>
+                                                        <v-rating :model-value="leadForm.rating" color="amber-darken-2"
+                                                            density="compact" size="small" half-increments
+                                                            readonly></v-rating>
+                                                        <span class="ml-2">({{ leadForm.rating }})</span>
+                                                    </div>
+                                                </span>
+
+                                                <span v-else class="d-flex align-center">
+                                                    <v-rating :model-value="summaryLead.rating" color="amber-darken-2"
+                                                        density="compact" size="small" half-increments
+                                                        readonly></v-rating>
+                                                    <span class="ml-2 text-grey-darken-3">({{ summaryLead.rating || 0
+                                                        }})</span>
+                                                </span>
+                                            </div>
+                                        </v-col>
+
+                                    </v-row>
+                                </v-card-text>
+                            </v-card>
+
+                            <v-card variant="outlined" rounded="xl"
+                                class="section-card section-card--lead-contact mb-4">
+                                <v-card-title class="py-3">
+                                    <div class="d-flex align-center">
+                                        <v-avatar size="32" color="teal-lighten-4" class="mr-3">
+                                            <v-icon size="small" icon="mdi-phone-message-outline"
+                                                color="teal-darken-3"></v-icon>
+                                        </v-avatar>
+                                        <div>
+                                            <div class="text-body-1 font-weight-medium">ช่องทางการติดต่อ</div>
+                                            <div class="text-caption text-grey-darken-1">เบอร์โทร · LINE · Facebook ·
+                                                ที่อยู่</div>
+                                        </div>
                                     </div>
-                                </v-col>
-
-                                <v-col cols="12" md="8">
-                                    <v-card variant="outlined" class="h-100 rounded-lg bg-white"
-                                        style="border-color: rgba(0,0,0,0.08);">
-                                        <v-card-text>
-                                            <v-row dense>
-                                                <v-col cols="12" sm="6" class="mb-3">
-                                                    <div class="text-caption text-grey-darken-1 mb-1">ชื่อ-นามสกุล /
-                                                        บริษัท</div>
-                                                    <div class="text-body-1">
-                                                        <span v-if="!summaryLead.firstName && leadForm.firstName"
-                                                            class="text-green-darken-3 font-weight-bold">
-                                                            {{ leadForm.firstName }}
-                                                        </span>
-                                                        <span
-                                                            v-else-if="leadForm.firstName && summaryLead.firstName !== leadForm.firstName">
-                                                            <span class="text-black">{{ summaryLead.firstName }}</span>
-                                                            <v-icon color="amber-darken-3" class="mx-2"
-                                                                size="small">mdi-arrow-right-bold</v-icon>
-                                                            <span class="text-green-darken-3 font-weight-bold">{{
-                                                                leadForm.firstName }}</span>
-                                                        </span>
-                                                        <span v-else class="text-black">
-                                                            {{ summaryLead.firstName || '-' }}
-                                                        </span>
+                                </v-card-title>
+                                <v-divider></v-divider>
+                                <v-card-text class="pt-4 pb-3">
+                                    <v-row dense>
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                เบอร์โทรศัพท์ (หลัก)</div>
+                                            <div class="text-body-1 font-weight-bold">
+                                                <span v-if="!summaryLead.phones && leadForm.phones"
+                                                    class="text-green-darken-3 bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.phones }}</span>
+                                                <span
+                                                    v-else-if="leadForm.phones && summaryLead.phones !== leadForm.phones"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.phones }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.phones }}
                                                     </div>
-                                                </v-col>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.phones || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
 
-                                                <v-col cols="12" sm="6" class="mb-3">
-                                                    <div class="text-caption text-grey-darken-1 mb-1">ผู้ติดต่อ</div>
-                                                    <div class="text-body-1">
-                                                        <span
-                                                            v-if="!summaryLead.ContactPerson && leadForm.ContactPerson"
-                                                            class="text-green-darken-3 font-weight-bold">
-                                                            {{ leadForm.ContactPerson }}
-                                                        </span>
-                                                        <span
-                                                            v-else-if="leadForm.ContactPerson && summaryLead.ContactPerson !== leadForm.ContactPerson">
-                                                            <span class="text-black">{{ summaryLead.ContactPerson
-                                                                }}</span>
-                                                            <v-icon color="amber-darken-3" class="mx-2"
-                                                                size="small">mdi-arrow-right-bold</v-icon>
-                                                            <span class="text-green-darken-3 font-weight-bold">{{
-                                                                leadForm.ContactPerson }}</span>
-                                                        </span>
-                                                        <span v-else class="text-black">
-                                                            {{ summaryLead.ContactPerson || '-' }}
-                                                        </span>
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                เบอร์โทรศัพท์ (สำรอง)</div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.phone2 && leadForm.phone2"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.phone2 }}</span>
+                                                <span
+                                                    v-else-if="leadForm.phone2 && summaryLead.phone2 !== leadForm.phone2"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.phone2 }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.phone2 }}
                                                     </div>
-                                                </v-col>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.phone2 || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
 
-                                                <v-col cols="12" sm="6" class="mb-3">
-                                                    <div class="text-caption text-grey-darken-1 mb-1">ชื่อเล่น</div>
-                                                    <div class="text-body-1">
-                                                        <span v-if="!summaryLead.nickName && leadForm.nickName"
-                                                            class="text-green-darken-3 font-weight-bold">
-                                                            {{ leadForm.nickName }}
-                                                        </span>
-                                                        <span
-                                                            v-else-if="leadForm.nickName && summaryLead.nickName !== leadForm.nickName">
-                                                            <span class="text-black">{{ summaryLead.nickName }}</span>
-                                                            <v-icon color="amber-darken-3" class="mx-2"
-                                                                size="small">mdi-arrow-right-bold</v-icon>
-                                                            <span class="text-green-darken-3 font-weight-bold">{{
-                                                                leadForm.nickName }}</span>
-                                                        </span>
-                                                        <span v-else class="text-black">
-                                                            {{ summaryLead.nickName || '-' }}
-                                                        </span>
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">Line ID
+                                            </div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.lineId && leadForm.lineId"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.lineId }}</span>
+                                                <span
+                                                    v-else-if="leadForm.lineId && summaryLead.lineId !== leadForm.lineId"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.lineId }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.lineId }}
                                                     </div>
-                                                </v-col>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.lineId || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
 
-                                                <v-col cols="12" sm="6" class="mb-3">
-                                                    <div class="text-caption text-grey-darken-1 mb-1">วันเกิด</div>
-                                                    <div class="text-body-1">
-                                                        <span v-if="!summaryLead.birthDate && leadForm.birthDate"
-                                                            class="text-green-darken-3 font-weight-bold">
-                                                            {{ leadForm.birthDate }}
-                                                        </span>
-                                                        <span
-                                                            v-else-if="leadForm.birthDate && summaryLead.birthDate !== leadForm.birthDate">
-                                                            <span class="text-black">{{ summaryLead.birthDate }}</span>
-                                                            <v-icon color="amber-darken-3" class="mx-2"
-                                                                size="small">mdi-arrow-right-bold</v-icon>
-                                                            <span class="text-green-darken-3 font-weight-bold">{{
-                                                                leadForm.birthDate }}</span>
-                                                        </span>
-                                                        <span v-else class="text-black">
-                                                            {{ summaryLead.birthDate || '-' }}
-                                                        </span>
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">Facebook
+                                            </div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.facebook && leadForm.facebook"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.facebook }}</span>
+                                                <span
+                                                    v-else-if="leadForm.facebook && summaryLead.facebook !== leadForm.facebook"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.facebook }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.facebook }}
                                                     </div>
-                                                </v-col>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.facebook || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
 
-                                                <v-col cols="12" sm="6" class="mb-3">
-                                                    <div class="text-caption text-grey-darken-1 mb-1">อาชีพ</div>
-                                                    <div class="text-body-1">
-                                                        <span v-if="!summaryLead.occupation && leadForm.occupation"
-                                                            class="text-green-darken-3 font-weight-bold">
-                                                            {{ leadForm.occupation }}
-                                                        </span>
-                                                        <span
-                                                            v-else-if="leadForm.occupation && summaryLead.occupation !== leadForm.occupation">
-                                                            <span class="text-black">{{ summaryLead.occupation }}</span>
-                                                            <v-icon color="amber-darken-3" class="mx-2"
-                                                                size="small">mdi-arrow-right-bold</v-icon>
-                                                            <span class="text-green-darken-3 font-weight-bold">{{
-                                                                leadForm.occupation }}</span>
-                                                        </span>
-                                                        <span v-else class="text-black">
-                                                            {{ summaryLead.occupation || '-' }}
-                                                        </span>
+                                        <v-col cols="12">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                ที่อยู่ปัจจุบัน</div>
+                                            <div class="text-body-1" style="line-height: 1.6;">
+                                                <span v-if="!summaryLead.address && leadForm.address"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.address }}</span>
+                                                <span
+                                                    v-else-if="leadForm.address && summaryLead.address !== leadForm.address"
+                                                    class="d-block bg-amber-lighten-5 pa-3 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-2">{{
+                                                        summaryLead.address }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-start">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-2 mt-1">mdi-arrow-right</v-icon>{{
+                                                        leadForm.address }}
                                                     </div>
-                                                </v-col>
-                                            </v-row>
-                                        </v-card-text>
-                                    </v-card>
-                                </v-col>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.address || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
 
-                                <v-col cols="12" md="4">
-                                    <v-card variant="outlined" class="h-100 rounded-lg bg-white"
-                                        style="border-color: rgba(0,0,0,0.08);">
-                                        <v-card-text>
-                                            <div class="mb-4">
-                                                <div class="text-caption text-grey-darken-1 mb-1">เบอร์โทรศัพท์ (หลัก)
-                                                </div>
-                                                <div class="text-h6 font-weight-regular">
-                                                    <span v-if="!summaryLead.phones && leadForm.phones"
-                                                        class="text-green-darken-3 font-weight-bold">
-                                                        {{ leadForm.phones }}
-                                                    </span>
-                                                    <span
-                                                        v-else-if="leadForm.phones && summaryLead.phones !== leadForm.phones">
-                                                        <span class="text-black">{{ summaryLead.phones }}</span>
-                                                        <br />
-                                                        <v-icon color="amber-darken-3" class="my-1"
-                                                            size="small">mdi-arrow-down-bold</v-icon>
-                                                        <br />
-                                                        <span class="text-green-darken-3 font-weight-bold">{{
-                                                            leadForm.phones }}</span>
-                                                    </span>
-                                                    <span v-else class="text-black">
-                                                        {{ summaryLead.phones || '-' }}
-                                                    </span>
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                บุคคลอ้างอิง</div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.refName && leadForm.refName"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.refName }}</span>
+                                                <span
+                                                    v-else-if="leadForm.refName && summaryLead.refName !== leadForm.refName"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.refName }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.refName }}
+                                                    </div>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.refName || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
+
+                                        <v-col cols="12" md="6">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                เบอร์โทรบุคคลอ้างอิง</div>
+                                            <div class="text-body-1">
+                                                <span v-if="!summaryLead.refPhone && leadForm.refPhone"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.refPhone }}</span>
+                                                <span
+                                                    v-else-if="leadForm.refPhone && summaryLead.refPhone !== leadForm.refPhone"
+                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-1">{{
+                                                        summaryLead.refPhone }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.refPhone }}
+                                                    </div>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.refPhone || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
+                                    </v-row>
+                                </v-card-text>
+                            </v-card>
+
+                            <v-card variant="outlined" rounded="xl" class="section-card section-card--lead-asset mb-4">
+                                <v-card-title class="py-3">
+                                    <div class="d-flex align-center">
+                                        <v-avatar size="32" color="light-green-lighten-4" class="mr-3">
+                                            <v-icon size="small" icon="mdi-shield-home-outline"
+                                                color="light-green-darken-3"></v-icon>
+                                        </v-avatar>
+                                        <div>
+                                            <div class="text-body-1 font-weight-medium">หลักทรัพย์ของลูกค้า (Assets)
+                                            </div>
+                                            <div class="text-caption text-grey-darken-1">รถยนต์ · ที่ดิน · ประกัน ·
+                                                บำนาญ</div>
+                                        </div>
+                                    </div>
+                                </v-card-title>
+                                <v-divider></v-divider>
+                                <v-card-text class="pt-4 pb-3">
+
+                                    <div v-if="(!leadForm.assets || leadForm.assets.length === 0) && (!summaryLead.assets || summaryLead.assets.length === 0)"
+                                        class="text-center py-4 text-grey-lighten-1">
+                                        <v-icon size="40" class="mb-2">mdi-shield-off-outline</v-icon>
+                                        <div class="text-caption">ไม่มีข้อมูลหลักทรัพย์</div>
+                                    </div>
+
+                                    <div v-else>
+                                        <div v-for="(asset, index) in (leadForm.assets || [])"
+                                            :key="'diff-asset-'+index" class="mb-4">
+
+                                            <div class="d-flex align-center justify-space-between mb-2">
+                                                <div
+                                                    class="text-subtitle-2 text-light-green-darken-3 font-weight-bold ml-1 d-flex align-center">
+                                                    <v-icon size="small" start>mdi-circle-medium</v-icon>
+                                                    หลักทรัพย์รายการที่ {{ index + 1 }}
+
+                                                    <v-chip v-if="!summaryLead.assets || !summaryLead.assets[index]"
+                                                        size="x-small" color="green" variant="flat"
+                                                        class="ml-2 font-weight-bold">
+                                                        NEW
+                                                    </v-chip>
+                                                    <v-chip
+                                                        v-else-if="JSON.stringify(summaryLead.assets[index]) !== JSON.stringify(asset)"
+                                                        size="x-small" color="amber-darken-3" variant="flat"
+                                                        class="ml-2 font-weight-bold">
+                                                        EDITED
+                                                    </v-chip>
                                                 </div>
                                             </div>
 
-                                            <div class="mb-4">
-                                                <div class="text-caption text-grey-darken-1 mb-1">Line ID</div>
-                                                <div class="text-body-1">
-                                                    <span v-if="!summaryLead.lineId && leadForm.lineId"
-                                                        class="text-green-darken-3 font-weight-bold">
-                                                        {{ leadForm.lineId }}
-                                                    </span>
-                                                    <span
-                                                        v-else-if="leadForm.lineId && summaryLead.lineId !== leadForm.lineId">
-                                                        <span class="text-black">{{ summaryLead.lineId }}</span>
-                                                        <v-icon color="amber-darken-3" class="mx-1"
-                                                            size="small">mdi-arrow-right-bold</v-icon>
-                                                        <span class="text-green-darken-3 font-weight-bold">{{
-                                                            leadForm.lineId }}</span>
-                                                    </span>
-                                                    <span v-else class="text-black">
-                                                        {{ summaryLead.lineId || '-' }}
-                                                    </span>
-                                                </div>
-                                            </div>
+                                            <v-sheet border class="pa-3 rounded-lg"
+                                                :class="(!summaryLead.assets || !summaryLead.assets[index]) ? 'bg-green-lighten-5' : 'bg-grey-lighten-5'">
 
-                                            <div class="mb-2">
-                                                <div class="text-caption text-grey-darken-1 mb-1">Facebook</div>
-                                                <div class="text-body-1">
-                                                    <span v-if="!summaryLead.facebook && leadForm.facebook"
-                                                        class="text-green-darken-3 font-weight-bold">
-                                                        {{ leadForm.facebook }}
-                                                    </span>
-                                                    <span
-                                                        v-else-if="leadForm.facebook && summaryLead.facebook !== leadForm.facebook">
-                                                        <span class="text-black">{{ summaryLead.facebook }}</span>
-                                                        <v-icon color="amber-darken-3" class="mx-1"
-                                                            size="small">mdi-arrow-right-bold</v-icon>
-                                                        <span class="text-green-darken-3 font-weight-bold">{{
-                                                            leadForm.facebook }}</span>
-                                                    </span>
-                                                    <span v-else class="text-black">
-                                                        {{ summaryLead.facebook || '-' }}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </v-card-text>
-                                    </v-card>
-                                </v-col>
+                                                <v-row dense>
+                                                    <v-col cols="12" md="6">
+                                                        <div
+                                                            class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                            ประเภทหลักทรัพย์</div>
+                                                        <div class="text-body-1">
+                                                            <span
+                                                                v-if="(!summaryLead.assets || !summaryLead.assets[index] || !summaryLead.assets[index].type) && asset.type"
+                                                                class="text-green-darken-3 font-weight-bold">{{
+                                                                asset.type }}</span>
+                                                            <span
+                                                                v-else-if="summaryLead.assets && summaryLead.assets[index] && summaryLead.assets[index].type && summaryLead.assets[index].type !== asset.type"
+                                                                class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                style="border-color: #ffb300 !important;">
+                                                                <div
+                                                                    class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                    {{ summaryLead.assets[index].type }}</div>
+                                                                <div
+                                                                    class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                    <v-icon color="green" size="small"
+                                                                        class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                    asset.type }}
+                                                                </div>
+                                                            </span>
+                                                            <span v-else class="text-grey-darken-3 font-weight-bold">{{
+                                                                asset.type || '-' }}</span>
+                                                        </div>
+                                                    </v-col>
 
-                                <v-col cols="12">
-                                    <v-card variant="outlined" class="rounded-lg bg-white"
-                                        style="border-color: rgba(0,0,0,0.08);">
-                                        <v-card-text class="py-3">
-                                            <v-row dense>
-                                                <v-col cols="12" md="7">
-                                                    <div class="text-caption text-grey-darken-1 mb-1">ที่อยู่ปัจจุบัน
-                                                    </div>
-                                                    <div class="text-body-1" style="line-height: 1.6;">
-                                                        <span v-if="!summaryLead.address && leadForm.address"
-                                                            class="text-green-darken-3 font-weight-bold">
-                                                            {{ leadForm.address }}
-                                                        </span>
-                                                        <span
-                                                            v-else-if="leadForm.address && summaryLead.address !== leadForm.address">
-                                                            <span class="text-black">{{ summaryLead.address }}</span>
-                                                            <div class="my-1 text-amber-darken-3 font-weight-bold">
-                                                                <v-icon
-                                                                    color="amber-darken-3">mdi-arrow-down-bold</v-icon>
-                                                                แก้ไขเป็น:
+                                                    <v-col cols="12" md="6">
+                                                        <div
+                                                            class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                            มูลค่า / ราคาประเมิน</div>
+                                                        <div class="text-body-1">
+                                                            <span
+                                                                v-if="(!summaryLead.assets || !summaryLead.assets[index] || !summaryLead.assets[index].value) && asset.value"
+                                                                class="text-green-darken-3 font-weight-bold">฿{{
+                                                                asset.value }}</span>
+                                                            <span
+                                                                v-else-if="summaryLead.assets && summaryLead.assets[index] && summaryLead.assets[index].value && summaryLead.assets[index].value != asset.value"
+                                                                class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                style="border-color: #ffb300 !important;">
+                                                                <div
+                                                                    class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                    ฿{{ summaryLead.assets[index].value }}</div>
+                                                                <div
+                                                                    class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                    <v-icon color="green" size="small"
+                                                                        class="mr-1">mdi-arrow-right</v-icon>฿{{
+                                                                    asset.value }}
+                                                                </div>
+                                                            </span>
+                                                            <span v-else class="text-grey-darken-3">฿{{ asset.value ||
+                                                                '0' }}</span>
+                                                        </div>
+                                                    </v-col>
+
+                                                    <template
+                                                        v-if="['รถยนต์', 'รถบรรทุก', 'รถตู้', 'มอเตอร์ไซค์', 'บิ๊กไบค์'].includes(asset.type)">
+                                                        <v-col cols="12" md="6">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                ยี่ห้อ - รุ่น</div>
+                                                            <div class="text-body-1">
+                                                                <span
+                                                                    v-if="summaryLead.assets && summaryLead.assets[index] && (summaryLead.assets[index].brand !== asset.brand || summaryLead.assets[index].model !== asset.model)"
+                                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                    style="border-color: #ffb300 !important;">
+                                                                    <div
+                                                                        class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                        {{ summaryLead.assets[index].brand }} {{
+                                                                        summaryLead.assets[index].model }}</div>
+                                                                    <div
+                                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                        <v-icon color="green" size="small"
+                                                                            class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                        asset.brand }} {{ asset.model }}
+                                                                    </div>
+                                                                </span>
+                                                                <span v-else class="text-grey-darken-3">{{ asset.brand
+                                                                    }} {{ asset.model }}</span>
                                                             </div>
-                                                            <span class="text-green-darken-3 font-weight-bold">{{
-                                                                leadForm.address }}</span>
-                                                        </span>
-                                                        <span v-else class="text-black">
-                                                            {{ summaryLead.address || '-' }}
-                                                        </span>
-                                                    </div>
-                                                </v-col>
-                                                <v-col cols="12" md="5" class="border-s pl-md-4">
-                                                    <div class="mb-3">
-                                                        <div class="text-caption text-grey-darken-1 mb-1">บุคคลอ้างอิง
-                                                        </div>
-                                                        <div class="text-body-1">
-                                                            <span v-if="!summaryLead.refName && leadForm.refName"
-                                                                class="text-green-darken-3 font-weight-bold">
-                                                                {{ leadForm.refName }}
-                                                            </span>
-                                                            <span
-                                                                v-else-if="leadForm.refName && summaryLead.refName !== leadForm.refName">
-                                                                <span class="text-black">{{ summaryLead.refName
-                                                                    }}</span>
-                                                                <v-icon color="amber-darken-3" class="mx-1"
-                                                                    size="small">mdi-arrow-right-bold</v-icon>
-                                                                <span class="text-green-darken-3 font-weight-bold">{{
-                                                                    leadForm.refName }}</span>
-                                                            </span>
-                                                            <span v-else class="text-black">
-                                                                {{ summaryLead.refName || '-' }}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-caption text-grey-darken-1 mb-1">
-                                                            เบอร์โทรบุคคลอ้างอิง</div>
-                                                        <div class="text-body-1">
-                                                            <span v-if="!summaryLead.refPhone && leadForm.refPhone"
-                                                                class="text-green-darken-3 font-weight-bold">
-                                                                {{ leadForm.refPhone }}
-                                                            </span>
-                                                            <span
-                                                                v-else-if="leadForm.refPhone && summaryLead.refPhone !== leadForm.refPhone">
-                                                                <span class="text-black">{{ summaryLead.refPhone
-                                                                    }}</span>
-                                                                <v-icon color="amber-darken-3" class="mx-1"
-                                                                    size="small">mdi-arrow-right-bold</v-icon>
-                                                                <span class="text-green-darken-3 font-weight-bold">{{
-                                                                    leadForm.refPhone }}</span>
-                                                            </span>
-                                                            <span v-else class="text-black">
-                                                                {{ summaryLead.refPhone || '-' }}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </v-col>
-                                            </v-row>
-                                        </v-card-text>
-                                    </v-card>
-                                </v-col>
+                                                        </v-col>
 
-                                <v-col cols="12">
-                                    <div class="d-flex align-center mb-2 ml-1">
-                                        <v-icon size="small" class="mr-1" color="grey-darken-2">mdi-shield-car</v-icon>
-                                        <span class="text-subtitle-2 text-grey-darken-2">รายการหลักทรัพย์เดิมในระบบ ({{
-                                            LeadApp.getConsolidatedAssets(summaryLead).length }})</span>
+                                                        <v-col cols="6" md="3">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                ปีรถ</div>
+                                                            <div class="text-body-1">
+                                                                <span
+                                                                    v-if="summaryLead.assets && summaryLead.assets[index] && summaryLead.assets[index].year != asset.year"
+                                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                    style="border-color: #ffb300 !important;">
+                                                                    <div
+                                                                        class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                        {{ summaryLead.assets[index].year }}</div>
+                                                                    <div
+                                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                        <v-icon color="green" size="small"
+                                                                            class="mr-1">mdi-arrow-right</v-icon>
+                                                                        {{ asset.year }}
+                                                                    </div>
+                                                                </span>
+                                                                <span v-else class="text-grey-darken-3">{{ asset.year ||
+                                                                    '-' }}</span>
+                                                            </div>
+                                                        </v-col>
+
+                                                        <v-col cols="6" md="3">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                ขนาด (CC)</div>
+                                                            <div class="text-body-1">
+                                                                <span
+                                                                    v-if="summaryLead.assets && summaryLead.assets[index] && summaryLead.assets[index].engineSize != asset.engineSize"
+                                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                    style="border-color: #ffb300 !important;">
+                                                                    <div
+                                                                        class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                        {{ summaryLead.assets[index].engineSize }} cc
+                                                                    </div>
+                                                                    <div
+                                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                        <v-icon color="green" size="small"
+                                                                            class="mr-1">mdi-arrow-right</v-icon>
+                                                                        {{ asset.engineSize }} cc
+                                                                    </div>
+                                                                </span>
+                                                                <span v-else>
+                                                                    {{ asset.engineSize || '-' }} <span
+                                                                        v-if="asset.engineSize">cc</span>
+                                                                </span>
+                                                            </div>
+                                                        </v-col>
+                                                        <v-col cols="12" md="6">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                เลขเครื่อง</div>
+                                                            <div class="text-body-1">
+                                                                <span
+                                                                    v-if="summaryLead.assets && summaryLead.assets[index] && summaryLead.assets[index].engineNo !== asset.engineNo"
+                                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                    style="border-color: #ffb300 !important;">
+                                                                    <div
+                                                                        class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                        {{ summaryLead.assets[index].engineNo }}</div>
+                                                                    <div
+                                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                        <v-icon color="green" size="small"
+                                                                            class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                        asset.engineNo }}
+                                                                    </div>
+                                                                </span>
+                                                                <span v-else class="text-grey-darken-3">{{
+                                                                    asset.engineNo || '-' }}</span>
+                                                            </div>
+                                                        </v-col>
+                                                        <v-col cols="12" md="6">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                เลขตัวถัง</div>
+                                                            <div class="text-body-1">
+                                                                <span
+                                                                    v-if="summaryLead.assets && summaryLead.assets[index] && summaryLead.assets[index].chassisNo !== asset.chassisNo"
+                                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                    style="border-color: #ffb300 !important;">
+                                                                    <div
+                                                                        class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                        {{ summaryLead.assets[index].chassisNo }}</div>
+                                                                    <div
+                                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                        <v-icon color="green" size="small"
+                                                                            class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                        asset.chassisNo }}
+                                                                    </div>
+                                                                </span>
+                                                                <span v-else class="text-grey-darken-3">{{
+                                                                    asset.chassisNo || '-' }}</span>
+                                                            </div>
+                                                        </v-col>
+
+                                                        <v-col cols="12">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                ลำดับ PL</div>
+                                                            <div class="text-body-1">
+                                                                <span
+                                                                    v-if="!summaryLead.assets?.[index]?.plSequence && asset.plSequence"
+                                                                    class="text-green-darken-3 font-weight-bold">{{
+                                                                    asset.plSequence }}</span>
+                                                                <span
+                                                                    v-else-if="summaryLead.assets && summaryLead.assets[index] && summaryLead.assets[index].plSequence !== asset.plSequence"
+                                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                    style="border-color: #ffb300 !important;">
+                                                                    <span
+                                                                        class="text-decoration-line-through text-grey">{{
+                                                                        summaryLead.assets[index].plSequence }}</span>
+                                                                    <v-icon color="green" size="small"
+                                                                        class="mx-1">mdi-arrow-right</v-icon>
+                                                                    <span
+                                                                        class="text-green-darken-4 font-weight-bold">{{
+                                                                        asset.plSequence }}</span>
+                                                                </span>
+                                                                <span v-else class="text-grey-darken-3">{{
+                                                                    asset.plSequence || '-' }}</span>
+                                                            </div>
+                                                        </v-col>
+                                                    </template>
+
+                                                    <template v-else-if="asset.type === 'โฉนดที่ดิน/ห้องชุด/คอนโด'">
+                                                        <v-col cols="12" md="6">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                เลขที่โฉนด</div>
+                                                            <div class="text-body-1">
+                                                                <span
+                                                                    v-if="summaryLead.assets && summaryLead.assets[index] && summaryLead.assets[index].deedNo !== asset.deedNo"
+                                                                    class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                    style="border-color: #ffb300 !important;">
+                                                                    <div
+                                                                        class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                        {{ summaryLead.assets[index].deedNo }}</div>
+                                                                    <div
+                                                                        class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                        <v-icon color="green" size="small"
+                                                                            class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                        asset.deedNo }}
+                                                                    </div>
+                                                                </span>
+                                                                <span v-else class="text-grey-darken-3">{{ asset.deedNo
+                                                                    || '-' }}</span>
+                                                            </div>
+                                                        </v-col>
+                                                        <v-col cols="12" md="6">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                ขนาดพื้นที่</div>
+                                                            <div class="text-body-1">{{ asset.landSize || '-' }}</div>
+                                                        </v-col>
+                                                        <v-col cols="12" md="6">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                จังหวัด</div>
+                                                            <div class="text-body-1">{{ asset.province || '-' }}</div>
+                                                        </v-col>
+                                                    </template>
+
+                                                    <template v-else-if="asset.type === 'ประกัน'">
+                                                        <v-col cols="12">
+                                                            <div
+                                                                class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                                ความคุ้มครอง</div>
+                                                            <div class="text-body-1">{{ asset.coverage || '-' }}</div>
+                                                        </v-col>
+                                                    </template>
+
+                                                    <v-col cols="12" v-if="asset.note">
+                                                        <div
+                                                            class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                            หมายเหตุ</div>
+                                                        <div class="text-body-1">
+                                                            <span
+                                                                v-if="summaryLead.assets && summaryLead.assets[index] && summaryLead.assets[index].note !== asset.note"
+                                                                class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                                style="border-color: #ffb300 !important;">
+                                                                <div
+                                                                    class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                    {{ summaryLead.assets[index].note }}</div>
+                                                                <div
+                                                                    class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                    <v-icon color="green" size="small"
+                                                                        class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                    asset.note }}
+                                                                </div>
+                                                            </span>
+                                                            <span v-else class="text-grey-darken-3">{{ asset.note
+                                                                }}</span>
+                                                        </div>
+                                                    </v-col>
+                                                </v-row>
+                                            </v-sheet>
+                                        </div>
+
+                                        <div
+                                            v-if="summaryLead.assets && summaryLead.assets.length > (leadForm.assets ? leadForm.assets.length : 0)">
+                                            <div class="d-flex align-center mt-6 mb-3">
+                                                <v-icon color="error" class="mr-2">mdi-delete-alert-outline</v-icon>
+                                                <span
+                                                    class="text-subtitle-2 font-weight-bold text-error">รายการที่ถูกลบออก
+                                                    (Deleted Items)</span>
+                                            </div>
+
+                                            <div v-for="(oldAsset, i) in summaryLead.assets.slice(leadForm.assets ? leadForm.assets.length : 0)"
+                                                :key="'deleted-asset-'+i" class="mb-3">
+                                                <v-sheet border class="pa-3 rounded-lg bg-red-lighten-5 border-dashed"
+                                                    style="border-color: #ef5350 !important;">
+                                                    <div class="d-flex align-center justify-space-between">
+                                                        <div>
+                                                            <div
+                                                                class="text-caption text-red-darken-4 font-weight-bold mb-1">
+                                                                {{ oldAsset.type }}
+                                                            </div>
+                                                            <div
+                                                                class="text-body-2 text-decoration-line-through text-grey-darken-2">
+                                                                {{ oldAsset.brand }} {{ oldAsset.model }} {{
+                                                                oldAsset.details || '' }}
+                                                            </div>
+                                                            <div class="text-caption text-grey-darken-1 mt-1">
+                                                                มูลค่า: ฿{{ oldAsset.value || '0' }}
+                                                            </div>
+                                                        </div>
+                                                        <v-chip color="error" variant="flat" size="small"
+                                                            class="font-weight-bold">DELETED</v-chip>
+                                                    </div>
+                                                </v-sheet>
+                                            </div>
+                                        </div>
+
                                     </div>
+                                </v-card-text>
+                            </v-card>
 
-                                    <v-sheet border class="rounded-lg overflow-hidden">
-                                        <v-table density="compact" hover>
-                                            <thead class="bg-grey-lighten-4">
-                                                <tr>
-                                                    <th class="text-left font-weight-bold text-grey-darken-2">ประเภท
-                                                    </th>
-                                                    <th class="text-left font-weight-bold text-grey-darken-2">รายละเอียด
-                                                    </th>
-                                                    <th class="text-right font-weight-bold text-grey-darken-2">
-                                                        ราคาประเมิน</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr v-for="(asset, idx) in LeadApp.getConsolidatedAssets(summaryLead)"
-                                                    :key="'sum-asset-'+idx">
-                                                    <td>{{ asset.type || '-' }}</td>
-                                                    <td>
-                                                        <span class="text-body-2 font-weight-medium text-black">
-                                                            {{ asset.brand }} {{ asset.model }} {{ asset.details }}
+                            <v-card variant="outlined" rounded="xl" class="section-card section-card--lead-note mb-4">
+                                <v-card-title class="py-3">
+                                    <div class="d-flex align-center">
+                                        <v-avatar size="32" color="blue-grey-lighten-4" class="mr-3">
+                                            <v-icon size="small" icon="mdi-bullhorn-outline"
+                                                color="blue-grey-darken-2"></v-icon>
+                                        </v-avatar>
+                                        <div>
+                                            <div class="text-body-1 font-weight-medium">แหล่งที่มา & หมายเหตุ</div>
+                                            <div class="text-caption text-grey-darken-1">ข้อมูลแหล่งที่มา ·
+                                                บันทึกเพิ่มเติม</div>
+                                        </div>
+                                    </div>
+                                </v-card-title>
+                                <v-divider></v-divider>
+                                <v-card-text class="pt-4 pb-3">
+                                    <v-row dense>
+
+                                        <v-col cols="12" md="6">
+
+                                            <div class="mb-4">
+                                                <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                    แหล่งที่มา (Source)</div>
+                                                <div class="text-body-1">
+                                                    <span v-if="!summaryLead.source && leadForm.source"
+                                                        class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                        leadForm.source }}</span>
+                                                    <span
+                                                        v-else-if="leadForm.source && summaryLead.source !== leadForm.source"
+                                                        class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                        style="border-color: #ffb300 !important;">
+                                                        <div
+                                                            class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                            {{ summaryLead.source }}</div>
+                                                        <div
+                                                            class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                            <v-icon color="green" size="small"
+                                                                class="mr-1">mdi-arrow-right</v-icon>{{ leadForm.source
+                                                            }}
+                                                        </div>
+                                                    </span>
+                                                    <span v-else class="text-grey-darken-3">{{ summaryLead.source || '-'
+                                                        }}</span>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="['Facebook Page', 'Line', 'Tiktok'].includes(leadForm.source)"
+                                                class="mb-4 pl-3 border-s-lg" style="border-color: #e0e0e0;">
+                                                <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                    {{ leadForm.source === 'Line' ? 'Line ID ลูกค้า' : 'ชื่อ Account ('
+                                                    + leadForm.source + ')' }}
+                                                </div>
+                                                <div class="text-body-1">
+                                                    <span
+                                                        v-if="!summaryLead.sourceSocialName && leadForm.sourceSocialName"
+                                                        class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                        leadForm.sourceSocialName }}</span>
+                                                    <span
+                                                        v-else-if="leadForm.sourceSocialName && summaryLead.sourceSocialName !== leadForm.sourceSocialName"
+                                                        class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                        style="border-color: #ffb300 !important;">
+                                                        <div
+                                                            class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                            {{ summaryLead.sourceSocialName }}</div>
+                                                        <div
+                                                            class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                            <v-icon color="green" size="small"
+                                                                class="mr-1">mdi-arrow-right</v-icon>{{
+                                                            leadForm.sourceSocialName }}
+                                                        </div>
+                                                    </span>
+                                                    <span v-else class="text-grey-darken-3">{{
+                                                        summaryLead.sourceSocialName || '-' }}</span>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="['ลูกค้าเก่าแนะนำ', 'เพื่อน/ญาติแนะนำ'].includes(leadForm.source)"
+                                                class="mb-4 pl-3 border-s-lg" style="border-color: #e0e0e0;">
+                                                <div class="mb-3">
+                                                    <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                        ชื่อผู้แนะนำ</div>
+                                                    <div class="text-body-1">
+                                                        <span
+                                                            v-if="!summaryLead.sourceRefName && leadForm.sourceRefName"
+                                                            class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                            leadForm.sourceRefName }}</span>
+                                                        <span
+                                                            v-else-if="leadForm.sourceRefName && summaryLead.sourceRefName !== leadForm.sourceRefName"
+                                                            class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                            style="border-color: #ffb300 !important;">
+                                                            <div
+                                                                class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                {{ summaryLead.sourceRefName }}</div>
+                                                            <div
+                                                                class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                <v-icon color="green" size="small"
+                                                                    class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                leadForm.sourceRefName }}
+                                                            </div>
                                                         </span>
-                                                    </td>
-                                                    <td class="text-right text-black">
-                                                        {{ asset.value ? Number(asset.value).toLocaleString() : '-' }}
-                                                    </td>
-                                                </tr>
-                                                <tr v-if="LeadApp.getConsolidatedAssets(summaryLead).length === 0">
-                                                    <td colspan="3" class="text-center py-4 text-grey-lighten-1">
-                                                        ไม่พบข้อมูลหลักทรัพย์เดิม</td>
-                                                </tr>
-                                            </tbody>
-                                        </v-table>
-                                    </v-sheet>
-                                </v-col>
-                            </v-row>
+                                                        <span v-else class="text-grey-darken-3">{{
+                                                            summaryLead.sourceRefName || '-' }}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                        {{ leadForm.source === 'ลูกค้าเก่าแนะนำ' ?
+                                                        'เลขสัญญา/ทะเบียน/เบอร์โทร' : 'เบอร์โทรศัพท์ผู้แนะนำ' }}
+                                                    </div>
+                                                    <div class="text-body-1">
+                                                        <span
+                                                            v-if="!summaryLead.sourceRefContact && leadForm.sourceRefContact"
+                                                            class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                            leadForm.sourceRefContact }}</span>
+                                                        <span
+                                                            v-else-if="leadForm.sourceRefContact && summaryLead.sourceRefContact !== leadForm.sourceRefContact"
+                                                            class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                            style="border-color: #ffb300 !important;">
+                                                            <div
+                                                                class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                {{ summaryLead.sourceRefContact }}</div>
+                                                            <div
+                                                                class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                <v-icon color="green" size="small"
+                                                                    class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                leadForm.sourceRefContact }}
+                                                            </div>
+                                                        </span>
+                                                        <span v-else class="text-grey-darken-3">{{
+                                                            summaryLead.sourceRefContact || '-' }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="leadForm.source === 'งานอีเวนต์ กิจกรรมต่างๆ'"
+                                                class="mb-4 pl-3 border-s-lg" style="border-color: #e0e0e0;">
+                                                <div class="mb-3">
+                                                    <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                        ชื่องาน / สถานที่</div>
+                                                    <div class="text-body-1">
+                                                        <span
+                                                            v-if="!summaryLead.sourceEventName && leadForm.sourceEventName"
+                                                            class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                            leadForm.sourceEventName }}</span>
+                                                        <span
+                                                            v-else-if="leadForm.sourceEventName && summaryLead.sourceEventName !== leadForm.sourceEventName"
+                                                            class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                            style="border-color: #ffb300 !important;">
+                                                            <div
+                                                                class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                {{ summaryLead.sourceEventName }}</div>
+                                                            <div
+                                                                class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                <v-icon color="green" size="small"
+                                                                    class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                leadForm.sourceEventName }}
+                                                            </div>
+                                                        </span>
+                                                        <span v-else class="text-grey-darken-3">{{
+                                                            summaryLead.sourceEventName || '-' }}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                        วันที่จัดงาน</div>
+                                                    <div class="text-body-1">
+                                                        <span
+                                                            v-if="!summaryLead.sourceEventDate && leadForm.sourceEventDate"
+                                                            class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                            leadForm.sourceEventDate }}</span>
+                                                        <span
+                                                            v-else-if="leadForm.sourceEventDate && summaryLead.sourceEventDate !== leadForm.sourceEventDate"
+                                                            class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                            style="border-color: #ffb300 !important;">
+                                                            <div
+                                                                class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                                {{ summaryLead.sourceEventDate }}</div>
+                                                            <div
+                                                                class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                                <v-icon color="green" size="small"
+                                                                    class="mr-1">mdi-arrow-right</v-icon>{{
+                                                                leadForm.sourceEventDate }}
+                                                            </div>
+                                                        </span>
+                                                        <span v-else class="text-grey-darken-3">{{
+                                                            summaryLead.sourceEventDate || '-' }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="leadForm.sourceNote || summaryLead.sourceNote" class="mb-2">
+                                                <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">
+                                                    หมายเหตุเพิ่มเติม (Source Note)</div>
+                                                <div class="text-body-1">
+                                                    <span v-if="!summaryLead.sourceNote && leadForm.sourceNote"
+                                                        class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                        leadForm.sourceNote }}</span>
+                                                    <span
+                                                        v-else-if="leadForm.sourceNote && summaryLead.sourceNote !== leadForm.sourceNote"
+                                                        class="d-block bg-amber-lighten-5 pa-2 rounded border border-dashed"
+                                                        style="border-color: #ffb300 !important;">
+                                                        <div
+                                                            class="text-grey-darken-1 text-decoration-line-through mb-1">
+                                                            {{ summaryLead.sourceNote }}</div>
+                                                        <div
+                                                            class="text-green-darken-4 font-weight-bold d-flex align-center">
+                                                            <v-icon color="green" size="small"
+                                                                class="mr-1">mdi-arrow-right</v-icon>{{
+                                                            leadForm.sourceNote }}
+                                                        </div>
+                                                    </span>
+                                                    <span v-else class="text-grey-darken-3">{{ summaryLead.sourceNote ||
+                                                        '-' }}</span>
+                                                </div>
+                                            </div>
+
+                                        </v-col>
+
+                                        <v-col cols="12" md="6" class="border-s pl-md-4">
+                                            <div class="text-caption text-grey-darken-1 font-weight-bold mb-1">หมายเหตุ
+                                                (Main Note)</div>
+                                            <div class="text-body-1" style="line-height: 1.6;">
+                                                <span v-if="!summaryLead.note && leadForm.note"
+                                                    class="text-green-darken-3 font-weight-bold bg-green-lighten-5 px-2 py-1 rounded d-inline-block">{{
+                                                    leadForm.note }}</span>
+                                                <span v-else-if="leadForm.note && summaryLead.note !== leadForm.note"
+                                                    class="d-block bg-amber-lighten-5 pa-3 rounded border border-dashed"
+                                                    style="border-color: #ffb300 !important;">
+                                                    <div class="text-grey-darken-1 text-decoration-line-through mb-2">{{
+                                                        summaryLead.note }}</div>
+                                                    <div
+                                                        class="text-green-darken-4 font-weight-bold d-flex align-start">
+                                                        <v-icon color="green" size="small"
+                                                            class="mr-2 mt-1">mdi-arrow-right</v-icon>{{ leadForm.note
+                                                        }}
+                                                    </div>
+                                                </span>
+                                                <span v-else class="text-grey-darken-3">{{ summaryLead.note || '-'
+                                                    }}</span>
+                                            </div>
+                                        </v-col>
+                                    </v-row>
+                                </v-card-text>
+                            </v-card>
 
                         </v-container>
                     </v-card-text>
 
-                    <v-card-actions class="pa-4 bg-white border-t flex-shrink-0">
-                        <span class="text-caption text-grey ml-2">
-                            * ตรวจสอบความถูกต้องก่อนกด Update หรือ Replace ในหน้าก่อนหน้า
-                        </span>
-                        <v-spacer></v-spacer>
-                        <v-btn variant="elevated" color="grey-darken-3" @click="isOpenModalLeadSummary = false">
-                            ปิดหน้าต่าง
-                        </v-btn>
+                    <v-card-actions class="py-3 px-4 d-flex align-center justify-space-between"
+                        style="position: sticky; bottom: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-top: 1px solid rgba(0,0,0,0.05);">
+
+                        <div class="d-flex flex-column">
+                            <div class="d-flex align-center text-body-2 mb-1 bg-grey-lighten-4 px-3 py-1 rounded-pill">
+                                <span class="d-flex align-center mr-4 text-grey-darken-3">
+                                    <v-icon size="12" color="black" class="mr-2">mdi-circle-medium</v-icon> เดิม
+                                </span>
+                                <span class="d-flex align-center mr-4 text-amber-darken-4 font-weight-bold">
+                                    <v-icon size="14" color="amber-darken-3" class="mr-1">mdi-arrow-right-bold</v-icon>
+                                    แก้ไข
+                                </span>
+                                <span class="d-flex align-center text-green-darken-3 font-weight-bold">
+                                    <v-icon size="12" color="green-darken-3" class="mr-2">mdi-circle-medium</v-icon>
+                                    ใหม่
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-center">
+                            <v-btn variant="text" size="large" color="grey-darken-1"
+                                @click="isOpenModalLeadSummary = false">
+                                ยกเลิก
+                            </v-btn>
+
+                            <v-btn v-if="leadForm.id && summaryLead && leadForm.id === summaryLead.id" color="primary"
+                                variant="flat" size="large" class="ml-2 px-6" prepend-icon="mdi-content-save-edit"
+                                @click="LeadApp.update(); toggleMenu('isOpenModalLeadSummary', false)">
+                                ยืนยันการอัพเดท
+                            </v-btn>
+                        </div>
+
                     </v-card-actions>
 
                 </v-card>
             </v-dialog>
-
 
 
 
