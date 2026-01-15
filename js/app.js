@@ -32,6 +32,21 @@ const app = Vue.createApp({
     // ส่ง AppState เข้าไปในโมดูลต่างๆ เพื่อให้แต่ละส่วนสามารถตอบสนองต่อการเปลี่ยนแปลงของ UI ได้
     // เช่น การสั่งรีเซ็ตฟอร์มโดยอัตโนมัติเมื่อ Modal ถูกปิดลง
     LeadApp.init(AppState); // จัดการข้อมูลลูกค้า
+
+    // ลงทะเบียน Components ทั่วไปที่ใช้ในแอป
+    window.registerFloatingButton && window.registerFloatingButton(app); // ปุ่มลอย
+
+    // ลงทะเบียน Components ที่เกี่ยวข้องกับ Lead
+    window.registerDialogLead && window.registerDialogLead(app); // Dialog ลูกค้า
+    window.registerLeadMainInfo && window.registerLeadMainInfo(app); // ข้อมูลหลักลูกค้า
+    window.registerLeadContactInfo && window.registerLeadContactInfo(app); // ข้อมูลการติดต่อลูกค้า
+    window.registerLeadSourceInfo && window.registerLeadSourceInfo(app); // ข้อมูลแหล่งที่มาลูกค้า
+    window.registerAssetSection && window.registerAssetSection(app); // ส่วนแสดงสินทรัพย์
+    window.registerLeadNoteInfo && window.registerLeadNoteInfo(app); // ข้อมูลหมายเหตุลูกค้า
+
+    // ลงทะเบียน Components ที่เกี่ยวข้องกับ Contract
+    window.registerContractMainInfo && window.registerContractMainInfo(app); // ข้อมูลหลักสัญญา
+
     ContractApp.init(AppState); // จัดการข้อมูลสัญญา
     CarApp.init(AppState); // จัดการข้อมูลยานพาหนะ
 
