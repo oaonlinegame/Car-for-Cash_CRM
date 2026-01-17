@@ -46,6 +46,8 @@ const app = Vue.createApp({
 
     // ลงทะเบียน Components ที่เกี่ยวข้องกับ Contract
     window.registerContractMainInfo && window.registerContractMainInfo(app); // ข้อมูลหลักสัญญา
+    window.registerContractInstallmentInfo &&
+      window.registerContractInstallmentInfo(app); // ข้อมูลการผ่อนชำระ
 
     ContractApp.init(AppState); // จัดการข้อมูลสัญญา
     CarApp.init(AppState); // จัดการข้อมูลยานพาหนะ

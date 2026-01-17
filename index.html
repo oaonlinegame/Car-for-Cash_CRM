@@ -1034,178 +1034,12 @@
                                             </v-sheet>
 
                                             <!-- CARD 1: ข้อมูลสัญญา -->
-                                            <v-card :id="'section-contract-info-' + i" variant="outlined" rounded="xl"
-                                                class="section-card section-card--contract">
-                                                <v-card-title class="py-3">
-                                                    <div class="d-flex align-center">
-                                                        <v-avatar size="30" color="indigo-lighten-4" class="mr-3">
-                                                            <v-icon size="small" icon="mdi-file-document-outline"
-                                                                color="indigo-darken-2"></v-icon>
-                                                        </v-avatar>
-                                                        <div>
-                                                            <div class="text-body-1 font-weight-medium">
-                                                                ข้อมูลสัญญา
-                                                            </div>
-                                                            <div class="text-caption text-grey-darken-1">
-                                                                เลขที่สัญญา · ประเภท · สถานะ · วันที่สำคัญ
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </v-card-title>
-
-                                                <v-divider></v-divider>
-
-                                                <v-card-text class="pt-4 pb-3">
-                                                    <v-row dense class="mb-2 form-row">
-                                                        <v-col cols="12">
-                                                            <v-text-field v-model="ct.contractNo" label="เลขที่สัญญา"
-                                                                variant="outlined" density="comfortable" color="primary"
-                                                                prepend-inner-icon="mdi-pound-box" placeholder=""
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-
-                                                        <v-col cols="12" sm="6">
-                                                            <v-select label="ประเภทสัญญา"
-                                                                :items="Store.data.contractTypeOptions"
-                                                                v-model="ct.type" variant="outlined"
-                                                                density="comfortable"
-                                                                prepend-inner-icon="mdi-file-certificate-outline"
-                                                                hide-details></v-select>
-                                                        </v-col>
-
-                                                        <v-col cols="12" sm="6">
-                                                            <v-select label="สถานะสัญญา"
-                                                                :items="Store.data.contractStatusOptions"
-                                                                v-model="ct.status" variant="outlined"
-                                                                density="comfortable"
-                                                                prepend-inner-icon="mdi-toggle-switch"
-                                                                hide-details></v-select>
-                                                        </v-col>
-                                                    </v-row>
-
-                                                    <v-row dense class="mt-2 form-row">
-                                                        <v-col cols="12"
-                                                            class="text-subtitle-2 font-weight-medium text-grey-darken-1 mb-1 d-flex align-center">
-                                                            <v-icon size="small" class="mr-1"
-                                                                icon="mdi-calendar-month-outline"></v-icon>
-                                                            วันที่ & ข้อมูลทั่วไป
-                                                        </v-col>
-
-                                                        <v-col cols="12" sm="6">
-                                                            <v-text-field type="date" label="วันที่เริ่มสัญญา"
-                                                                variant="outlined" density="compact"
-                                                                prepend-inner-icon="mdi-calendar-start"
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-
-                                                        <v-col cols="12" sm="6">
-                                                            <v-text-field type="number" v-model="ct.paymentDay"
-                                                                label="วันดิวชำระ" suffix="ของเดือน" variant="outlined"
-                                                                density="compact"
-                                                                prepend-inner-icon="mdi-bell-alert-outline"
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-
-                                                        <v-col cols="12" sm="6">
-                                                            <v-combobox label="เกรดลูกค้า"
-                                                                :items="Store.data.gradeOptions"
-                                                                v-model="leadForm.grade" variant="outlined"
-                                                                density="compact"
-                                                                prepend-inner-icon="mdi-star-circle-outline"
-                                                                hide-details="auto" clearable
-                                                                @change="LeadApp.handleGradeChange(leadForm.grade)"
-                                                                @keyup.enter="LeadApp.handleGradeChange(leadForm.grade)"></v-combobox>
-                                                        </v-col>
-
-                                                        <v-col cols="12" sm="6">
-                                                            <v-text-field type="date" label="วันที่ Active ล่าสุด"
-                                                                variant="outlined" density="compact"
-                                                                prepend-inner-icon="mdi-clock-outline"
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-                                                    </v-row>
-                                                </v-card-text>
-                                            </v-card>
+                                            <contract-main-info :contract="ct" :lead="leadForm" :index="i">
+                                            </contract-main-info>
 
                                             <!-- CARD 2: รายละเอียดการผ่อนชำระ -->
-                                            <v-card :id="'section-contract-installment-' + i" variant="outlined"
-                                                rounded="xl" class="section-card section-card--installment">
-                                                <v-card-title class="py-3">
-                                                    <div class="d-flex align-center">
-                                                        <v-avatar size="30" color="deep-purple-lighten-4" class="mr-3">
-                                                            <v-icon size="small" icon="mdi-calendar-multiselect"
-                                                                color="deep-purple-darken-2"></v-icon>
-                                                        </v-avatar>
-                                                        <div>
-                                                            <div class="text-body-1 font-weight-medium">
-                                                                รายละเอียดการผ่อนชำระ
-                                                            </div>
-                                                            <div class="text-caption text-grey-darken-1">
-                                                                ค่างวด · จำนวนงวด · ยอดกู้ตั้งต้น · หมายเหตุ
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </v-card-title>
-
-                                                <v-divider></v-divider>
-
-                                                <v-card-text class="pt-4 pb-3">
-                                                    <v-row dense class="mb-2 form-row">
-                                                        <v-col cols="6" sm="3">
-                                                            <v-text-field label="ค่างวด/เดือน" prefix="฿"
-                                                                variant="outlined" density="compact"
-                                                                prepend-inner-icon="mdi-cash-multiple"
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-
-                                                        <v-col cols="6" sm="3">
-                                                            <v-text-field label="งวดรวม" type="number"
-                                                                variant="outlined" density="compact"
-                                                                prepend-inner-icon="mdi-counter"
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-
-                                                        <v-col cols="6" sm="3">
-                                                            <v-text-field label="จ่ายแล้ว (งวด)" type="number"
-                                                                variant="outlined" density="compact"
-                                                                prepend-inner-icon="mdi-progress-check" readonly
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-
-                                                        <v-col cols="6" sm="3">
-                                                            <v-text-field label="คงเหลือ (งวด)" type="number"
-                                                                variant="outlined" density="compact"
-                                                                prepend-inner-icon="mdi-progress-clock" readonly
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-
-                                                        <v-col cols="12" sm="6" class="mt-1">
-                                                            <v-text-field label="ยอดกู้ตั้งต้น" prefix="฿"
-                                                                variant="outlined" density="compact"
-                                                                prepend-inner-icon="mdi-cash-100"
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-                                                        <v-col cols="12" sm="6">
-                                                            <v-text-field v-model="ct.collectionFee"
-                                                                label="ค่าติดตามทวงถาม" prefix="฿" type="number"
-                                                                variant="outlined" density="compact"
-                                                                prepend-inner-icon="mdi-phone-alert-outline"
-                                                                hide-details></v-text-field>
-                                                        </v-col>
-                                                    </v-row>
-
-                                                    <v-row dense class="mt-1 form-row">
-                                                        <v-col cols="12" sm="8">
-                                                            <v-textarea label="หมายเหตุ / ประวัติค่างวดย้อนหลัง"
-                                                                rows="2" auto-grow variant="outlined" density="compact"
-                                                                prepend-inner-icon="mdi-note-text-outline"
-                                                                hide-details></v-textarea>
-                                                        </v-col>
-
-
-                                                    </v-row>
-                                                </v-card-text>
-                                            </v-card>
+                                            <contract-installment-info :contract="ct" :index="i">
+                                            </contract-installment-info>
 
                                             <!-- CARD 3: การเงิน & ยอดคงเหลือ -->
                                             <v-card :id="'section-contract-finance-' + i" variant="outlined"
@@ -1481,152 +1315,12 @@
                         <!-- CARD FORM -->
 
                         <!-- CARD 1: ข้อมูลสัญญา -->
-                        <v-card :id="AppConstants.STICKY_TARGETS.SUBCONTRACT_INFO" variant="outlined" rounded="xl"
-                            class="section-card section-card--contract">
-                            <v-card-title class="py-3">
-                                <div class="d-flex align-center">
-                                    <v-avatar size="30" color="indigo-lighten-4" class="mr-3">
-                                        <v-icon size="small" icon="mdi-file-document-outline"
-                                            color="indigo-darken-2"></v-icon>
-                                    </v-avatar>
-                                    <div>
-                                        <div class="text-body-1 font-weight-medium">
-                                            ข้อมูลสัญญา
-                                        </div>
-                                        <div class="text-caption text-grey-darken-1">
-                                            เลขที่สัญญา · ประเภท · สถานะ · วันที่สำคัญ
-                                        </div>
-                                    </div>
-                                </div>
-                            </v-card-title>
-
-                            <v-divider></v-divider>
-
-                            <v-card-text class="pt-4 pb-3">
-                                <v-row dense class="mb-2 form-row">
-                                    <v-col cols="12">
-                                        <v-text-field label="เลขที่สัญญา" variant="outlined" density="comfortable"
-                                            color="primary" prepend-inner-icon="mdi-pound-box" placeholder=""
-                                            hide-details></v-text-field>
-                                    </v-col>
-
-                                    <v-col cols="12" sm="6">
-                                        <v-select label="ประเภทสัญญา" :items="Store.data.contractTypeOptions"
-                                            variant="outlined" density="comfortable"
-                                            prepend-inner-icon="mdi-file-certificate-outline" hide-details></v-select>
-                                    </v-col>
-
-                                    <v-col cols="12" sm="6">
-                                        <v-select label="สถานะสัญญา" :items="Store.data.contractStatusOptions"
-                                            variant="outlined" density="comfortable"
-                                            prepend-inner-icon="mdi-toggle-switch" hide-details></v-select>
-                                    </v-col>
-
-                                    <v-row dense class="mt-2 form-row">
-                                        <v-col cols="12"
-                                            class="text-subtitle-2 font-weight-medium text-grey-darken-1 mb-1 d-flex align-center">
-                                            <v-icon size="small" class="mr-1"
-                                                icon="mdi-calendar-month-outline"></v-icon>
-                                            วันที่ & ข้อมูลทั่วไป
-                                        </v-col>
-
-                                        <v-col cols="12" sm="6">
-                                            <v-text-field type="date" label="วันที่เริ่มสัญญา" variant="outlined"
-                                                density="compact" prepend-inner-icon="mdi-calendar-start"
-                                                hide-details></v-text-field>
-                                        </v-col>
-
-                                        <v-col cols="12" sm="6">
-                                            <v-text-field type="number" label="วันดิวชำระ" suffix="ของเดือน"
-                                                variant="outlined" density="compact"
-                                                prepend-inner-icon="mdi-bell-alert-outline" hide-details></v-text-field>
-                                        </v-col>
-
-                                        <v-col cols="12" sm="6">
-                                            <v-select label="เกรดลูกค้า" :items="Store.data.gradeOptions"
-                                                variant="outlined" density="compact"
-                                                prepend-inner-icon="mdi-star-circle-outline" hide-details></v-select>
-                                        </v-col>
-
-                                        <v-col cols="12" sm="6">
-                                            <v-text-field type="date" label="วันที่ Active ล่าสุด" variant="outlined"
-                                                density="compact" prepend-inner-icon="mdi-clock-outline"
-                                                hide-details></v-text-field>
-                                        </v-col>
-                                    </v-row>
-                            </v-card-text>
-                        </v-card>
+                        <contract-main-info :contract="subContractForm" :lead="leadForm" index="sub">
+                        </contract-main-info>
 
                         <!-- CARD 2: รายละเอียดการผ่อนชำระ -->
-                        <v-card :id="AppConstants.STICKY_TARGETS.SUBCONTRACT_INSTALLMENT" variant="outlined"
-                            rounded="xl" class="section-card section-card--installment">
-                            <v-card-title class="py-3">
-                                <div class="d-flex align-center">
-                                    <v-avatar size="30" color="deep-purple-lighten-4" class="mr-3">
-                                        <v-icon size="small" icon="mdi-calendar-multiselect"
-                                            color="deep-purple-darken-2"></v-icon>
-                                    </v-avatar>
-                                    <div>
-                                        <div class="text-body-1 font-weight-medium">
-                                            รายละเอียดการผ่อนชำระ
-                                        </div>
-                                        <div class="text-caption text-grey-darken-1">
-                                            ค่างวด · จำนวนงวด · ยอดกู้ตั้งต้น · หมายเหตุ
-                                        </div>
-                                    </div>
-                                </div>
-                            </v-card-title>
-
-                            <v-divider></v-divider>
-
-                            <v-card-text class="pt-4 pb-3">
-                                <v-row dense class="mb-2 form-row">
-                                    <v-col cols="6" sm="3">
-                                        <v-text-field label="ค่างวด/เดือน" prefix="฿" variant="outlined"
-                                            density="compact" prepend-inner-icon="mdi-cash-multiple"
-                                            hide-details></v-text-field>
-                                    </v-col>
-
-                                    <v-col cols="6" sm="3">
-                                        <v-text-field label="งวดรวม" type="number" variant="outlined" density="compact"
-                                            prepend-inner-icon="mdi-counter" hide-details></v-text-field>
-                                    </v-col>
-
-                                    <v-col cols="6" sm="3">
-                                        <v-text-field label="จ่ายแล้ว (งวด)" type="number" variant="outlined"
-                                            density="compact" prepend-inner-icon="mdi-progress-check" readonly
-                                            hide-details></v-text-field>
-                                    </v-col>
-
-                                    <v-col cols="6" sm="3">
-                                        <v-text-field label="คงเหลือ (งวด)" type="number" variant="outlined"
-                                            density="compact" prepend-inner-icon="mdi-progress-clock" readonly
-                                            hide-details></v-text-field>
-                                    </v-col>
-
-                                    <v-col cols="12" sm="6" class="mt-1">
-                                        <v-text-field label="ยอดกู้ตั้งต้น" prefix="฿" variant="outlined"
-                                            density="compact" prepend-inner-icon="mdi-cash-100"
-                                            hide-details></v-text-field>
-                                    </v-col>
-                                    <v-col cols="12" sm="6">
-                                        <v-text-field label="ค่าติดตามทวงถาม" prefix="฿" type="number"
-                                            variant="outlined" density="compact"
-                                            prepend-inner-icon="mdi-phone-alert-outline" hide-details></v-text-field>
-                                    </v-col>
-                                </v-row>
-
-                                <v-row dense class="mt-1 form-row">
-                                    <v-col cols="12" sm="8">
-                                        <v-textarea label="หมายเหตุ / ประวัติค่างวดย้อนหลัง" rows="2" auto-grow
-                                            variant="outlined" density="compact"
-                                            prepend-inner-icon="mdi-note-text-outline" hide-details></v-textarea>
-                                    </v-col>
-
-
-                                </v-row>
-                            </v-card-text>
-                        </v-card>
+                        <contract-installment-info :contract="subContractForm" index="sub">
+                        </contract-installment-info>
 
                         <!-- CARD 3: การเงิน & ยอดคงเหลือ -->
                         <v-card :id="AppConstants.STICKY_TARGETS.SUBCONTRACT_FINANCE" variant="outlined" rounded="xl"
@@ -2383,7 +2077,6 @@
             <!-- ================================ -->
             <!-- 🟪 DIALOG การตั้งค่าข้อมูลรถยนต์ Car Settings -->
             <!-- ================================ -->
-
             <v-dialog v-model="isOpenModalCarSettings" max-width="1200" scrollable>
                 <v-card class="rounded-xl"
                     style="height: 90vh; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #fff;">
@@ -4167,6 +3860,30 @@
     <!-- โหลด Floating Button (ปุ่มลอยเสริมด้านขวาล่าง) -->
     <script src="./components/floatingButton.js"></script>
 
+    <!-- โหลด Lead Main Info Component (แสดงข้อมูลหลักในฟอร์ม Lead) -->
+    <script src="./components/lead/leadMainInfo.js"></script>
+
+    <!-- โหลด Lead Contact Info Component (แสดงข้อมูลติดต่อในฟอร์ม Lead) -->
+    <script src="./components/lead/leadContactInfo.js"></script>
+
+    <!-- โหลด Lead Source Info Component (แสดงข้อมูลแหล่งที่มาในฟอร์ม Lead) -->
+    <script src="./components/lead/leadSourceInfo.js"></script>
+
+    <!-- โหลด Asset Section Component (แสดงรายการสินทรัพย์ในฟอร์ม Lead) -->
+    <script src="./components/asset/assetSection.js"></script>
+
+    <!-- โหลด Lead Note Info Component (แสดงข้อมูลหมายเหตุในฟอร์ม Lead) -->
+    <script src="./components/lead/leadNoteInfo.js"></script>
+
+    <!-- โหลด Contract Section Component (แสดงรายการสัญญาในฟอร์ม Lead) -->
+    <script src="./components/lead/leadNoteInfo.js"></script>
+
+    <!-- โหลด Contract Main Info Component (แสดงข้อมูลหลักสัญญาในฟอร์ม Lead) -->
+    <script src="./components/contract/contractMainInfo.js"></script>
+
+    <!-- โหลด Contract Installment Info Component (แสดงข้อมูลผ่อนชำระสัญญาในฟอร์ม Lead) -->
+    <script src="./components/contract/contractInstallmentInfo.js"></script>
+
     <!-- 6️⃣ โหลด Lead Logic (เพิ่ม/ลบ/อัปเดต Lead สำหรับ Dexie + UI) -->
     <script src="./js/lead.js"></script>
 
@@ -4187,24 +3904,6 @@
 
     <!-- 12️⃣ โหลด Shortcut Key (กำหนดคีย์ลัด Alt+L / Alt+C เป็นต้น) -->
     <script src="./js/shortcutKey.js"></script>
-
-    <!-- โหลด Lead Main Info Component (แสดงข้อมูลหลักในฟอร์ม Lead) -->
-    <script src="./components/lead/leadMainInfo.js"></script>
-
-    <!-- โหลด Lead Contact Info Component (แสดงข้อมูลติดต่อในฟอร์ม Lead) -->
-    <script src="./components/lead/leadContactInfo.js"></script>
-
-    <!-- โหลด Lead Source Info Component (แสดงข้อมูลแหล่งที่มาในฟอร์ม Lead) -->
-    <script src="./components/lead/leadSourceInfo.js"></script>
-
-    <!-- โหลด Asset Section Component (แสดงรายการสินทรัพย์ในฟอร์ม Lead) -->
-    <script src="./components/asset/assetSection.js"></script>
-
-    <!-- โหลด Lead Note Info Component (แสดงข้อมูลหมายเหตุในฟอร์ม Lead) -->
-    <script src="./components/lead/leadNoteInfo.js"></script>
-
-    <!-- โหลด Contract Main Info Component (แสดงข้อมูลหลักสัญญาในฟอร์ม Contract) -->
-    <script src="./components/contract/contractMainInfo.js"></script>
 
     <!-- 13️⃣ โหลด Old Import (ใช้เฉพาะนำเข้าข้อมูลระบบเก่า CSV) -->
     <script src="./js/oldimport.js"></script>

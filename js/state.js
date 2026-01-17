@@ -49,6 +49,20 @@ const AppState = {
     "other",
   ]),
 
+  // ตัวแปรสำหรับฟอร์มสัญญาย่อย
+  subContractForm: Vue.ref({
+    id: null,
+    contractNo: "",
+    type: "เช่าซื้อ",
+    status: "ร่างสัญญา",
+    startDate: new Date().toISOString().substr(0, 10),
+    paymentDay: 1,
+    lastActiveDate: new Date().toISOString().substr(0, 10),
+    installmentAmount: 0, // ค่างวด
+    totalInstallments: 0, // งวดรวม
+    installmentsDue: 0, // งวดที่ต้องจ่าย (NEW)
+    paidInstallments: 0, // จ่ายแล้ว
+  }),
   // ------------------------------------------------------
   // 📝 ฟอร์มชั่วคราว (Temporary Form State)
   // ------------------------------------------------------

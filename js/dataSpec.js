@@ -64,6 +64,19 @@
           note: "", // บันทึกทั่วไป
           rating: 0, // คะแนน (0-5 ดาว)
 
+          // ✅ [NEW] เพิ่มตัวแปรใหม่สำหรับการผ่อนชำระ (ป้องกัน Error/Loop)
+          installmentAmount: 0, // ค่างวดต่อเดือน
+          totalInstallments: 0, // จำนวนงวดทั้งหมด
+          installmentsDue: 0, // งวดที่ต้องจ่าย
+          paidInstallments: 0, // งวดที่จ่ายแล้ว
+
+          // ✅ [NEW] เพิ่มตัวแปรใหม่สำหรับการเงิน (ป้องกัน Error/Loop)
+          outstandingBalance: 0, // ยอดหนี้คงเหลือ
+          closingAmount: 0, // ยอดปิดบัญชี
+          unrealizedAmount: 0, // ดอกเบี้ยรอรับรู้
+          collectionFee: 0, // ค่าติดตามทวงถาม
+          note: "", // หมายเหตุการเงิน
+
           // --- การเชื่อมโยงข้อมูล (Data Relations) ---
           contracts: [], // รายการสัญญา
           assets: [global.DataSpec?.Asset?.createDefault() || {}], // รายการหลักทรัพย์เริ่มต้น
