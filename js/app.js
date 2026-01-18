@@ -50,7 +50,7 @@ const app = Vue.createApp({
       window.registerContractInstallmentInfo(app); // ข้อมูลการผ่อนชำระ
     window.registerContractFinanceInfo &&
       window.registerContractFinanceInfo(app); //
-    window.registerDialogAutofill && window.registerDialogAutofill(app);
+    window.registerDialogAutoFill;
 
     ContractApp.init(AppState); // จัดการข้อมูลสัญญา
     CarApp.init(AppState); // จัดการข้อมูลยานพาหนะ

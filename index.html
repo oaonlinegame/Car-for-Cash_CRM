@@ -1304,7 +1304,8 @@
             <!-- ================================ -->
             <!-- 🟪 DIALOG เพิ่มข้อมูล Auto fill -->
             <!-- ================================ -->
-            <v-dialog v-model="isOpenModalLeadAutoFill" max-width="700">
+            <dialog-auto-fill></dialog-auto-fill>
+            <!--             <v-dialog v-model="isOpenModalLeadAutoFill" max-width="700">
                 <v-card class="rounded-xl"
                     style="overflow:hidden; background:white; height:90vh; display:flex; flex-direction:column;">
 
@@ -1345,7 +1346,7 @@
                     </v-card-actions>
                 </v-card>
 
-            </v-dialog>
+            </v-dialog> -->
 
 
             <!-- ================================ -->
@@ -3766,8 +3767,12 @@
     <!-- โหลด Log Logic (จัดการข้อมูล Log) -->
     <script src="./js/log.js"></script>
 
+    <script src="./js/bot.js"></script>
+
     <!-- โหลด Floating Button (ปุ่มลอยเสริมด้านขวาล่าง) -->
     <script src="./components/floatingButton.js"></script>
+
+
 
     <!-- โหลด Lead Main Info Component (แสดงข้อมูลหลักในฟอร์ม Lead) -->
     <script src="./components/lead/leadMainInfo.js"></script>
@@ -3795,6 +3800,8 @@
 
     <!--  -->
     <script src="./components/contract/contractFinanceInfo.js"></script>
+
+    <script src="./components/dialog/dialogAutoFill.js"></script>
 
     <!-- 6️⃣ โหลด Lead Logic (เพิ่ม/ลบ/อัปเดต Lead สำหรับ Dexie + UI) -->
     <script src="./js/lead.js"></script>
