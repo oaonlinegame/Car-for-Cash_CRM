@@ -3,7 +3,7 @@
 // 👤 LEAD MANAGEMENT MODULE
 // --------------------------------------------------------
 // โมดูลหลักสำหรับจัดการ Business Logic ของข้อมูลลูกค้า (Leads)
-// ปรับปรุง: รวม Logic ที่ซ้ำซ้อนเป็น Helper Functions เพื่อความสะอาดของโค้ด
+// ปรับปรุง: แยก Logic การสร้างสัญญาไปไว้ที่ ContractApp
 // --------------------------------------------------------
 
 (function (global) {
@@ -32,15 +32,12 @@
     },
 
     // ========================================================================
-    // 3. INTERNAL HELPERS (ฟังก์ชันช่วยทำงานภายใน - ลดความซ้ำซ้อน)
+    // 3. INTERNAL HELPERS (ฟังก์ชันช่วยทำงานภายใน)
     // ========================================================================
 
     /**
-     * 🛠️ Helper: เตรียมข้อมูลสำหรับบันทึก (Clean + Clone + Index + Asset ID Injection)
-     * @param {Object} sourceData - ข้อมูลต้นทาง
-     * @param {boolean} isNew - เป็นข้อมูลใหม่หรือไม่ (เพื่อจัดการ id/createDate)
+     * 🛠️ Helper: เตรียมข้อมูลสำหรับบันทึก
      */
-
     _prepareDataForSave(sourceData, isNew = false) {
       // 1. Deep Clone
       const plainData = JSON.parse(JSON.stringify(sourceData));
@@ -51,33 +48,23 @@
         plainData.createDate = new Date().toLocaleDateString("th-TH");
       }
 
-      // ----------------------------------------------------------------------
-      // ✅ [NEW] จัดการ Assets (พระเอกของเรา)
-      // ----------------------------------------------------------------------
+      // 3. จัดการ Assets (Lead Assets)
       if (Array.isArray(plainData.assets)) {
-        // กรองเอาเฉพาะที่มีข้อมูลจริง (กันค่า null/undefined)
         plainData.assets = plainData.assets.filter(
           (a) => a && typeof a === "object"
         );
 
-        // วนลูปยัด leadId เข้าไปในรถทุกคัน (ตามที่คุณขอ "เผื่อไว้")
         plainData.assets.forEach((asset, index) => {
-          // ถ้ามี ID หลัก (กรณี Update) ให้ยัดใส่เลย
-          // ถ้าเป็น New (ยังไม่มี ID หลัก) เดี๋ยว Dexie จะสร้าง ID ให้ เราค่อยมาอัปเดตทีหลังได้
-          // แต่เบื้องต้นใส่ id หลอก หรือปล่อยว่างไว้ก่อนได้ครับ
           if (plainData.id) {
             asset.leadId = plainData.id;
           }
-
-          // *ทริคเสริม: สร้าง assetId ติดตัวไว้ด้วย เผื่อใช้ลบ/แก้ไข ในอนาคต
           if (!asset.assetId) {
-            asset.assetId = Date.now() + "-" + index; // สร้าง ID ชั่วคราวแบบง่ายๆ
+            asset.assetId = Date.now() + "-" + index;
           }
         });
       }
-      // ----------------------------------------------------------------------
 
-      // 3. Search Index
+      // 4. Search Index
       if (global.Utils?.generateSearchIndex) {
         plainData._searchIndex = global.Utils.generateSearchIndex(plainData);
       }
@@ -86,9 +73,7 @@
     },
 
     /**
-     * 🛠️ Helper: ซิงค์ข้อมูลลง Global Store (เพื่อให้ UI อัปเดตทันทีไม่ต้องโหลดใหม่)
-     * @param {Object} item - ข้อมูลที่บันทึกแล้ว (มี ID ครบ)
-     * @param {string} action - 'add' | 'update' | 'delete'
+     * 🛠️ Helper: ซิงค์ข้อมูลลง Global Store
      */
     _syncToStore(item, action) {
       if (!global.Store || !global.Store.data.leadItems) return;
@@ -101,7 +86,6 @@
         const index = list.findIndex((x) => x.id === item.id);
         if (index !== -1) list[index] = Object.freeze(item);
       } else if (action === "delete") {
-        // กรณี delete item คือ id
         const index = list.findIndex((x) => x.id === item);
         if (index !== -1) list.splice(index, 1);
       }
@@ -134,14 +118,12 @@
           }
         }
 
+        // รีเซ็ตฟอร์มสัญญาเริ่มต้น
         this.resetNewContractForm();
 
         if (global.Utils?.storeSetItems) {
           global.Utils.storeSetItems("Lead", items);
         }
-
-        // Self-healing Logic (ถ้ามีข้อมูลเก่าที่ต้องซ่อมแซม)
-        // ... (คงเดิมไว้ตาม Requirement) ...
       } catch (err) {
         console.error("❌ Load Error:", err);
         global.AppNotifications?.show("โหลดข้อมูลไม่สำเร็จ");
@@ -168,6 +150,7 @@
     },
 
     resetLeadForm() {
+      // รีเซ็ตข้อมูล Lead
       if (global.Utils?.resetForm) {
         global.Utils.resetForm(
           LeadApp.form,
@@ -179,25 +162,46 @@
           }
         );
       }
+
+      // รีเซ็ต Tab กลับไปหน้าแรก
       if (global.AppState?.leadTab) {
         global.AppState.leadTab.value = "leadInfo";
       }
+
+      // รีเซ็ตข้อมูลสัญญาใหม่ (Delegate ไปที่ ContractApp)
       this.resetNewContractForm();
     },
 
+    // --------------------------------------------------------
+    // ✅ MODIFIED: เชื่อมต่อกับ ContractApp ใหม่
+    // --------------------------------------------------------
+
     resetNewContractForm() {
-      if (global.ContractApp) global.ContractApp.resetNewForm();
+      // เรียกใช้ resetForm ของ ContractApp (ถ้ามี)
+      if (
+        global.ContractApp &&
+        typeof global.ContractApp.resetForm === "function"
+      ) {
+        global.ContractApp.resetForm();
+      }
     },
 
     addEmptyContract() {
-      if (global.ContractApp) {
-        global.ContractApp.addEmpty(LeadApp.form);
-        const newContractIndex = LeadApp.form.contracts.length - 1;
-        if (global.AppState?.leadTab) {
+      if (
+        global.ContractApp &&
+        typeof global.ContractApp.addToLead === "function"
+      ) {
+        // 1. ให้ ContractApp จัดการเพิ่มข้อมูลลงใน Array
+        const newIndex = global.ContractApp.addToLead(LeadApp.form);
+
+        // 2. จัดการเปลี่ยน Tab ไปยังสัญญาใหม่ (UI Logic)
+        if (newIndex !== -1 && global.AppState?.leadTab) {
           setTimeout(() => {
-            global.AppState.leadTab.value = "contract-" + newContractIndex;
-          }, 0);
+            global.AppState.leadTab.value = "contract-" + newIndex;
+          }, 50);
         }
+      } else {
+        console.warn("⚠️ ContractApp not found or incomplete.");
       }
     },
 
@@ -214,8 +218,9 @@
     },
 
     // ========================================================================
-    // 6. CRUD OPERATIONS (Refactored)
+    // 6. CRUD OPERATIONS
     // ========================================================================
+
     async add(formData) {
       try {
         const src = formData || LeadApp.form;
@@ -226,19 +231,18 @@
 
         const dataToSave = this._prepareDataForSave(src, true);
 
-        // บันทึกลง DB (ได้ ID กลับมา)
+        // บันทึกลง DB
         const newId = await global.Repository.leads.create(dataToSave);
 
-        // 🔄 [Double-Check] อัปเดต leadId กลับเข้าไปใน assets อีกรอบ (เพราะเพิ่งได้ ID มา)
+        // อัปเดต leadId กลับเข้าไปใน assets
         if (dataToSave.assets && dataToSave.assets.length > 0) {
           dataToSave.assets.forEach((a) => (a.leadId = newId));
-          // เซฟซ้ำอีกรอบแบบเร็วๆ เพื่อให้ leadId ใน assets สมบูรณ์
           await global.Repository.leads.update(newId, {
             assets: dataToSave.assets,
           });
         }
 
-        // ... (Update Store & UI logic เดิม) ...
+        // Update Store & UI
         const itemForStore = { ...dataToSave, id: newId };
         this._syncToStore(itemForStore, "add");
         this.resetLeadForm();
@@ -254,7 +258,6 @@
       try {
         if (!LeadApp.form.id) return;
 
-        // เรียกใช้ Helper (ซึ่งตอนนี้มันจะยัด leadId ให้อัตโนมัติเพราะ form มี id แล้ว)
         const updatedData = this._prepareDataForSave(LeadApp.form, false);
 
         await global.Repository.leads.update(LeadApp.form.id, updatedData);
@@ -271,12 +274,8 @@
       try {
         if (!confirm("ยืนยันการลบข้อมูลนี้?")) return;
 
-        // 1. Delete from DB
         await global.Repository.leads.delete(id);
-
-        // 2. Update Store (ใช้ Helper)
         this._syncToStore(id, "delete");
-
         global.AppNotifications?.show("🗑️ ลบข้อมูลเรียบร้อย");
       } catch (err) {
         console.error(err);
@@ -338,15 +337,12 @@
       if (!targetLead || !targetLead.id) return;
       console.log(`🚀 Resolve Duplicate: [${action}] ID: ${targetLead.id}`);
 
-      // ยึด ID เดิมเพื่อทับ
       this.form.id = targetLead.id;
 
-      // ปิด Dialog
       if (global.AppState.isOpenConfirmSaveLead) {
         global.AppState.isOpenConfirmSaveLead.value = false;
       }
 
-      // สั่ง Update (ซึ่งใช้ Logic ใหม่ที่ Clean แล้ว)
       await this.update();
     },
 
@@ -408,7 +404,6 @@
         const rawData = await global.Repository.leads.getById(this.form.id);
         if (!rawData) return this.update();
 
-        // Data Cleaning Logic
         if (Array.isArray(rawData.assets)) {
           rawData.assets = rawData.assets.filter(
             (item) => item && typeof item === "object"

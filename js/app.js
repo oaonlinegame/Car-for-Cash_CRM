@@ -101,6 +101,7 @@ const app = Vue.createApp({
       leadItems: Store.data.leadItems, // รายการลูกค้าทั้งหมด
       leadHeaders: Store.data.leadHeaders, // หัวตารางสำหรับ v-data-table
       leadForm: LeadApp.form, // ข้อมูลในฟอร์มที่กำลังกรอกอยู่
+      subContractForm: ContractApp.form, // ข้อมูลฟอร์มสัญญาย่อยที่กำลังกรอกอยู่
 
       // --- 5.3 Domain Actions (การจัดการข้อมูลหลัก) ---
       addLead: LeadApp.add, // ฟังก์ชันเพิ่มลูกค้าใหม่
@@ -130,6 +131,7 @@ const app = Vue.createApp({
       AppBot,
       AppApi,
       LogApp,
+      ContractApp, // เพิ่มเผื่อเรียกใช้โดยตรง
 
       // --- 5.6 DOM References ---
       searchBarRef, // สำหรับผูกกับ ref="searchBarRef" ใน HTML

@@ -1,3 +1,4 @@
+// components/contract/contractInstallmentInfo.js
 (function (global) {
   "use strict";
 

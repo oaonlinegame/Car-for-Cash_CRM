@@ -3,85 +3,96 @@
 // 📜 CONTRACT MANAGEMENT MODULE
 // --------------------------------------------------------
 // โมดูลจัดการตรรกะของสัญญา (Contract Business Logic)
-// ควบคุมวงจรชีวิตของฟอร์มสัญญา, การเพิ่มสัญญาใหม่,
-// และการรีเซ็ตค่าสถานะเมื่อ UI มีการเปลี่ยนแปลง
+// แยกออกมาจาก LeadApp เพื่อลดความซ้ำซ้อนและจัดการ State ได้ดีขึ้น
 // --------------------------------------------------------
 
 (function (global) {
   "use strict";
 
+  // ดึง dependencies ที่จำเป็น
+  const { reactive, watch } = Vue;
+
   const ContractApp = {
     // ========================================================================
-    // 1. INITIALIZATION & LIFECYCLE (การเริ่มต้นและวงจรชีวิต)
+    // 1. REACTIVE STATE (สร้าง State เป็นของตัวเอง)
     // ========================================================================
+    // ใช้สำหรับเก็บข้อมูลฟอร์มสัญญาใหม่ หรือสถานะการทำงานภายใน
+    state: reactive({
+      isExpanded: false,
+      activeTab: 0,
+    }),
 
-    /**
-     * เริ่มต้นโมดูลและตั้งค่า Event Listener
-     * @param {Object} state - Global AppState
-     * * การทำงาน:
-     * - ตรวจสอบสถานะของ Dialog สร้างสัญญา (isOpenSubContractDialog)
-     * - เมื่อ Dialog ถูกปิด (isOpen == false) จะสั่งรีเซ็ตฟอร์มทันที
-     * - ป้องกันข้อมูลค้าง (Stale State) เมื่อเปิด Dialog ครั้งถัดไป
-     */
+    // ฟอร์มสำหรับ "สัญญาใหม่" (ย้ายมาจัดการที่นี่แทน AppState)
+    form: reactive(global.DataSpec.Contract.createDefault()),
+
+    // ========================================================================
+    // 2. INITIALIZATION
+    // ========================================================================
     init(state) {
+      // ยังคงรับ state มาเพื่อดู Trigger การเปิดปิด Modal ได้เหมือนเดิม
       if (state && state.isOpenSubContractDialog) {
-        Vue.watch(state.isOpenSubContractDialog, (isOpen) => {
+        watch(state.isOpenSubContractDialog, (isOpen) => {
           if (!isOpen) {
             console.log("📄 ContractApp: Dialog closed. Cleaning up...");
-            this.resetNewForm();
+            this.resetForm();
           }
         });
       }
     },
 
     // ========================================================================
-    // 2. DATA MANIPULATION (การจัดการข้อมูลสัญญา)
+    // 3. LOGIC (ย้ายการทำงานจาก LeadApp มาไว้ที่นี่)
     // ========================================================================
 
     /**
-     * เพิ่มสัญญาเปล่าลงในฟอร์ม Lead (Nested Data Structure)
+     * เพิ่มสัญญาเปล่าลงใน Lead Form
      * @param {Object} targetLeadForm - Object ของ Lead ที่ต้องการเพิ่มสัญญา
-     * * การทำงาน:
-     * 1. ตรวจสอบว่ามี Array contracts หรือไม่ หากไม่มีให้สร้างใหม่
-     * 2. สร้าง Default Contract Object จาก DataSpec
-     * 3. เพิ่มลงใน Array เพื่อให้ UI แสดงรายการสัญญาใหม่
+     * @returns {Number} Index ของสัญญาที่เพิ่งเพิ่ม
      */
-    addEmpty(targetLeadForm) {
-      if (!targetLeadForm) return;
+    addToLead(targetLeadForm) {
+      if (!targetLeadForm) return -1;
 
-      // Ensure data integrity
+      // ตรวจสอบความถูกต้องของ Array
       if (!Array.isArray(targetLeadForm.contracts)) {
         targetLeadForm.contracts = [];
       }
 
-      targetLeadForm.contracts.push(global.DataSpec.Contract.createDefault());
+      // สร้างข้อมูลสัญญาใหม่จาก DataSpec
+      const newContract = global.DataSpec.Contract.createDefault();
+
+      // เพิ่มลงใน Array (Vue จะอัปเดต UI ให้อัตโนมัติเพราะ targetLeadForm เป็น Reactive)
+      const newLength = targetLeadForm.contracts.push(newContract);
+
+      console.log("✅ ContractApp: Added new contract to lead.");
+      return newLength - 1; // คืนค่า Index ล่าสุด
     },
 
-    // ========================================================================
-    // 3. FORM STATE MANAGEMENT (การจัดการสถานะฟอร์ม)
-    // ========================================================================
-
     /**
-     * รีเซ็ตฟอร์มสร้างสัญญาใหม่ (New Contract Form) ให้กลับสู่ค่าเริ่มต้น
-     * * เทคนิค:
-     * - ใช้ `Utils.resetForm` แทนการ Assign ค่าตรงๆ
-     * - เพื่อทำการ Deep Clean และจัดการ Reactive Properties ได้อย่างสมบูรณ์
-     * - ป้องกันปัญหาฟิลด์ค้างหรือสถานะไม่ถูกต้อง
+     * รีเซ็ตฟอร์มสัญญา (ใช้ form ของตัวเองในไฟล์นี้)
      */
-    resetNewForm() {
-      // ตรวจสอบความพร้อมของ State และ Dependencies
-      if (!global.AppState || !global.AppState.newContractForm) return;
-
-      if (global.DataSpec && global.DataSpec.Contract && global.Utils) {
-        // เรียกใช้ Utility กลางเพื่อรีเซ็ตข้อมูลตาม Schema มาตรฐาน
+    resetForm() {
+      if (global.Utils && global.Utils.resetForm) {
+        // รีเซ็ตค่าใน this.form ของตัวเอง
         global.Utils.resetForm(
-          global.AppState.newContractForm,
+          this.form,
           global.DataSpec.Contract.createDefault()
         );
       }
     },
+
+    // ========================================================================
+    // 4. COMPATIBILITY & ALIASES (ส่วนที่ขาดไป)
+    // ========================================================================
+
+    /**
+     * ✅ FIX BUG: สร้าง Alias ชื่อ resetNewForm
+     * เพื่อให้ไฟล์ gui.js เรียกใช้ได้โดยไม่ Error (เพราะของเก่าเรียกชื่อนี้)
+     */
+    resetNewForm() {
+      this.resetForm();
+    },
   };
 
-  // ส่งออก ContractApp เป็น Global Object
+  // ส่งออกเป็น Global Object
   global.ContractApp = ContractApp;
 })(window);
