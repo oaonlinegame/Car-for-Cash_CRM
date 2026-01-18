@@ -1,9 +1,8 @@
-// components/contract/contractInstallmentInfo.js
 (function (global) {
   "use strict";
 
   const template = `
-    <v-card :id="'section-contract-installment-' + index" variant="outlined"
+    <v-card v-if="contract" :id="sectionId || 'section-contract-installment-' + index" variant="outlined"
         rounded="xl" class="section-card section-card--installment mb-4">
         
         <v-card-title class="py-3">
@@ -109,16 +108,13 @@
   global.registerContractInstallmentInfo = function (app) {
     app.component("contract-installment-info", {
       template: template,
-      props: ["contract", "index"],
+      // เพิ่ม sectionId
+      props: ["contract", "index", "sectionId"],
       setup() {
-        // ฟังก์ชันช่วยคำนวณลบเลข ป้องกัน NaN
         const safeCalc = (a, b) => {
           return (Number(a) || 0) - (Number(b) || 0);
         };
-
-        return {
-          safeCalc,
-        };
+        return { safeCalc };
       },
     });
   };

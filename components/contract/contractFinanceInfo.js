@@ -2,7 +2,7 @@
   "use strict";
 
   const template = `
-    <v-card :id="'section-contract-finance-' + index" variant="outlined"
+<v-card v-if="contract" :id="sectionId || 'section-contract-finance-' + index" variant="outlined"
         rounded="xl" class="section-card section-card--finance mb-4">
         
         <v-card-title class="py-3">
@@ -68,7 +68,8 @@
   global.registerContractFinanceInfo = function (app) {
     app.component("contract-finance-info", {
       template: template,
-      props: ["contract", "index"], // รับค่าสัญญาและ index
+      // เพิ่ม sectionId
+      props: ["contract", "index", "sectionId"],
     });
   };
 })(window);

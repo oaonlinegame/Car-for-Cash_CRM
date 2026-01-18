@@ -197,7 +197,7 @@
                 targetModule[rule.method]();
               } else {
                 console.warn(
-                  `⚠️ Warning: Method ${rule.module}.${rule.method} not found`
+                  `⚠️ Warning: Method ${rule.module}.${rule.method} not found`,
                 );
               }
             }
@@ -260,7 +260,7 @@
       ) {
         // ใช้ Array.from เพื่อสร้างสำเนาข้อมูลใหม่ ป้องกันการแก้ไขต้นฉบับ
         global.AppState.contractPanels.value = Array.from(
-          global.AppConstants.UI_CONFIG.DEFAULT_CONTRACT_PANELS
+          global.AppConstants.UI_CONFIG.DEFAULT_CONTRACT_PANELS,
         );
       }
 
@@ -285,7 +285,7 @@
         global.AppConstants.UI_CONFIG.DEFAULT_CONTRACT_PANELS
       ) {
         global.AppState.contractPanels.value = Array.from(
-          global.AppConstants.UI_CONFIG.DEFAULT_CONTRACT_PANELS
+          global.AppConstants.UI_CONFIG.DEFAULT_CONTRACT_PANELS,
         );
       }
     },
@@ -294,27 +294,35 @@
     // 5. DOM MANIPULATION & SCROLLING (การจัดการ DOM และ Scroll)
     // ========================================================================
 
+    // ในไฟล์ js/gui.js
     /**
      * เลื่อน Scroll ไปยัง Element เป้าหมาย (Smooth Scroll)
-     * คำนวณระยะโดยชดเชยความสูงของ Sticky Header โดยอัตโนมัติ
-     * @param {string} targetSelector - CSS Selector ของเป้าหมาย (เช่น #section-1)
-     * @param {number} buffer - ระยะห่างเพิ่มเติม (Offset) เพื่อความสวยงาม
+     * รองรับทั้ง Main Profile Header และ Sub-contract Header
      */
     scrollToElement(targetSelector, buffer = 120) {
       const target = document.querySelector(targetSelector);
-      // ค้นหา Container ที่มี Scrollbar จริง (v-card-text)
+
+      // หา Container ที่มี Scrollbar (v-card-text)
       const container = target ? target.closest(".v-card-text") : null;
 
       if (target && container) {
-        // ตรวจสอบความสูงของ Header ที่ตรึงอยู่ (Dynamic Calculation)
-        const profileHeader = document.querySelector(".sticky-profile-area");
-        const headerHeight = profileHeader ? profileHeader.offsetHeight : 0;
+        // ✅ คำนวณความสูงของ Header ที่บังอยู่ (รองรับทั้ง 2 กรณี)
+        let headerHeight = 0;
+
+        // กรณี 1: อยู่ในหน้าสัญญาย่อย (Sub-contract)
+        const subHeader = container.querySelector(".sticky-subcontract-header");
+        if (subHeader) {
+          headerHeight = subHeader.offsetHeight;
+        } else {
+          // กรณี 2: อยู่ในหน้าหลัก (Main Profile)
+          const profileHeader = document.querySelector(".sticky-profile-area");
+          if (profileHeader) headerHeight = profileHeader.offsetHeight;
+        }
 
         const targetRect = target.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
 
-        // คำนวณตำแหน่ง Scroll ใหม่:
-        // (ตำแหน่งเป้าหมาย - ขอบบน Container) + Scroll ปัจจุบัน - ความสูง Header - Buffer
+        // คำนวณตำแหน่ง Scroll โดยหักลบ Header ออก
         const scrollPosition =
           targetRect.top -
           containerRect.top +
@@ -322,11 +330,12 @@
           headerHeight -
           buffer;
 
-        // สั่งให้ Container เลื่อนไปยังตำแหน่งที่คำนวณได้
         container.scrollTo({
           top: scrollPosition,
           behavior: "smooth",
         });
+      } else {
+        console.warn(`⚠️ Scroll target not found: ${targetSelector}`);
       }
     },
 

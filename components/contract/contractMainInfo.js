@@ -2,7 +2,7 @@
   "use strict";
 
   const template = `
-    <v-card :id="'section-contract-info-' + index" variant="outlined" rounded="xl"
+    <v-card v-if="contract" :id="sectionId || 'section-contract-info-' + index" variant="outlined" rounded="xl"
         class="section-card section-card--contract mb-4">
         
         <v-card-title class="py-3">
@@ -102,10 +102,9 @@
   global.registerContractMainInfo = function (app) {
     app.component("contract-main-info", {
       template: template,
-      // รับค่า contract (Object), lead (Object) และ index
-      props: ["contract", "lead", "index"],
+      // เพิ่ม sectionId และรับ index
+      props: ["contract", "lead", "index", "sectionId"],
       setup(props) {
-        // ดึง Global References มาใช้งานใน Template
         return {
           Store,
           LeadApp,

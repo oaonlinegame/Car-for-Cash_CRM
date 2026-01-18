@@ -953,7 +953,7 @@
                             <v-tabs-window-item v-for="(ct, i) in leadForm.contracts" :key="'contract-window-' + i"
                                 :value="'contract-' + i">
                                 <contract-editor :index="i">
-                                    <contract-editor :index="i">
+                                    <v-container class="pa-3 pt-0" fluid>
                                         <v-container class="pa-3 pt-0" fluid>
 
                                             <!-- HERO HEADER ด้านบน -->
@@ -1034,68 +1034,19 @@
                                             </v-sheet>
 
                                             <!-- CARD 1: ข้อมูลสัญญา -->
-                                            <contract-main-info :contract="ct" :lead="leadForm" :index="i">
+                                            <contract-main-info :contract="ct" :lead="leadForm" :index="i"
+                                                :section-id="'section-contract-info-' + i">
                                             </contract-main-info>
 
                                             <!-- CARD 2: รายละเอียดการผ่อนชำระ -->
-                                            <contract-installment-info :contract="ct" :index="i">
+                                            <contract-installment-info :contract="ct" :index="i"
+                                                :section-id="'section-contract-installment-' + i">
                                             </contract-installment-info>
 
                                             <!-- CARD 3: การเงิน & ยอดคงเหลือ -->
-                                            <v-card :id="'section-contract-finance-' + i" variant="outlined"
-                                                rounded="xl" class="section-card section-card--finance">
-                                                <v-card-title class="py-3">
-                                                    <div class="d-flex align-center justify-space-between">
-                                                        <div class="d-flex align-center">
-                                                            <v-avatar size="30" color="teal-lighten-4" class="mr-3">
-                                                                <v-icon size="small" icon="mdi-finance"
-                                                                    color="teal-darken-3"></v-icon>
-                                                            </v-avatar>
-                                                            <div>
-                                                                <div class="text-body-1 font-weight-medium">
-                                                                    การเงิน & ยอดคงเหลือ
-                                                                </div>
-                                                                <div class="text-caption text-grey-darken-1">
-                                                                    Outstanding · ยอดปิดบัญชี · OVD
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <v-chip size="x-small" color="teal-darken-2" variant="flat">
-                                                            <v-icon start size="x-small"
-                                                                icon="mdi-shield-check-outline"></v-icon>
-                                                            ความเสี่ยงต่ำ
-                                                        </v-chip>
-                                                    </div>
-                                                </v-card-title>
-
-                                                <v-divider></v-divider>
-
-                                                <v-card-text class="pt-4 pb-3">
-                                                    <v-row dense>
-
-                                                        <v-col cols="12">
-                                                            <v-text-field label="Outstanding Balance" prefix="฿"
-                                                                variant="solo-filled" density="comfortable"
-                                                                prepend-inner-icon="mdi-cash-remove" hide-details
-                                                                readonly></v-text-field>
-                                                        </v-col>
-
-                                                        <v-col cols="12">
-                                                            <v-text-field label="ยอดปิดบัญชี (ปัจจุบัน)" prefix="฿"
-                                                                variant="solo-filled" density="comfortable"
-                                                                prepend-inner-icon="mdi-bank-check" hide-details
-                                                                readonly></v-text-field>
-                                                        </v-col>
-
-                                                        <v-col cols="12">
-                                                            <v-text-field label="Unrealized" type="number"
-                                                                variant="solo-filled" density="comfortable"
-                                                                prepend-inner-icon="mdi-alert-circle-outline"
-                                                                hide-details readonly></v-text-field>
-                                                        </v-col>
-                                                    </v-row>
-                                                </v-card-text>
-                                            </v-card>
+                                            <contract-finance-info :contract="ct" :index="i"
+                                                :section-id="'section-contract-finance-' + i">
+                                            </contract-finance-info>
 
                                             <!-- CARD 4: หลักทรัพย์ค้ำประกัน -->
                                             <asset-section :id="'section-contract-asset-' + i" :owner="ct"
@@ -1196,7 +1147,7 @@
                                                 </v-card-text>
                                             </v-card>
                                         </v-container>
-                                    </contract-editor>
+                                </contract-editor>
                             </v-tabs-window-item>
 
 
@@ -1291,21 +1242,21 @@
 
                                 <v-chip size="small" color="indigo-darken-2" variant="elevated" class="font-weight-bold"
                                     style="cursor: pointer;"
-                                    @click="AppGui.scrollToElement('#' + AppConstants.STICKY_TARGETS.SUBCONTRACT_INFO, AppConstants.UI_CONFIG.SCROLL_OFFSETS.CONTRACT_DEFAULT)">
+                                    @click="AppGui.scrollToElement('#sub-contract-info-new', AppConstants.UI_CONFIG.SCROLL_OFFSETS.CONTRACT_DEFAULT)">
                                     <v-icon start size="x-small">mdi-file-document-outline</v-icon>
                                     ข้อมูลสัญญา
                                 </v-chip>
 
                                 <v-chip size="small" color="green-darken-2" variant="elevated" class="font-weight-bold"
                                     style="cursor: pointer;"
-                                    @click="AppGui.scrollToElement('#' + AppConstants.STICKY_TARGETS.SUBCONTRACT_INSTALLMENT, AppConstants.UI_CONFIG.SCROLL_OFFSETS.CONTRACT_DEFAULT)">
+                                    @click="AppGui.scrollToElement('#sub-contract-installment-new', AppConstants.UI_CONFIG.SCROLL_OFFSETS.CONTRACT_DEFAULT)">
                                     <v-icon start size="x-small">mdi-calendar-multiselect</v-icon>
                                     การผ่อนชำระ
                                 </v-chip>
 
                                 <v-chip size="small" color="teal-darken-2" variant="elevated" class="font-weight-bold"
                                     style="cursor: pointer;"
-                                    @click="AppGui.scrollToElement('#' + AppConstants.STICKY_TARGETS.SUBCONTRACT_FINANCE, AppConstants.UI_CONFIG.SCROLL_OFFSETS.CONTRACT_DEFAULT)">
+                                    @click="AppGui.scrollToElement('#sub-contract-finance-new', AppConstants.UI_CONFIG.SCROLL_OFFSETS.CONTRACT_DEFAULT)">
                                     <v-icon start size="x-small">mdi-finance</v-icon>
                                     การเงิน
                                 </v-chip>
@@ -1315,61 +1266,19 @@
                         <!-- CARD FORM -->
 
                         <!-- CARD 1: ข้อมูลสัญญา -->
-                        <contract-main-info :contract="subContractForm" :lead="leadForm" index="sub">
+                        <contract-main-info :contract="subContractForm" :lead="leadForm" index="sub-new"
+                            section-id="sub-contract-info-new">
                         </contract-main-info>
 
                         <!-- CARD 2: รายละเอียดการผ่อนชำระ -->
-                        <contract-installment-info :contract="subContractForm" index="sub">
+                        <contract-installment-info :contract="subContractForm" index="sub-new"
+                            section-id="sub-contract-installment-new">
                         </contract-installment-info>
 
                         <!-- CARD 3: การเงิน & ยอดคงเหลือ -->
-                        <v-card :id="AppConstants.STICKY_TARGETS.SUBCONTRACT_FINANCE" variant="outlined" rounded="xl"
-                            class="section-card section-card--finance">
-                            <v-card-title class="py-3">
-                                <div class="d-flex align-center justify-space-between">
-                                    <div class="d-flex align-center">
-                                        <v-avatar size="30" color="teal-lighten-4" class="mr-3">
-                                            <v-icon size="small" icon="mdi-finance" color="teal-darken-3"></v-icon>
-                                        </v-avatar>
-                                        <div>
-                                            <div class="text-body-1 font-weight-medium">
-                                                การเงิน & ยอดคงเหลือ
-                                            </div>
-                                            <div class="text-caption text-grey-darken-1">
-                                                Outstanding · ยอดปิดบัญชี · OVD
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </v-card-title>
-
-                            <v-divider></v-divider>
-
-                            <v-card-text class="pt-4 pb-3">
-                                <v-row dense>
-
-
-                                    <v-col cols="12">
-                                        <v-text-field label="Outstanding Balance" prefix="฿" variant="solo-filled"
-                                            density="comfortable" prepend-inner-icon="mdi-cash-remove" hide-details
-                                            readonly></v-text-field>
-                                    </v-col>
-
-                                    <v-col cols="12">
-                                        <v-text-field label="ยอดปิดบัญชี (ปัจจุบัน)" prefix="฿" variant="solo-filled"
-                                            density="comfortable" prepend-inner-icon="mdi-bank-check" hide-details
-                                            readonly></v-text-field>
-                                    </v-col>
-
-                                    <v-col cols="12">
-                                        <v-text-field label="unrealized" type="number" variant="solo-filled"
-                                            density="comfortable" prepend-inner-icon="mdi-alert-circle-outline"
-                                            hide-details readonly></v-text-field>
-                                    </v-col>
-                                </v-row>
-                            </v-card-text>
-                        </v-card>
+                        <contract-finance-info :contract="subContractForm" index="sub-new"
+                            section-id="sub-contract-finance-new">
+                        </contract-finance-info>
 
                     </v-card-text>
 
@@ -3883,6 +3792,9 @@
 
     <!-- โหลด Contract Installment Info Component (แสดงข้อมูลผ่อนชำระสัญญาในฟอร์ม Lead) -->
     <script src="./components/contract/contractInstallmentInfo.js"></script>
+
+    <!--  -->
+    <script src="./components/contract/contractFinanceInfo.js"></script>
 
     <!-- 6️⃣ โหลด Lead Logic (เพิ่ม/ลบ/อัปเดต Lead สำหรับ Dexie + UI) -->
     <script src="./js/lead.js"></script>
