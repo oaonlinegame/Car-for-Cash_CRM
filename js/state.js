@@ -10,7 +10,7 @@ const AppState = {
   isMenuOpenFilterSearch: Vue.ref(false), // เมนูตัวกรองค้นหา
   isOpenModalLead: Vue.ref(false), // หน้าต่างเพิ่ม/แก้ไข Lead
   isOpenSubContractDialog: Vue.ref(false), // หน้าต่างสัญญาย่อย
-  isOpenModalLeadAutoFill: Vue.ref(false), // หน้าต่าง Autofill ข้อมูล
+  isOpenModalLeadAutoFill: Vue.ref(true), // หน้าต่าง Autofill ข้อมูล
   isOpenModalLog: Vue.ref(false), // หน้าต่างบันทึก Log
   isOpenModalRecordCallResult: Vue.ref(false), // หน้าต่างบันทึกผลการโทร
   isOpenModalCarSettings: Vue.ref(false), // หน้าต่างตั้งค่ารถยนต์

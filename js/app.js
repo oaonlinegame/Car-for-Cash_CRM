@@ -44,6 +44,12 @@ const app = Vue.createApp({
     window.registerAssetSection && window.registerAssetSection(app); // ส่วนแสดงสินทรัพย์
     window.registerLeadNoteInfo && window.registerLeadNoteInfo(app); // ข้อมูลหมายเหตุลูกค้า
 
+    app.component("lead-summary-basic-info", LeadSummaryBasicInfo); // ข้อมูลพื้นฐาน
+    app.component("lead-summary-contact-info", LeadSummaryContactInfo); // ช่องทางการติดต่อ
+    app.component("lead-summary-asset-info", LeadSummaryAssetInfo); // ข้อมูลหลักทรัพย์
+    app.component("lead-summary-source-info", LeadSummarySourceInfo); // ข้อมูลแหล่งที่มา
+    app.component("lead-summary-note-info", LeadSummaryNoteInfo); // ข้อมูลหมายเหตุ
+
     // ลงทะเบียน Components ที่เกี่ยวข้องกับ Contract
     window.registerContractMainInfo && window.registerContractMainInfo(app); // ข้อมูลหลักสัญญา
     window.registerContractInstallmentInfo &&

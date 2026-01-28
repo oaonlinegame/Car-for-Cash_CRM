@@ -1,94 +1,74 @@
-// components/dialog/dialogAutoFill.js
-(function (window) {
-  "use strict";
+(function (global) {
+  const { computed } = Vue;
 
-  const template = `
-    <v-dialog v-model="isOpen" max-width="700" scrollable>
-        <v-card class="rounded-xl"
-            style="height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #fff;">
+  // 1. สร้าง Configuration Object เก็บไว้เฉยๆ ก่อน
+  const DialogAutoFillComponent = {
+    name: "dialog-autofill",
+    template: `
+            <v-dialog v-model="isOpenModalLeadAutoFill" max-width="600px">
+                <v-card>
+                    <v-card-title class="bg-deep-purple text-white d-flex align-center">
+                        <v-icon start>mdi-refresh-auto</v-icon>
+                        เพิ่มข้อมูล Autofill
+                        <v-spacer></v-spacer>
+                        <v-btn icon variant="text" @click="close">
+                            <v-icon>mdi-close</v-icon>
+                        </v-btn>
+                    </v-card-title>
+                    <v-card-text class="pt-4">
+                        <v-alert type="info" variant="tonal" class="mb-3" density="compact">
+                            วางข้อมูลดิบที่นี่ ระบบจะแยกแยะให้อัตโนมัติ
+                        </v-alert>
+                        <v-textarea 
+                            v-model="localText" 
+                            label="วางข้อมูล (Paste Here)" 
+                            rows="6"
+                            variant="outlined"
+                            auto-grow
+                        ></v-textarea>
+                    </v-card-text>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn color="grey" variant="text" @click="close">ยกเลิก</v-btn>
+                        <v-btn color="deep-purple" variant="flat" @click="process">ประมวลผล</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+        `,
+    setup() {
+      console.log("tessssssssssssssssssssss");
 
-            <v-card-title class="py-3 px-5 d-flex align-center justify-space-between flex-shrink-0"
-                style="border-bottom: 1px solid rgba(0,0,0,0.08); background: #fff; z-index: 10;">
-                <div class="d-flex align-center">
-                    <v-avatar size="34" color="deep-purple-darken-2" class="mr-3">
-                        <v-icon color="white">mdi-auto-upload</v-icon>
-                    </v-avatar>
-                    <span class="text-body-1 font-weight-medium">เพิ่มข้อมูล Auto fill</span>
-                </div>
-                <v-btn icon variant="text" density="compact" @click="close">
-                    <v-icon>mdi-close</v-icon>
-                </v-btn>
-            </v-card-title>
+      // Logic เชื่อมต่อ State กลาง (ตามที่คุยกันรอบที่แล้ว)
+      const localIsOpen = computed({
+        get: () => global.AppState.isOpenModalLeadAutoFill,
+        set: (val) => {
+          global.AppState.isOpenModalLeadAutoFill = val;
+        },
+      });
 
-            <v-card-text class="px-4 py-4 flex-grow-1" style="overflow-y: auto; background: #fafafa;">
-                <v-textarea 
-                    v-model="inputData"
-                    label="วางข้อมูลที่ต้องการ Auto fill ที่นี่"
-                    placeholder="สามารถ copy จากโปรแกรม AS400 แล้ววางที่นี้ได้เลย..."
-                    rows="25" 
-                    auto-grow 
-                    variant="outlined" 
-                    density="comfortable"
-                    prepend-inner-icon="mdi-text-box-multiple-outline" 
-                    hide-details
-                    class="h-100">
-                </v-textarea>
-            </v-card-text>
+      const localText = computed({
+        get: () => global.AppState.autofillText,
+        set: (val) => {
+          global.AppState.autofillText = val;
+        },
+      });
 
-            <v-card-actions class="py-3 px-4 flex-shrink-0"
-                style="background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border-top: 1px solid rgba(0,0,0,0.05);">
-                <v-spacer></v-spacer>
-                <v-btn variant="text" color="grey-darken-1" @click="close">
-                    ยกเลิก
-                </v-btn>
-                <v-btn color="deep-purple-darken-2" variant="flat" @click="handleSave" :disabled="!inputData">
-                    บันทึก
-                </v-btn>
-            </v-card-actions>
+      const close = () => {
+        localIsOpen.value = false;
+      };
 
-        </v-card>
-    </v-dialog>
-  `;
+      const process = () => {
+        // ส่ง Event หรือเรียก Logic กลาง
+        console.log("Processing Autofill...");
+        // ตัวอย่าง: global.DataExchange.parse(localText.value);
+        localIsOpen.value = false;
+      };
 
-  window.registerDialogAutoFill = function (app) {
-    app.component("dialog-auto-fill", {
-      template: template,
-      setup() {
-        const { ref, computed } = Vue;
-
-        // เชื่อมต่อกับ AppState
-        const isOpen = computed({
-          get: () => window.AppState.isOpenModalLeadAutoFill.value,
-          set: (val) => {
-            window.AppState.isOpenModalLeadAutoFill.value = val;
-          },
-        });
-
-        // Local state สำหรับข้อมูล Input
-        const inputData = ref("");
-
-        const close = () => {
-          isOpen.value = false;
-          // inputData.value = ""; // Optional: Clear data on close
-        };
-
-        const handleSave = () => {
-          if (window.AppBot) {
-            window.AppBot.autoFill(inputData.value);
-            close();
-            inputData.value = ""; // Clear after save
-          } else {
-            console.error("AppBot module not found");
-          }
-        };
-
-        return {
-          isOpen,
-          inputData,
-          close,
-          handleSave,
-        };
-      },
-    });
+      return { localIsOpen, localText, close, process };
+    },
   };
+
+  // 2. ฝากไว้ที่ Global Window (เพื่อให้ app.js มองเห็น)
+  // ไม่เรียก app.component() ที่นี่แล้ว เพื่อแก้ปัญหา Error
+  global.DialogAutoFill = DialogAutoFillComponent;
 })(window);
