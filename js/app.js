@@ -43,6 +43,7 @@ const app = Vue.createApp({
     window.registerLeadSourceInfo && window.registerLeadSourceInfo(app); // ข้อมูลแหล่งที่มาลูกค้า
     window.registerAssetSection && window.registerAssetSection(app); // ส่วนแสดงสินทรัพย์
     window.registerLeadNoteInfo && window.registerLeadNoteInfo(app); // ข้อมูลหมายเหตุลูกค้า
+    window.registerFilterSearchPanel && window.registerFilterSearchPanel(app); //
 
     app.component("lead-summary-basic-info", LeadSummaryBasicInfo); // ข้อมูลพื้นฐาน
     app.component("lead-summary-contact-info", LeadSummaryContactInfo); // ช่องทางการติดต่อ
