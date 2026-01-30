@@ -372,3 +372,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   /* ขยายพื้นที่คลิกเล็กน้อยเพื่อให้กดง่ายขึ้น */
   padding: 4px;
 }
+body, .v-application {
+    background-color: #F0F2F5 !important; /* สีเทาอ่อนแบบ Facebook */
+}
